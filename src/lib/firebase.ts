@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,10 +11,27 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// 检查是否有有效的 Firebase 配置
+const hasValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+if (hasValidConfig) {
+  try {
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.warn("Firebase initialization failed:", error);
+  }
+} else {
+  console.warn("Firebase config not found. Running without Firebase.");
+}
+
+// 导出可能为 null 的 auth 和 db
+export { auth, db };
 
 // 用 CRM 的 projectId 当作数据库目录
 export const appId = firebaseConfig.projectId || "grandma-crm";

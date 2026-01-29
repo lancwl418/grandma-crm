@@ -9,6 +9,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      // 如果没有 Firebase，直接允许访问
+      setLoading(false);
+      return;
+    }
+
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -21,6 +27,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         Loading...
       </div>
     );
+
+  // 如果没有 Firebase 配置，直接允许访问
+  if (!auth) {
+    return <AppLayout>{children}</AppLayout>;
+  }
 
   if (!user) return <Login />;
 

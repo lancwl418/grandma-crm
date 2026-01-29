@@ -3,12 +3,14 @@
     "target": "ESNext",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "jsx": "react-jsx",        // ← ★★ 最关键！解决所有 JSX 报错 ★★
+    "jsx": "react-jsx",
     "isolatedModules": true,
+    "skipLibCheck": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     "baseUrl": ".",
     "paths": {

@@ -5,9 +5,11 @@ export default function Header() {
   const [displayName, setDisplayName] = useState<string>("U");
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (user?.email) {
-      setDisplayName(user.email[0]?.toUpperCase() || "U");
+    if (auth) {
+      const user = auth.currentUser;
+      if (user?.email) {
+        setDisplayName(user.email[0]?.toUpperCase() || "U");
+      }
     }
   }, []);
 

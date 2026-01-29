@@ -1,6 +1,13 @@
-import { Home, Users, ClipboardList, Bell, Settings } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Home, Users } from "lucide-react";
 
 export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isDashboard = location.pathname === "/app" || location.pathname === "/app/";
+  const isClients = location.pathname === "/app/clients";
+
   return (
     <aside className="w-52 shrink-0 border-r border-slate-200 bg-white flex flex-col">
       <div className="px-4 py-4 border-b border-slate-200">
@@ -8,10 +15,18 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 text-sm">
-        <SidebarItem icon={Home} label="客户管理" active />
-        <SidebarItem icon={ClipboardList} label="跟进记录" />
-        <SidebarItem icon={Bell} label="任务提醒" />
-        <SidebarItem icon={Settings} label="设置" />
+        <SidebarItem
+          icon={Home}
+          label="工作台"
+          active={isDashboard}
+          onClick={() => navigate("/app")}
+        />
+        <SidebarItem
+          icon={Users}
+          label="客户"
+          active={isClients}
+          onClick={() => navigate("/app/clients")}
+        />
       </nav>
     </aside>
   );
@@ -20,15 +35,18 @@ export default function Sidebar() {
 function SidebarItem({
   icon: Icon,
   label,
-  active
+  active,
+  onClick
 }: {
   icon: typeof Home;
   label: string;
   active?: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
-      className={`w-full flex items-center px-3 py-2 rounded-lg mb-1 ${
+      onClick={onClick}
+      className={`w-full flex items-center px-3 py-2 rounded-lg mb-1 transition ${
         active
           ? "bg-slate-900 text-slate-50"
           : "text-slate-600 hover:bg-slate-100"
