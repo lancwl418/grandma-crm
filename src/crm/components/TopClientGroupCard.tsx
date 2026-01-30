@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, AlertCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
-import type { Client, ClientLog } from "@/crm/types";
+import { ChevronDown, ChevronUp, AlertCircle, Calendar, CheckCircle2 } from "lucide-react";
+import type { Client } from "@/crm/types";
 
 interface Task {
   id: string;
@@ -83,50 +83,12 @@ function getCommissionLevel(budgetMin?: string, budgetMax?: string): { level: st
 }
 
 /**
- * 计算两个日期之间的天数差（带符号，负数表示已过期）
+ * 今日重点关注区：仅一条摘要（不重复任务详情，不制造焦虑）
+ * 有待办 → 有待办 · 共 X 个；无待办 → 暂无明确待办 · 建议保持关注
  */
-function getDaysDiff(dueDate: Date): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compareDate = new Date(dueDate);
-  compareDate.setHours(0, 0, 0, 0);
-  const diffTime = compareDate.getTime() - today.getTime();
-  return Math.round(diffTime / (1000 * 60 * 60 * 24));
-}
-
-/**
- * 生成 Top 3 排序解释文案
- */
-function getTopReason(tasks: Task[], primaryTask: Task | undefined): { text: string; color: string } {
-  // 如果最紧急任务已逾期
-  if (primaryTask && primaryTask.isOverdue && primaryTask.daysOverdue !== undefined) {
-    return {
-      text: `已逾期 ${primaryTask.daysOverdue} 天：${primaryTask.title}`,
-      color: "text-red-600",
-    };
-  }
-
-  // 如果未逾期但今天截止
-  if (primaryTask && primaryTask.isToday) {
-    return {
-      text: `今天截止：${primaryTask.title}`,
-      color: "text-blue-600",
-    };
-  }
-
-  // 如果该客户有多个待办任务
-  if (tasks.length > 1) {
-    return {
-      text: `当前有 ${tasks.length} 个待办任务需要处理`,
-      color: "text-gray-600",
-    };
-  }
-
-  // 否则
-  return {
-    text: "今天需要处理该客户事项",
-    color: "text-gray-500",
-  };
+function getAttentionSummary(tasks: Task[]): string {
+  if (tasks.length === 0) return "暂无明确待办 · 建议保持关注";
+  return `有待办 · 共 ${tasks.length} 个`;
 }
 
 /**
@@ -179,8 +141,6 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
   const [expanded, setExpanded] = useState(false);
 
   const tasks = useMemo(() => extractAndSortTasks(client), [client]);
-  const primaryTask = tasks[0];
-  const hasMultipleTasks = tasks.length > 1;
   const commission = useMemo(
     () => getCommissionLevel(client.requirements?.budgetMin, client.requirements?.budgetMax),
     [client.requirements]
@@ -189,43 +149,8 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
   // 区域简写（只显示第一个）
   const areaShort = client.requirements?.areas?.[0] || "";
 
-  // 生成排序解释文案
-  const topReason = useMemo(() => getTopReason(tasks, primaryTask), [tasks, primaryTask]);
-
-  // 生成核心理由
-  const getCoreReason = (): { text: string; color: string; icon: React.ReactNode } => {
-    if (!primaryTask) {
-      return {
-        text: "暂无待办任务",
-        color: "text-gray-500",
-        icon: null,
-      };
-    }
-
-    if (primaryTask.isOverdue) {
-      return {
-        text: `已逾期 ${primaryTask.daysOverdue} 天：${primaryTask.title}`,
-        color: "text-red-600",
-        icon: <AlertCircle className="h-4 w-4 text-red-500" />,
-      };
-    }
-
-    if (primaryTask.isToday) {
-      return {
-        text: `今天截止：${primaryTask.title}`,
-        color: "text-orange-600",
-        icon: <Calendar className="h-4 w-4 text-orange-500" />,
-      };
-    }
-
-    return {
-      text: primaryTask.title,
-      color: "text-gray-700",
-      icon: <Clock className="h-4 w-4 text-gray-500" />,
-    };
-  };
-
-  const coreReason = getCoreReason();
+  // 仅一条关注摘要（不显示任务 urgency，避免与任务区语义冲突）
+  const attentionSummary = useMemo(() => getAttentionSummary(tasks), [tasks]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -244,9 +169,9 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
                 </span>
               )}
             </div>
-            {/* 排序解释文案 */}
-            <p className={`text-sm ${topReason.color} mt-1`}>
-              {topReason.text}
+            {/* 关注摘要：仅一条，中性表述 */}
+            <p className="text-sm text-gray-500 mt-1">
+              {attentionSummary}
             </p>
           </div>
           {/* 佣金标签 - 右上角 */}
@@ -270,10 +195,8 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
           </div>
         </div>
 
-        {/* 核心理由 - 视觉中心 */}
-        <div className={`flex items-start gap-2 mb-3 ${coreReason.color}`}>
-          {coreReason.icon}
-          <p className="text-base font-semibold flex-1 leading-relaxed">{coreReason.text}</p>
+        {/* 行动入口：去记录 + 查看详情 */}
+        <div className="flex items-center justify-between gap-2">
           {onQuickRecord && (
             <button
               onClick={(e) => {
@@ -285,17 +208,6 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
               去记录
             </button>
           )}
-        </div>
-
-        {/* 多个待办提示 */}
-        {hasMultipleTasks && !expanded && (
-          <div className="text-sm text-gray-500 mb-3">
-            · 共 {tasks.length} 个待办
-          </div>
-        )}
-
-        {/* 行动入口 */}
-        <div className="flex items-center justify-between">
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
@@ -346,9 +258,9 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
                 </div>
                 <div className="text-xs text-gray-500 ml-6">
                   {task.isOverdue
-                    ? `已逾期 ${task.daysOverdue} 天`
+                    ? (task.daysOverdue > 0 ? `已逾期 ${task.daysOverdue} 天` : "今日到期")
                     : task.isToday
-                    ? "今天截止"
+                    ? "今日到期"
                     : `截止：${task.dueDate.toLocaleDateString("zh-CN", {
                         month: "short",
                         day: "numeric",

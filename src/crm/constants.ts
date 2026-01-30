@@ -251,3 +251,68 @@ export const AREAS_MAPPING: Record<string, string> = {
   Walnut: "Walnut（核桃市）",
   DiamondBar: "Diamond Bar（钻石吧）",
 };
+
+// =========================
+//  Demo / 本地调试：刻意设计的 sample tasks（仅用于 UI 验证）
+//  不影响正式逻辑与排序算法
+// =========================
+function formatDateKey(d: Date): string {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+export function getSampleClientsWithDemoTasks(): Client[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const todayStr = formatDateKey(today);
+  const yesterdayStr = formatDateKey(yesterday);
+
+  return SAMPLE_CLIENTS.map((client) => {
+    if (client.id === "c1") {
+      // 客户 A：学区房 / Irvine — 2 个今日待办
+      return {
+        ...client,
+        logs: [
+          ...(client.logs || []),
+          {
+            id: "c1-demo-1",
+            date: todayStr,
+            content: "待跟进看房反馈。",
+            nextAction: `${todayStr}：📞 跟进看房反馈`,
+            nextActionTodo: "📞 跟进看房反馈",
+          },
+          {
+            id: "c1-demo-2",
+            date: todayStr,
+            content: "待发送学区评分报告。",
+            nextAction: `${todayStr}：📤 发送学区评分报告`,
+            nextActionTodo: "📤 发送学区评分报告",
+          },
+        ],
+      };
+    }
+    if (client.id === "c5") {
+      // 客户 B：首次购房 — 1 个昨日待办（逾期 1 天）
+      return {
+        ...client,
+        logs: [
+          ...(client.logs || []),
+          {
+            id: "c5-demo-1",
+            date: yesterdayStr,
+            content: "待跟进贷款进度。",
+            nextAction: `${yesterdayStr}：📞 跟进贷款进度`,
+            nextActionTodo: "📞 跟进贷款进度",
+          },
+        ],
+      };
+    }
+    if (client.id === "c3") {
+      // 客户 C：豪宅 — 不新增任何 task，保持「无待办」用于验证
+      return client;
+    }
+    return client;
+  });
+}
