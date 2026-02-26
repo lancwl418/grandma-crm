@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic } from "lucide-react";
 import type { Client, ClientLog } from "@/crm/types";
 import { getSampleClientsWithDemoTasks } from "@/crm/constants";
 import {
@@ -13,6 +13,7 @@ import {
 import FocusClientCard from "@/crm/components/FocusClientCard";
 import ClientDetail from "@/crm/components/ClientDetail";
 import AddTaskModal from "@/crm/components/AddTaskModal";
+import VoiceTaskFlow from "@/crm/components/VoiceTaskFlow";
 
 function isPhoneTask(title: string): boolean {
   return /📞|电话/.test(title);
@@ -267,6 +268,7 @@ const Dashboard: React.FC = () => {
   const [taskFormClient, setTaskFormClient] = useState<Client | null>(null);
   const [snoozedTaskIds, setSnoozedTaskIds] = useState<Set<string>>(() => new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showVoiceFlow, setShowVoiceFlow] = useState(false);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -358,15 +360,16 @@ const Dashboard: React.FC = () => {
     setShowAddTaskModal(true);
   };
 
-  const handleAddLogFromModal = (log: ClientLog) => {
-    if (!taskFormClient) return;
+  const handleAddLogFromModal = (log: ClientLog, targetClient: Client) => {
     setClients((prev) =>
-      prev.map((client) =>
-        client.id === taskFormClient.id
-          ? { ...client, logs: [...(client.logs || []), log] }
-          : client
+      prev.map((c) =>
+        c.id === targetClient.id
+          ? { ...c, logs: [...(c.logs || []), log] }
+          : c
       )
     );
+    const name = targetClient.remarkName || targetClient.name || "客户";
+    setToastMessage(`已为「${name}」添加记录`);
   };
 
   if (selectedClient) {
@@ -389,7 +392,30 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       <div className="max-w-7xl mx-auto space-y-8">
-        <h1 className="text-2xl font-bold text-gray-900">今日工作台</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">今日工作台</h1>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowVoiceFlow(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-sm"
+            >
+              <Mic className="h-4 w-4" />
+              语音建任务
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTaskFormClient(null);
+                setShowAddTaskModal(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              新建任务
+            </button>
+          </div>
+        </div>
 
         {/* 顶部 3 张卡片：与下方 3 个区块 1:1 对应 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -620,6 +646,14 @@ const Dashboard: React.FC = () => {
           setTaskFormClient(null);
         }}
         client={taskFormClient}
+        clients={clients}
+        onAddLog={handleAddLogFromModal}
+      />
+
+      <VoiceTaskFlow
+        open={showVoiceFlow}
+        onClose={() => setShowVoiceFlow(false)}
+        clients={clients}
         onAddLog={handleAddLogFromModal}
       />
     </div>

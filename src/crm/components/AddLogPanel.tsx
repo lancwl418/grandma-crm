@@ -39,17 +39,19 @@ const AddLogPanel: React.FC<Props> = ({ onAddLog }) => {
   };
 
   const handleSubmit = () => {
-    if (!content.trim()) return;
+    const hasContent = content.trim().length > 0;
+    const hasNextAction = nextDate && nextActionContent.trim();
+    if (!hasContent && !hasNextAction) return;
 
     const log: ClientLog = {
       id: createLogId(),
       date: new Date().toISOString(),
-      content: content.trim(),
+      content: content.trim() || (hasNextAction ? `设定任务：${nextActionContent.trim()}` : ""),
       images: images.length ? images : undefined,
-      nextAction:
-        nextDate && nextActionContent.trim()
+      nextAction: hasNextAction
           ? `${nextDate}：${nextActionContent.trim()}`
           : undefined,
+      nextActionTodo: hasNextAction ? nextActionContent.trim() : undefined,
     };
 
     onAddLog(log);
