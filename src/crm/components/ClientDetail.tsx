@@ -420,20 +420,21 @@ useEffect(() => {
           跟进记录
         </h2>
 
-        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+        <div className="flex-1 overflow-y-auto pr-1">
           {client.logs && client.logs.length > 0 ? (
-            [...client.logs]
-              .sort(
-                (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-              ) // 最新在上
-              .map((log, index) => (
+            (() => {
+              const sorted = [...client.logs].sort(
+                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              );
+              return sorted.map((log, index) => (
                 <LogItem
                   key={log.id ?? index}
                   log={log}
                   index={index + 1}
+                  isLast={index === sorted.length - 1}
                 />
-              ))
+              ));
+            })()
           ) : (
             <div className="text-sm text-gray-400">
               还没有跟进记录，下面写一条吧～

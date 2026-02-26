@@ -6,71 +6,73 @@ import type { ClientLog } from "@/crm/types";
 interface Props {
   log: ClientLog;
   index: number;
+  isLast?: boolean;
 }
 
-const LogItem: React.FC<Props> = ({ log, index }) => {
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+function formatTime(isoString: string): { dateStr: string; timeStr: string } {
+  if (!isoString) return { dateStr: "", timeStr: "" };
+  const date = new Date(isoString);
+  const month = date.toLocaleString("zh-CN", { timeZone: "America/Los_Angeles", month: "numeric" });
+  const day = date.toLocaleString("zh-CN", { timeZone: "America/Los_Angeles", day: "numeric" });
+  const time = date.toLocaleString("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return { dateStr: `${month}月${day}日`, timeStr: time };
+}
 
-  function formatToCaliforniaTime(isoString: string) {
-    if (!isoString) return "";
-  
-    const date = new Date(isoString);
-  
-    return date.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  }
+const LogItem: React.FC<Props> = ({ log, isLast }) => {
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const { dateStr, timeStr } = formatTime(log.date);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-3">
-
-      {/* 大图预览 */}
+    <div className="relative flex gap-4">
       <ImagePreviewModal
         src={previewSrc}
         onClose={() => setPreviewSrc(null)}
       />
 
-      {/* 顶部：序号 + 时间 */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-baseline gap-3">
-          <span className="text-blue-600 font-semibold text-lg">{index}</span>
-          <span className="text-gray-500 text-sm">{formatToCaliforniaTime(log.date)}</span>
-        </div>
+      {/* 时间线：圆点 + 竖线 */}
+      <div className="flex flex-col items-center pt-1">
+        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${log.nextAction ? "bg-orange-400" : "bg-blue-400"}`} />
+        {!isLast && <div className="w-px flex-1 bg-gray-200 mt-1" />}
       </div>
 
-      {/* 内容 */}
-      <div className="text-gray-800 leading-relaxed whitespace-pre-line">
-        {log.content}
+      {/* 内容区 */}
+      <div className={`flex-1 ${isLast ? "pb-0" : "pb-6"}`}>
+        {/* 时间 */}
+        <p className="text-xs text-gray-400 mb-1">
+          {dateStr} {timeStr}
+        </p>
+
+        {/* 正文 */}
+        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{log.content}</p>
+
+        {/* 图片 */}
+        {log.images && log.images.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {log.images.map((src, idx) => (
+              <img
+                key={idx}
+                src={src}
+                alt={`log-img-${idx}`}
+                onClick={() => setPreviewSrc(src)}
+                className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:opacity-80"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 下一步 */}
+        {log.nextAction && (
+          <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-orange-600 bg-orange-50 px-2.5 py-1.5 rounded-md">
+            <Clock className="h-3.5 w-3.5" />
+            <span>下步：{log.nextActionTodo || log.nextAction}</span>
+          </div>
+        )}
       </div>
-
-      {/* 图片缩略图 + 点击放大 */}
-      {log.images && log.images.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {log.images.map((src, idx) => (
-            <img
-              key={idx}
-              src={src}
-              alt={`log-image-${idx}`}
-              onClick={() => setPreviewSrc(src)}
-              className="w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-80"
-            />
-          ))}
-        </div>
-      )}
-
-      {/* 下一步计划 */}
-      {log.nextAction && (
-        <div className="mt-3 inline-flex items-center gap-2 text-orange-600 text-sm bg-orange-50 px-3 py-2 rounded-lg">
-          <Clock className="h-4 w-4" />
-          <span>下步：{log.nextAction}</span>
-        </div>
-      )}
     </div>
   );
 };

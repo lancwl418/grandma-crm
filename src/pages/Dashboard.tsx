@@ -11,9 +11,12 @@ import {
   type FlatTask,
 } from "@/crm/utils/dashboardTasks";
 import FocusClientCard from "@/crm/components/FocusClientCard";
+import BriefingCard from "@/crm/components/BriefingCard";
 import ClientDetail from "@/crm/components/ClientDetail";
 import AddTaskModal from "@/crm/components/AddTaskModal";
 import VoiceTaskFlow from "@/crm/components/VoiceTaskFlow";
+import { requestNotificationPermission, sendTaskReminders, cleanupOldNotifications } from "@/crm/utils/notifications";
+import FloatingActionButton from "@/crm/components/FloatingActionButton";
 
 function isPhoneTask(title: string): boolean {
   return /📞|电话/.test(title);
@@ -303,6 +306,17 @@ const Dashboard: React.FC = () => {
     [momentumTasksRaw, snoozedTaskIds]
   );
 
+  // 浏览器通知
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
+  useEffect(() => {
+    const actionTasks = [...overdueTasks, ...todayTasks];
+    sendTaskReminders(actionTasks);
+    cleanupOldNotifications(actionTasks);
+  }, [overdueTasks, todayTasks]);
+
   const todayTasksCount = overdueTasks.length + todayTasks.length;
 
   const top3Clients = useMemo(() => {
@@ -417,57 +431,43 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 顶部 3 张卡片：与下方 3 个区块 1:1 对应 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            type="button"
-            onClick={() => scrollToSection(todayTasksRef)}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-left hover:border-orange-200 hover:bg-orange-50/30 transition"
-            title="跳转到今日待办"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">今日待办</p>
-                <p className="text-2xl font-bold text-orange-600">{todayTasksCount}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  逾期 <span className="font-medium text-orange-600">{overdueTasks.length}</span>
-                  <span className="text-gray-300 mx-1">·</span>
-                  今日 <span className="font-medium text-blue-600">{todayTasks.length}</span>
-                </p>
-              </div>
-              <Calendar className="h-8 w-8 text-orange-500" />
+        {/* 今日简报 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">
+              今日简报
+              {todayTasksCount > 0 && (
+                <span className="ml-2 text-xs font-normal text-gray-400">{todayTasksCount} 件事</span>
+              )}
+            </h2>
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              {overdueTasks.length > 0 && (
+                <span className="text-red-500 font-medium">{overdueTasks.length} 逾期</span>
+              )}
+              <span>{momentumTasks.length} 本周</span>
             </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection(weekPlanRef)}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-left hover:border-blue-200 hover:bg-blue-50/30 transition"
-            title="跳转到本周推进"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">本周推进</p>
-                <p className="text-2xl font-bold text-blue-600">{momentumTasks.length}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-blue-500" />
+          </div>
+          {todayTasksCount === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-gray-400">
+              今日无待办，好好休息
             </div>
-            <p className="text-xs text-gray-400 mt-2">未来 7 天内截止</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection(premiumClientsRef)}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-left hover:border-amber-200 hover:bg-amber-50/30 transition"
-            title="跳转到优质客人"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">优质客人</p>
-                <p className="text-2xl font-bold text-amber-600">{top3Clients.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-amber-500" />
+          ) : (
+            <div className="p-2 space-y-1.5">
+              {[...overdueTasks, ...todayTasks].map((task) => {
+                const client = clients.find((c) => c.id === task.clientId);
+                return (
+                  <BriefingCard
+                    key={task.id}
+                    task={task}
+                    clientPhone={client?.phone}
+                    clientWechat={client?.wechat}
+                    onComplete={handleCompleteTask}
+                    onOpenClient={setSelectedClientId}
+                  />
+                );
+              })}
             </div>
-            <p className="text-xs text-gray-400 mt-2">重点关注客户</p>
-          </button>
+          )}
         </div>
 
         {/* 区块 1：今日待办（内部：逾期 + 今日截止） */}
@@ -655,6 +655,14 @@ const Dashboard: React.FC = () => {
         onClose={() => setShowVoiceFlow(false)}
         clients={clients}
         onAddLog={handleAddLogFromModal}
+      />
+
+      <FloatingActionButton
+        onNewTask={() => {
+          setTaskFormClient(null);
+          setShowAddTaskModal(true);
+        }}
+        onVoiceTask={() => setShowVoiceFlow(true)}
       />
     </div>
   );
