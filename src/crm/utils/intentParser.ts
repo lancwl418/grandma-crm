@@ -83,6 +83,7 @@ const INTENT_RULES: { intent: IntentType; patterns: RegExp[] }[] = [
       /(找|查)(一下|下)?[\u4e00-\u9fff]/,
       /哪个客户/,
       /客户(信息|详情|资料)/,
+      /姓[\u4e00-\u9fff]的?/,
     ],
   },
 ];
@@ -124,12 +125,18 @@ export function parse(input: string, clients: Client[]): ParsedIntent {
   // Extract raw client query text (fallback for when matchClient finds nothing)
   let rawClientQuery: string | undefined = parsed.clientMatches[0]?.matchedText;
   if (!rawClientQuery && intent === "FIND_CLIENT") {
-    // Strip search verbs to get the name part: "帮我找王" → "王"
-    const extracted = input
-      .replace(/帮我|请|搜索|找一下|查一下|找下|查下|找|查/g, "")
-      .replace(/客户|客人|的?(信息|详情|资料)/g, "")
-      .trim();
-    rawClientQuery = extracted || undefined;
+    // Handle "姓王的" → "王"
+    const surnameMatch = input.match(/姓([\u4e00-\u9fff])的?/);
+    if (surnameMatch) {
+      rawClientQuery = surnameMatch[1];
+    } else {
+      // Strip search verbs to get the name part: "帮我找王" → "王"
+      const extracted = input
+        .replace(/帮我|请|搜索|找一下|查一下|找下|查下|找|查/g, "")
+        .replace(/客户|客人|的?(信息|详情|资料)/g, "")
+        .trim();
+      rawClientQuery = extracted || undefined;
+    }
   }
 
   const slots: ParsedIntent["slots"] = {

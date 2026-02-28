@@ -179,24 +179,31 @@ function handleFindClient(parsed: ParsedIntent, context: ChatContext): Assistant
   // Fallback: if voiceTaskParser found nothing, try simple surname/substring search
   if (matches.length === 0 && parsed.slots.clientQuery) {
     const q = parsed.slots.clientQuery.toLowerCase();
+
+    // Handle "小X" nickname → surname match: "小王" → name starts with "王"
+    const xiaoMatch = parsed.slots.clientQuery.match(/^小([\u4e00-\u9fff])$/);
+    const surname = xiaoMatch ? xiaoMatch[1] : null;
+
     const found = context.clients.filter((c) => {
       const names = [c.remarkName, c.name].filter(Boolean) as string[];
+      if (surname) {
+        // "小王" → match any client whose name starts with 王
+        return names.some((n) => n.startsWith(surname));
+      }
       return names.some((n) => n.toLowerCase().includes(q));
     });
     matches = found.map((c) => ({ client: c, score: 0.5, matchedText: parsed.slots.clientQuery! }));
   }
 
-  // Also try: extract any Chinese characters from input as a raw search query
-  if (matches.length === 0) {
-    const chineseChars = parsed.slots.clientQuery || "";
-    // Extract the last Chinese name-like substring (1-4 chars) from the original input
-    const rawQuery = chineseChars.replace(/^(找|查|搜索|帮我找|帮我查)(一下|下)?/, "").trim();
-    if (rawQuery) {
+  // Also try: single-char surname → startsWith match
+  if (matches.length === 0 && parsed.slots.clientQuery) {
+    const q = parsed.slots.clientQuery;
+    if (q.length === 1) {
       const found = context.clients.filter((c) => {
         const names = [c.remarkName, c.name].filter(Boolean) as string[];
-        return names.some((n) => n.includes(rawQuery));
+        return names.some((n) => n.startsWith(q));
       });
-      matches = found.map((c) => ({ client: c, score: 0.4, matchedText: rawQuery }));
+      matches = found.map((c) => ({ client: c, score: 0.4, matchedText: q }));
     }
   }
 
