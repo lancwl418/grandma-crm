@@ -258,7 +258,7 @@ const TopClientGroupCard: React.FC<Props> = ({ client, onViewDetail, onCompleteT
                 </div>
                 <div className="text-xs text-gray-500 ml-6">
                   {task.isOverdue
-                    ? (task.daysOverdue > 0 ? `已逾期 ${task.daysOverdue} 天` : "今日到期")
+                    ? ((task.daysOverdue ?? 0) > 0 ? `已逾期 ${task.daysOverdue} 天` : "今日到期")
                     : task.isToday
                     ? "今日到期"
                     : `截止：${task.dueDate.toLocaleDateString("zh-CN", {

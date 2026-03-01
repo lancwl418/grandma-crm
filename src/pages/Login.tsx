@@ -12,9 +12,9 @@ export default function Login() {
     e.preventDefault();
     try {
       if (mode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth!, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth!, email, password);
       }
     } catch (err: any) {
       setError(err.message);

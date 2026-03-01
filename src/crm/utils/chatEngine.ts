@@ -7,7 +7,7 @@
 import type { Client, ClientLog } from "@/crm/types";
 import type { FlatTask } from "@/crm/utils/dashboardTasks";
 import { formatDateForNextAction } from "@/crm/utils/dashboardTasks";
-import { parse, parseSlot, type ParsedIntent } from "@/crm/utils/intentParser";
+import { parse, parseSlot, classifyIntent, type ParsedIntent } from "@/crm/utils/intentParser";
 import type { ClientMatch } from "@/crm/utils/voiceTaskParser";
 
 // ── State Machine Types ──────────────────────────────────────
@@ -96,19 +96,20 @@ function buildLog(action: string, dueDate: Date): ClientLog {
   };
 }
 
-/** Check if user input looks like a new intent (not a slot answer) */
+/** Check if user input looks like a new intent (not a slot answer).
+ *  Uses synchronous regex classification — does NOT call the async LLM API. */
 function looksLikeNewIntent(input: string): boolean {
-  const result = parse(input, []);
-  return result.intent !== "UNKNOWN" && result.confidence > 0.8;
+  const intent = classifyIntent(input);
+  return intent !== "UNKNOWN";
 }
 
 // ── Core: processInput ──────────────────────────────────────
 
-export function processInput(
+export async function processInput(
   input: string,
   state: AssistantState,
   context: ChatContext
-): AssistantResponse {
+): Promise<AssistantResponse> {
   const { mode } = state;
 
   // Route to appropriate handler based on current mode
@@ -123,8 +124,8 @@ export function processInput(
 
 // ── IDLE mode handler ───────────────────────────────────────
 
-function handleIdle(input: string, context: ChatContext): AssistantResponse {
-  const parsed = parse(input, context.clients);
+async function handleIdle(input: string, context: ChatContext): Promise<AssistantResponse> {
+  const parsed = await parse(input, context.clients);
 
   switch (parsed.intent) {
     case "GREETING": {
@@ -332,11 +333,11 @@ function executeCreateTask(
 
 // ── AWAITING_DISAMBIGUATION handler ─────────────────────────
 
-function handleDisambiguation(
+async function handleDisambiguation(
   input: string,
   state: AssistantState,
   context: ChatContext
-): AssistantResponse {
+): Promise<AssistantResponse> {
   // Check if this is a completely new intent → reset
   if (looksLikeNewIntent(input)) {
     return handleIdle(input, context);
@@ -411,11 +412,11 @@ function handleDisambiguation(
 
 // ── AWAITING_MISSING_SLOTS handler ──────────────────────────
 
-function handleMissingSlots(
+async function handleMissingSlots(
   input: string,
   state: AssistantState,
   context: ChatContext
-): AssistantResponse {
+): Promise<AssistantResponse> {
   // Check if this is a completely new intent → reset
   if (looksLikeNewIntent(input)) {
     return handleIdle(input, context);

@@ -46,6 +46,7 @@ export default function ChatPanel({
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [assistantState, setAssistantState] = useState<AssistantState>(INITIAL_STATE);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "welcome", role: "assistant", text: WELCOME_TEXT, timestamp: new Date() },
@@ -106,15 +107,21 @@ export default function ChatPanel({
 
   // ── Send text message ───────────────────────────────────────
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || isLoading) return;
     setInput("");
+    setIsLoading(true);
 
     const context = { clients, overdueTasks, todayTasks };
-    const response = processInput(text, assistantState, context);
-    applyResponse(response, text);
-  }, [input, clients, overdueTasks, todayTasks, assistantState, applyResponse]);
+
+    try {
+      const response = await processInput(text, assistantState, context);
+      applyResponse(response, text);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, clients, overdueTasks, todayTasks, assistantState, applyResponse]);
 
   // ── Select a candidate card ─────────────────────────────────
 
@@ -279,6 +286,20 @@ export default function ChatPanel({
             )}
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 mr-2">
+              <Bot className="h-3 w-3 text-white" />
+            </div>
+            <div className="px-3 py-2 rounded-xl bg-white border border-gray-100 shadow-sm">
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -290,15 +311,16 @@ export default function ChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={modeHint || "输入消息..."}
-          className="flex-1 text-sm outline-none bg-transparent"
+          disabled={isLoading}
+          placeholder={isLoading ? "思考中..." : (modeHint || "输入消息...")}
+          className="flex-1 text-sm outline-none bg-transparent disabled:text-gray-300"
         />
         <button
           type="button"
           onClick={handleSend}
-          disabled={!input.trim()}
+          disabled={!input.trim() || isLoading}
           className={`p-1.5 rounded-lg transition ${
-            input.trim()
+            input.trim() && !isLoading
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-100 text-gray-300"
           }`}
