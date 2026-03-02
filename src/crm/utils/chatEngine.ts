@@ -165,7 +165,7 @@ async function handleIdle(input: string, context: ChatContext): Promise<Assistan
     case "UNKNOWN":
     default:
       return {
-        text: "我可以帮你：\n· 添加客户 — 说「加个新客户」\n· 建任务 — 说「明天提醒我给XX打电话」\n· 看待办 — 说「今天有什么任务」\n· 找客户 — 说「找一下王小明」",
+        text: "抱歉，这个我暂时帮不了你～ 不过以下这些我很擅长：\n· 添加客户 — 说「加个新客户」\n· 建任务 — 说「明天提醒我给XX打电话」\n· 看待办 — 说「今天有什么任务」\n· 找客户 — 说「找一下王小明」",
         newState: INITIAL_STATE,
         sideEffects: [],
       };
