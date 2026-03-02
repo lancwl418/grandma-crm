@@ -19,6 +19,8 @@ export type IntentType =
   | "CREATE_TASK"
   | "ADD_CLIENT"
   | "VIEW_TODAY"
+  | "UPDATE_CLIENT"
+  | "OPEN_CLIENT"
   | "GREETING"
   | "UNKNOWN";
 
@@ -30,6 +32,10 @@ export interface ParsedIntent {
     action?: string;
     dueDate?: Date;
     dueDateText?: string;
+    /** UPDATE_CLIENT: which field to update */
+    field?: string;
+    /** UPDATE_CLIENT: new value for the field */
+    value?: string;
   };
   missing: string[];
   confidence: number;
@@ -65,6 +71,16 @@ const INTENT_RULES: { intent: IntentType; patterns: RegExp[] }[] = [
       /今天(干啥|做啥|干什么|做什么)/,
     ],
   },
+  // UPDATE_CLIENT: changing status, urgency, phone, budget, tags, etc.
+  {
+    intent: "UPDATE_CLIENT",
+    patterns: [
+      /(状态|紧急度|电话|手机|预算|微信|标签)(改|设|更新|换|变)(为|成|到)/,
+      /(改|设|更新|换|变)(一下)?.*的?(状态|紧急度|电话|手机|预算|微信|标签)/,
+      /把.+(状态|紧急度|电话|手机|预算|微信|标签)(改|设|更新|换|变)/,
+      /更新.+(信息|资料)/,
+    ],
+  },
   // CREATE_TASK before FIND_CLIENT — task keywords take priority
   {
     intent: "CREATE_TASK",
@@ -73,6 +89,15 @@ const INTENT_RULES: { intent: IntentType; patterns: RegExp[] }[] = [
       /(加|建|添加|新建)(个|一个)?(任务|待办)/,
       /(带|陪).*(看房|看盘)/,
       /明天|后天|下周|本周|[0-9]+天后|[0-9]+号/,
+    ],
+  },
+  // OPEN_CLIENT: explicitly open/view a client profile
+  {
+    intent: "OPEN_CLIENT",
+    patterns: [
+      /打开.*(资料|详情|页面|档案)/,
+      /(查看|看看|看一下|看下).*(资料|详情|信息|档案)/,
+      /打开[\u4e00-\u9fff]/,
     ],
   },
   {
@@ -111,13 +136,16 @@ interface APIParseResponse {
     clientQuery?: string;
     action?: string;
     dueDateText?: string;
+    field?: string;
+    value?: string;
   };
   confidence: number;
 }
 
 const VALID_INTENTS: string[] = [
   "FIND_CLIENT", "CREATE_TASK", "ADD_CLIENT",
-  "VIEW_TODAY", "GREETING", "UNKNOWN",
+  "VIEW_TODAY", "UPDATE_CLIENT", "OPEN_CLIENT",
+  "GREETING", "UNKNOWN",
 ];
 
 function isValidAPIResponse(data: unknown): data is APIParseResponse {
@@ -189,12 +217,45 @@ function hydrateAPIResult(
     };
   }
 
-  // FIND_CLIENT / CREATE_TASK: hydrate slots with local matching
+  // All remaining intents need client matching
   const clientQuery = api.slots.clientQuery;
   const clientMatches = clientQuery
     ? matchClient(clientQuery, clients)
     : matchClient(input, clients);
 
+  // OPEN_CLIENT: just needs a client
+  if (intent === "OPEN_CLIENT") {
+    const missing: string[] = clientMatches.length === 0 ? ["client"] : [];
+    return {
+      intent,
+      slots: { clientQuery: clientQuery || undefined, clientMatches },
+      missing,
+      confidence: missing.length === 0 ? api.confidence : 0.5,
+    };
+  }
+
+  // UPDATE_CLIENT: needs client + field + value
+  if (intent === "UPDATE_CLIENT") {
+    const missing: string[] = [];
+    if (clientMatches.length === 0) missing.push("client");
+    if (!api.slots.field) missing.push("field");
+    if (!api.slots.value) missing.push("value");
+    const totalRequired = 3;
+    const filled = totalRequired - missing.length;
+    return {
+      intent,
+      slots: {
+        clientQuery: clientQuery || undefined,
+        clientMatches,
+        field: api.slots.field || undefined,
+        value: api.slots.value || undefined,
+      },
+      missing,
+      confidence: Math.max(0.3, Math.min(api.confidence, filled / totalRequired)),
+    };
+  }
+
+  // FIND_CLIENT / CREATE_TASK: hydrate slots with local matching
   const dateResult = api.slots.dueDateText
     ? parseRelativeDate(api.slots.dueDateText)
     : null;
@@ -237,6 +298,55 @@ function parseLocal(input: string, clients: Client[]): ParsedIntent {
       slots: { clientMatches: [] },
       missing: [],
       confidence: intent === "UNKNOWN" ? 0.3 : 0.95,
+    };
+  }
+
+  // OPEN_CLIENT: extract client name from input
+  if (intent === "OPEN_CLIENT") {
+    const cleaned = input
+      .replace(/打开|查看|看看|看一下|看下|的?(资料|详情|信息|页面|档案)/g, "")
+      .trim();
+    const clientMatches = cleaned ? matchClient(cleaned, clients) : [];
+    return {
+      intent,
+      slots: { clientQuery: cleaned || undefined, clientMatches },
+      missing: clientMatches.length === 0 ? ["client"] : [],
+      confidence: clientMatches.length > 0 ? 0.9 : 0.5,
+    };
+  }
+
+  // UPDATE_CLIENT: extract client, field, value from input (basic regex)
+  if (intent === "UPDATE_CLIENT") {
+    const fieldMap: Record<string, string> = {
+      "状态": "status", "紧急度": "urgency", "电话": "phone",
+      "手机": "phone", "预算": "budget", "微信": "wechat", "标签": "tags",
+    };
+    let field: string | undefined;
+    let value: string | undefined;
+    // Pattern: "把XX的状态改为看房中"
+    const updateMatch = input.match(/(?:把)?(.+?)的?(状态|紧急度|电话|手机|预算|微信|标签)(?:改|设|更新|换|变)(?:为|成|到)?(.+)/);
+    if (updateMatch) {
+      const clientQuery = updateMatch[1].replace(/^(帮我|请)/, "").trim();
+      field = fieldMap[updateMatch[2]] || updateMatch[2];
+      value = updateMatch[3].trim();
+      const clientMatches = matchClient(clientQuery, clients);
+      const missing: string[] = [];
+      if (clientMatches.length === 0) missing.push("client");
+      if (!field) missing.push("field");
+      if (!value) missing.push("value");
+      return {
+        intent,
+        slots: { clientQuery, clientMatches, field, value },
+        missing,
+        confidence: missing.length === 0 ? 0.9 : 0.5,
+      };
+    }
+    // Fallback: couldn't parse structure
+    return {
+      intent,
+      slots: { clientMatches: [] },
+      missing: ["client", "field", "value"],
+      confidence: 0.3,
     };
   }
 
@@ -321,12 +431,64 @@ export function parseSlot(
     return result ? { value: result.date, matched: true } : { value: null, matched: false };
   }
   if (slotName === "client") {
-    const matches = matchClient(input, clients);
+    let matches = matchClient(input, clients);
+
+    // Fallback: single-char surname → startsWith
+    if (matches.length === 0 && input.trim().length === 1) {
+      const ch = input.trim();
+      const found = clients.filter((c) => {
+        const names = [c.remarkName, c.name].filter(Boolean) as string[];
+        return names.some((n) => n.startsWith(ch));
+      });
+      matches = found.map((c) => ({ client: c, score: 0.4, matchedText: ch }));
+    }
+
+    // Fallback: "小X" nickname → surname match
+    if (matches.length === 0) {
+      const xiaoMatch = input.trim().match(/^小([\u4e00-\u9fff])$/);
+      if (xiaoMatch) {
+        const surname = xiaoMatch[1];
+        const found = clients.filter((c) => {
+          const names = [c.remarkName, c.name].filter(Boolean) as string[];
+          return names.some((n) => n.startsWith(surname));
+        });
+        matches = found.map((c) => ({ client: c, score: 0.4, matchedText: input.trim() }));
+      }
+    }
+
+    // Fallback: substring match (e.g., "学区房" matches remarkName "学区房客户")
+    if (matches.length === 0) {
+      const q = input.trim().toLowerCase();
+      if (q.length >= 1) {
+        const found = clients.filter((c) => {
+          const names = [c.remarkName, c.name].filter(Boolean) as string[];
+          return names.some((n) => n.toLowerCase().includes(q));
+        });
+        matches = found.map((c) => ({ client: c, score: 0.5, matchedText: q }));
+      }
+    }
+
     return matches.length > 0
       ? { value: matches, matched: true }
       : { value: null, matched: false };
   }
   if (slotName === "action") {
+    const trimmed = input.trim();
+    return trimmed ? { value: trimmed, matched: true } : { value: null, matched: false };
+  }
+  if (slotName === "field") {
+    const fieldMap: Record<string, string> = {
+      "状态": "status", "紧急度": "urgency", "电话": "phone",
+      "手机": "phone", "预算": "budget", "微信": "wechat", "标签": "tags",
+    };
+    const trimmed = input.trim();
+    const mapped = fieldMap[trimmed];
+    if (mapped) return { value: mapped, matched: true };
+    // Check if user typed the English field name directly
+    if (Object.values(fieldMap).includes(trimmed)) return { value: trimmed, matched: true };
+    return { value: null, matched: false };
+  }
+  if (slotName === "value") {
     const trimmed = input.trim();
     return trimmed ? { value: trimmed, matched: true } : { value: null, matched: false };
   }

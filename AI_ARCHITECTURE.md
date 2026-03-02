@@ -27,13 +27,12 @@
 | 1.2 | 状态机编排器 (IDLE / DISAMBIGUATION / MISSING_SLOTS) | FE | 已完成 | `chatEngine.ts` |
 | 1.3 | 消歧 UI（候选卡片 + 点击选择） | FE | 已完成 | `ChatPanel.tsx` |
 | 1.4 | 缺失 slot 追问流程 | FE | 已完成 | `askingSlot` 驱动多轮追问 |
-| 1.5 | 设计 Parse API 契约 (JSON Schema) | BE+AI | 待做 | 输入: `{ utterance, locale, sessionHints? }` 输出: `ParsedIntent` |
-| 1.6 | 实现 Parse API（LLM + system prompt + JSON mode） | BE+AI | 待做 | Temperature 0, function-calling, ~200 tokens |
-| 1.7 | 替换 `intentParser.ts:parse()` 为 Parse API 调用 | FE+BE | 待做 | 代码已预留 swap point |
-| 1.8 | 新增 `UPDATE_CLIENT` / `OPEN_CLIENT` 意图 | BE+AI | 待做 | 扩展 `IntentType` union |
+| 1.5 | 设计 Parse API 契约 (JSON Schema) | BE+AI | 已完成 | `functions/src/schema.ts` Zod schemas |
+| 1.6 | 实现 Parse API（LLM + system prompt + JSON mode） | BE+AI | 已完成 | Firebase Functions + Anthropic provider |
+| 1.7 | 替换 `intentParser.ts:parse()` 为 Parse API 调用 | FE+BE | 已完成 | async parse() + local regex fallback |
+| 1.8 | 新增 `UPDATE_CLIENT` / `OPEN_CLIENT` 意图 | BE+AI | 已完成 | 扩展 `IntentType` union，LLM prompt + Zod schema + chatEngine handlers |
 
-**支持的意图**: FIND_CLIENT, CREATE_TASK, ADD_CLIENT, VIEW_TODAY, GREETING, UNKNOWN
-**待新增**: UPDATE_CLIENT, OPEN_CLIENT
+**支持的意图**: FIND_CLIENT, CREATE_TASK, ADD_CLIENT, VIEW_TODAY, UPDATE_CLIENT, OPEN_CLIENT, GREETING, UNKNOWN
 
 **依赖**: 1.5→1.6→1.7。1.1-1.4 是 1.7 的前置（已完成）。
 

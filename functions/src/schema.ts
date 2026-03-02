@@ -22,6 +22,8 @@ const VALID_INTENTS = [
   "CREATE_TASK",
   "ADD_CLIENT",
   "VIEW_TODAY",
+  "UPDATE_CLIENT",
+  "OPEN_CLIENT",
   "GREETING",
   "UNKNOWN",
 ] as const;
@@ -33,6 +35,10 @@ export const LLMResponseSchema = z.object({
       clientQuery: z.string().optional(),
       action: z.string().optional(),
       dueDateText: z.string().optional(),
+      /** UPDATE_CLIENT: field name (status/urgency/phone/budget/wechat/tags) */
+      field: z.string().optional(),
+      /** UPDATE_CLIENT: new value for the field */
+      value: z.string().optional(),
     })
     .default({}),
   confidence: z.number().min(0).max(1).default(0.5),

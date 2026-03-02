@@ -121,6 +121,32 @@ const AssistantDashboard: React.FC = () => {
       case "COMPLETE_TASK":
         handleCompleteTask(effect.logId);
         break;
+      case "UPDATE_CLIENT":
+        setClients((prev) =>
+          prev.map((c) => {
+            if (c.id !== effect.clientId) return c;
+            const field = effect.field;
+            const value = effect.value;
+            if (field === "status") return { ...c, status: value };
+            if (field === "urgency") {
+              const valid = ["high", "medium", "low"];
+              if (valid.includes(value)) return { ...c, urgency: value as Client["urgency"] };
+              return c;
+            }
+            if (field === "phone") return { ...c, phone: value };
+            if (field === "wechat") return { ...c, wechat: value };
+            if (field === "budget") {
+              return { ...c, requirements: { ...c.requirements, budgetMax: value } };
+            }
+            if (field === "tags") {
+              const newTags = value.split(/[,，、\s]+/).filter(Boolean);
+              return { ...c, tags: [...new Set([...c.tags, ...newTags])] };
+            }
+            return c;
+          })
+        );
+        setToastMessage(`已更新客户信息`);
+        break;
     }
   }, [handleAddLogFromModal, handleCompleteTask]);
 

@@ -23,6 +23,10 @@ export interface AssistantState {
     dueDate?: Date;
     clientId?: string;
     clientName?: string;
+    /** UPDATE_CLIENT: field to update */
+    field?: string;
+    /** UPDATE_CLIENT: new value */
+    value?: string;
   };
   /** Which slot we're currently asking about */
   askingSlot?: string;
@@ -51,7 +55,8 @@ export type SideEffect =
   | { type: "OPEN_CLIENT"; clientId: string }
   | { type: "OPEN_ADD_CLIENT" }
   | { type: "OPEN_ADD_TASK" }
-  | { type: "COMPLETE_TASK"; logId: string };
+  | { type: "COMPLETE_TASK"; logId: string }
+  | { type: "UPDATE_CLIENT"; clientId: string; field: string; value: string };
 
 export interface AssistantResponse {
   text: string;
@@ -161,6 +166,12 @@ async function handleIdle(input: string, context: ChatContext): Promise<Assistan
 
     case "CREATE_TASK":
       return handleCreateTask(parsed, context);
+
+    case "OPEN_CLIENT":
+      return handleOpenClient(parsed, context);
+
+    case "UPDATE_CLIENT":
+      return handleUpdateClient(parsed, context);
 
     case "UNKNOWN":
     default:
@@ -331,6 +342,247 @@ function executeCreateTask(
   };
 }
 
+// ── OPEN_CLIENT logic ────────────────────────────────────────
+
+function handleOpenClient(parsed: ParsedIntent, context: ChatContext): AssistantResponse {
+  const matches = parsed.slots.clientMatches;
+
+  // Reuse FIND_CLIENT's fallback matching logic
+  if (matches.length === 0 && parsed.slots.clientQuery) {
+    // Try simple substring/surname matching
+    const q = parsed.slots.clientQuery.toLowerCase();
+    const xiaoMatch = parsed.slots.clientQuery.match(/^小([\u4e00-\u9fff])$/);
+    const surname = xiaoMatch ? xiaoMatch[1] : null;
+
+    const found = context.clients.filter((c) => {
+      const names = [c.remarkName, c.name].filter(Boolean) as string[];
+      if (surname) return names.some((n) => n.startsWith(surname));
+      return names.some((n) => n.toLowerCase().includes(q));
+    });
+
+    if (found.length === 1) {
+      const c = found[0];
+      const name = c.remarkName || c.name || "";
+      return {
+        text: `正在打开「${name}」的资料。`,
+        newState: INITIAL_STATE,
+        ctaClientId: c.id,
+        ctaClientName: name,
+        sideEffects: [{ type: "OPEN_CLIENT", clientId: c.id }],
+      };
+    }
+
+    if (found.length > 1) {
+      return {
+        text: `找到 ${found.length} 位匹配的客户，请选择要打开哪个：`,
+        newState: {
+          mode: "AWAITING_DISAMBIGUATION",
+          pendingIntent: { ...parsed, intent: "OPEN_CLIENT" },
+          candidates: found,
+          draft: {},
+        },
+        candidates: found.map(toCandidate),
+        sideEffects: [],
+      };
+    }
+
+    return {
+      text: `没有找到匹配的客户「${parsed.slots.clientQuery}」。`,
+      newState: INITIAL_STATE,
+      sideEffects: [],
+    };
+  }
+
+  if (matches.length === 1) {
+    const c = matches[0].client;
+    const name = c.remarkName || c.name || "";
+    return {
+      text: `正在打开「${name}」的资料。`,
+      newState: INITIAL_STATE,
+      ctaClientId: c.id,
+      ctaClientName: name,
+      sideEffects: [{ type: "OPEN_CLIENT", clientId: c.id }],
+    };
+  }
+
+  if (matches.length > 1) {
+    const candidates = matches.map((m) => m.client);
+    return {
+      text: `找到 ${matches.length} 位匹配的客户，请选择要打开哪个：`,
+      newState: {
+        mode: "AWAITING_DISAMBIGUATION",
+        pendingIntent: parsed,
+        candidates,
+        draft: {},
+      },
+      candidates: candidates.map(toCandidate),
+      sideEffects: [],
+    };
+  }
+
+  return {
+    text: "请告诉我要打开哪个客户的资料？",
+    newState: {
+      mode: "AWAITING_MISSING_SLOTS",
+      pendingIntent: parsed,
+      candidates: null,
+      draft: {},
+      askingSlot: "client",
+    },
+    sideEffects: [],
+  };
+}
+
+// ── UPDATE_CLIENT logic ──────────────────────────────────────
+
+const FIELD_LABELS: Record<string, string> = {
+  status: "状态",
+  urgency: "紧急度",
+  phone: "电话",
+  budget: "预算",
+  wechat: "微信",
+  tags: "标签",
+};
+
+function handleUpdateClient(parsed: ParsedIntent, context: ChatContext): AssistantResponse {
+  const matches = parsed.slots.clientMatches;
+  const { field, value } = parsed.slots;
+
+  const draft: AssistantState["draft"] = {
+    field: field || undefined,
+    value: value || undefined,
+  };
+
+  // Case 1: no client match → ask
+  if (matches.length === 0 && !parsed.slots.clientQuery) {
+    return {
+      text: "请问要更新哪个客户的信息？",
+      newState: {
+        mode: "AWAITING_MISSING_SLOTS",
+        pendingIntent: parsed,
+        candidates: null,
+        draft,
+        askingSlot: "client",
+      },
+      sideEffects: [],
+    };
+  }
+
+  // Try fallback matching if no direct matches
+  if (matches.length === 0 && parsed.slots.clientQuery) {
+    const q = parsed.slots.clientQuery.toLowerCase();
+    const found = context.clients.filter((c) => {
+      const names = [c.remarkName, c.name].filter(Boolean) as string[];
+      return names.some((n) => n.toLowerCase().includes(q));
+    });
+
+    if (found.length === 1) {
+      const client = found[0];
+      draft.clientId = client.id;
+      draft.clientName = client.remarkName || client.name || "";
+      return tryExecuteUpdate(draft, client, parsed);
+    }
+
+    if (found.length > 1) {
+      return {
+        text: `找到 ${found.length} 位匹配的客户，请选择：`,
+        newState: {
+          mode: "AWAITING_DISAMBIGUATION",
+          pendingIntent: parsed,
+          candidates: found,
+          draft,
+        },
+        candidates: found.map(toCandidate),
+        sideEffects: [],
+      };
+    }
+
+    return {
+      text: `没有找到客户「${parsed.slots.clientQuery}」，请确认姓名。`,
+      newState: {
+        mode: "AWAITING_MISSING_SLOTS",
+        pendingIntent: parsed,
+        candidates: null,
+        draft,
+        askingSlot: "client",
+      },
+      sideEffects: [],
+    };
+  }
+
+  // Multiple matches → disambiguation
+  if (matches.length > 1) {
+    const candidates = matches.map((m) => m.client);
+    return {
+      text: `找到 ${matches.length} 位匹配的客户，请选择：`,
+      newState: {
+        mode: "AWAITING_DISAMBIGUATION",
+        pendingIntent: parsed,
+        candidates,
+        draft,
+      },
+      candidates: candidates.map(toCandidate),
+      sideEffects: [],
+    };
+  }
+
+  // Exactly 1 match
+  const client = matches[0].client;
+  draft.clientId = client.id;
+  draft.clientName = client.remarkName || client.name || "";
+  return tryExecuteUpdate(draft, client, parsed);
+}
+
+function tryExecuteUpdate(
+  draft: AssistantState["draft"],
+  client: Client,
+  parsed: ParsedIntent
+): AssistantResponse {
+  const { field, value } = draft;
+  const name = draft.clientName || client.remarkName || client.name || "";
+
+  // Missing field → ask
+  if (!field) {
+    return {
+      text: `好的，要更新「${name}」的什么信息？（如：状态、电话、预算、紧急度）`,
+      newState: {
+        mode: "AWAITING_MISSING_SLOTS",
+        pendingIntent: parsed,
+        candidates: null,
+        draft,
+        askingSlot: "field",
+      },
+      sideEffects: [],
+    };
+  }
+
+  // Missing value → ask
+  if (!value) {
+    const fieldLabel = FIELD_LABELS[field] || field;
+    return {
+      text: `要把「${name}」的${fieldLabel}改为什么？`,
+      newState: {
+        mode: "AWAITING_MISSING_SLOTS",
+        pendingIntent: parsed,
+        candidates: null,
+        draft,
+        askingSlot: "value",
+      },
+      sideEffects: [],
+    };
+  }
+
+  // All filled → execute
+  const fieldLabel = FIELD_LABELS[field] || field;
+  return {
+    text: `已将「${name}」的${fieldLabel}更新为「${value}」。`,
+    newState: INITIAL_STATE,
+    ctaClientId: client.id,
+    ctaClientName: name,
+    sideEffects: [{ type: "UPDATE_CLIENT", clientId: client.id, field, value }],
+  };
+}
+
 // ── AWAITING_DISAMBIGUATION handler ─────────────────────────
 
 async function handleDisambiguation(
@@ -382,6 +634,23 @@ async function handleDisambiguation(
       return executeCreateTask(draft, client, context);
     }
 
+    // OPEN_CLIENT → directly open
+    if (state.pendingIntent?.intent === "OPEN_CLIENT") {
+      return {
+        text: `正在打开「${name}」的资料。`,
+        newState: INITIAL_STATE,
+        ctaClientId: client.id,
+        ctaClientName: name,
+        sideEffects: [{ type: "OPEN_CLIENT", clientId: client.id }],
+      };
+    }
+
+    // UPDATE_CLIENT → continue with field/value
+    if (state.pendingIntent?.intent === "UPDATE_CLIENT") {
+      const draft = { ...state.draft, clientId: client.id, clientName: name };
+      return tryExecuteUpdate(draft, client, state.pendingIntent);
+    }
+
     // FIND_CLIENT
     return {
       text: `找到了「${name}」。`,
@@ -417,22 +686,25 @@ async function handleMissingSlots(
   state: AssistantState,
   context: ChatContext
 ): Promise<AssistantResponse> {
-  // Check if this is a completely new intent → reset
-  if (looksLikeNewIntent(input)) {
-    return handleIdle(input, context);
-  }
-
   const { askingSlot, draft, pendingIntent } = state;
   if (!askingSlot || !pendingIntent) return handleIdle(input, context);
 
+  // Try parsing the slot FIRST — so "王先生" is treated as a client answer,
+  // not a new FIND_CLIENT intent.
   const result = parseSlot(input, askingSlot, context.clients);
 
   if (!result.matched) {
-    // Couldn't parse the slot → ask again
+    // Slot parsing failed → now check if it's a completely new intent
+    if (looksLikeNewIntent(input)) {
+      return handleIdle(input, context);
+    }
+    // Not a new intent either → ask again
     const prompts: Record<string, string> = {
       client: "没有识别到客户，请说客户姓名或备注名。",
       dueDate: "没有识别到日期，请说具体时间，比如「明天」「下周三」「15号」。",
       action: "请告诉我具体要做什么，比如「打电话跟进」。",
+      field: "请告诉我要更新哪个字段，比如「状态」「电话」「预算」「紧急度」。",
+      value: "请告诉我新的值。",
     };
     return {
       text: prompts[askingSlot] || "请再说一次。",
@@ -468,6 +740,35 @@ async function handleMissingSlots(
     }
   } else if (askingSlot === "action") {
     newDraft.action = result.value as string;
+  } else if (askingSlot === "field") {
+    newDraft.field = result.value as string;
+  } else if (askingSlot === "value") {
+    newDraft.value = result.value as string;
+  }
+
+  // OPEN_CLIENT: just needs a client
+  if (pendingIntent.intent === "OPEN_CLIENT" && newDraft.clientId) {
+    return {
+      text: `正在打开「${newDraft.clientName}」的资料。`,
+      newState: INITIAL_STATE,
+      ctaClientId: newDraft.clientId,
+      ctaClientName: newDraft.clientName,
+      sideEffects: [{ type: "OPEN_CLIENT", clientId: newDraft.clientId }],
+    };
+  }
+
+  // UPDATE_CLIENT: needs client + field + value
+  if (pendingIntent.intent === "UPDATE_CLIENT") {
+    if (newDraft.clientId) {
+      const client = context.clients.find((c) => c.id === newDraft.clientId);
+      if (client) return tryExecuteUpdate(newDraft, client, pendingIntent);
+    }
+    // Still need client
+    return {
+      text: "请问是哪个客户？",
+      newState: { ...state, draft: newDraft, askingSlot: "client" },
+      sideEffects: [],
+    };
   }
 
   // Check what's still missing for CREATE_TASK
@@ -546,6 +847,23 @@ export function selectCandidate(
     }
 
     return executeCreateTask(draft, client, context);
+  }
+
+  // OPEN_CLIENT → directly open
+  if (state.pendingIntent?.intent === "OPEN_CLIENT") {
+    return {
+      text: `正在打开「${name}」的资料。`,
+      newState: INITIAL_STATE,
+      ctaClientId: client.id,
+      ctaClientName: name,
+      sideEffects: [{ type: "OPEN_CLIENT", clientId: client.id }],
+    };
+  }
+
+  // UPDATE_CLIENT → continue with field/value
+  if (state.pendingIntent?.intent === "UPDATE_CLIENT") {
+    const draft = { ...state.draft, clientId: client.id, clientName: name };
+    return tryExecuteUpdate(draft, client, state.pendingIntent);
   }
 
   // FIND_CLIENT → open client
