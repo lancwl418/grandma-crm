@@ -11,6 +11,10 @@ import {
   parseRelativeDate,
   type ClientMatch,
 } from "@/crm/utils/voiceTaskParser";
+import {
+  isParseAPIResponse,
+  type ParseAPIResponse,
+} from "@/crm/ai/parseContract";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -130,42 +134,13 @@ export function classifyIntent(input: string): IntentType {
 
 // ── LLM Parse API ─────────────────────────────────────────────
 
-interface APIParseResponse {
-  intent: IntentType;
-  slots: {
-    clientQuery?: string;
-    action?: string;
-    dueDateText?: string;
-    field?: string;
-    value?: string;
-  };
-  confidence: number;
-}
-
-const VALID_INTENTS: string[] = [
-  "FIND_CLIENT", "CREATE_TASK", "ADD_CLIENT",
-  "VIEW_TODAY", "UPDATE_CLIENT", "OPEN_CLIENT",
-  "GREETING", "UNKNOWN",
-];
-
-function isValidAPIResponse(data: unknown): data is APIParseResponse {
-  if (typeof data !== "object" || data === null) return false;
-  const obj = data as Record<string, unknown>;
-  return (
-    typeof obj.intent === "string" &&
-    VALID_INTENTS.includes(obj.intent) &&
-    typeof obj.confidence === "number" &&
-    typeof obj.slots === "object" && obj.slots !== null
-  );
-}
-
 const API_TIMEOUT_MS = 10_000;
 
 /** 防抖：如果同一输入在 2 秒内重复提交，复用上次结果 */
-let lastCall: { input: string; time: number; result: APIParseResponse | null } | null = null;
+let lastCall: { input: string; time: number; result: ParseAPIResponse | null } | null = null;
 const DEBOUNCE_MS = 2_000;
 
-async function callParseAPI(input: string): Promise<APIParseResponse | null> {
+async function callParseAPI(input: string): Promise<ParseAPIResponse | null> {
   // 防抖：相同输入短时间内不重复请求
   if (lastCall && lastCall.input === input && Date.now() - lastCall.time < DEBOUNCE_MS) {
     return lastCall.result;
@@ -190,7 +165,7 @@ async function callParseAPI(input: string): Promise<APIParseResponse | null> {
     }
 
     const data: unknown = await response.json();
-    const result = isValidAPIResponse(data) ? data : null;
+    const result = isParseAPIResponse(data) ? data : null;
     lastCall = { input, time: Date.now(), result };
     return result;
   } catch {
@@ -201,7 +176,7 @@ async function callParseAPI(input: string): Promise<APIParseResponse | null> {
 
 /** Convert API response to full ParsedIntent using local deterministic code */
 function hydrateAPIResult(
-  api: APIParseResponse,
+  api: ParseAPIResponse,
   input: string,
   clients: Client[]
 ): ParsedIntent {

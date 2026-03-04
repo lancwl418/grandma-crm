@@ -1,29 +1,34 @@
+import { randomUUID } from "node:crypto";
 import {
   ParseRequestSchema,
   LLMResponseSchema,
-  type LLMResponse,
+  type ParseError,
+  type ParseSuccess,
 } from "./schema";
 import { SYSTEM_PROMPT } from "./prompt";
 import { getProvider } from "./providers";
 
 export interface ParseResult {
   status: number;
-  body: LLMResponse | { error: string; details?: unknown };
+  body: ParseSuccess | ParseError;
 }
 
 export async function handleParse(rawBody: unknown): Promise<ParseResult> {
   const startMs = Date.now();
+  const traceId = randomUUID();
 
   // 1. Validate request
   const reqParse = ParseRequestSchema.safeParse(rawBody);
   if (!reqParse.success) {
     console.warn("[Parse] 400 bad_request", {
+      traceId,
       fields: Object.keys(reqParse.error.flatten().fieldErrors),
     });
     return {
       status: 400,
       body: {
         error: "Invalid request",
+        traceId,
         details: reqParse.error.flatten(),
       },
     };
@@ -42,6 +47,7 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
   } catch (err) {
     const elapsed = Date.now() - startMs;
     console.error("[Parse] 502 llm_error", {
+      traceId,
       provider: provider.name,
       elapsed,
       utteranceLen,
@@ -49,7 +55,7 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
     });
     return {
       status: 502,
-      body: { error: "LLM provider error" },
+      body: { error: "LLM provider error", traceId },
     };
   }
 
@@ -58,6 +64,7 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
   if (!llmParse.success) {
     const elapsed = Date.now() - startMs;
     console.error("[Parse] 422 validation_failed", {
+      traceId,
       provider: provider.name,
       elapsed,
       utteranceLen,
@@ -67,6 +74,7 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
       status: 422,
       body: {
         error: "LLM output validation failed",
+        traceId,
         details: llmParse.error.flatten(),
       },
     };
@@ -75,6 +83,7 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
   // 4. 成功日志（脱敏：只记录 intent + confidence + 耗时）
   const elapsed = Date.now() - startMs;
   console.info("[Parse] 200 ok", {
+    traceId,
     intent: llmParse.data.intent,
     confidence: llmParse.data.confidence,
     elapsed,
@@ -82,5 +91,11 @@ export async function handleParse(rawBody: unknown): Promise<ParseResult> {
     provider: provider.name,
   });
 
-  return { status: 200, body: llmParse.data };
+  return {
+    status: 200,
+    body: {
+      ...llmParse.data,
+      traceId,
+    },
+  };
 }

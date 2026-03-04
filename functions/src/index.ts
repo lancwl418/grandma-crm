@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { handleParse } from "./parseHandler";
+import { handleExecuteTool } from "./tools/execute";
 
 // ── 简易 IP 限流（内存计数，函数实例重启后重置） ────────────
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 分钟窗口
@@ -44,6 +45,24 @@ export const parse = onRequest(
     }
 
     const result = await handleParse(req.body);
+    res.status(result.status).json(result.body);
+  }
+);
+
+export const runTool = onRequest(
+  {
+    cors: true,
+    region: "us-central1",
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const result = await handleExecuteTool(req.body);
     res.status(result.status).json(result.body);
   }
 );

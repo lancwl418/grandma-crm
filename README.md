@@ -103,6 +103,15 @@ npm run lint      # ESLint 检查
 npm run preview   # 预览生产构建
 ```
 
+## Supabase 底层方案（推荐）
+
+如果你要从一开始就搭可扩展底层，使用 Supabase/Postgres：
+
+1. 先执行数据库初始化 SQL：
+   - `docs/supabase/001_init_crm.sql`
+2. 再按迁移清单逐步替换前后端数据层：
+   - `docs/supabase/MIGRATION_PLAN.md`
+
 ## 项目结构
 
 ```

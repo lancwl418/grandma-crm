@@ -17,6 +17,7 @@ import ClientSearchOverlay from "@/crm/components/ClientSearchOverlay";
 import ChatPanel from "@/crm/components/ChatPanel";
 import type { SideEffect } from "@/crm/utils/chatEngine";
 import { X } from "lucide-react";
+import { runTool, searchClientOnServer } from "@/crm/ai/toolClient";
 
 const AssistantDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -85,6 +86,37 @@ const AssistantDashboard: React.FC = () => {
     setToastMessage(`已为「${name}」添加记录`);
   }, []);
 
+  const applyLocalClientUpdate = useCallback((effect: Extract<SideEffect, { type: "UPDATE_CLIENT" }>) => {
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id !== effect.clientId) return c;
+        const field = effect.field;
+        const value = effect.value;
+        if (field === "status") return { ...c, status: value };
+        if (field === "urgency") {
+          const valid = ["high", "medium", "low"];
+          if (valid.includes(value)) return { ...c, urgency: value as Client["urgency"] };
+          return c;
+        }
+        if (field === "phone") return { ...c, phone: value };
+        if (field === "wechat") return { ...c, wechat: value };
+        if (field === "budget") {
+          return { ...c, requirements: { ...c.requirements, budgetMax: value } };
+        }
+        if (field === "tags") {
+          const newTags = value.split(/[,，、\s]+/).filter(Boolean);
+          return { ...c, tags: [...new Set([...c.tags, ...newTags])] };
+        }
+        return c;
+      })
+    );
+  }, []);
+
+  const extractDueDateISO = (log: ClientLog): string => {
+    const dateText = log.nextAction?.match(/^(\d{4}-\d{2}-\d{2})[：:]/)?.[1];
+    return dateText || new Date().toISOString().slice(0, 10);
+  };
+
   const handleAddClient = useCallback((data: any) => {
     const newClient: Client = {
       id: Date.now().toString(),
@@ -103,14 +135,45 @@ const AssistantDashboard: React.FC = () => {
   }, []);
 
   // ── Side effect handler (from ChatPanel) ──────────────────
-  const handleSideEffect = useCallback((effect: SideEffect) => {
+  const handleSideEffect = useCallback(async (effect: SideEffect) => {
     switch (effect.type) {
-      case "ADD_LOG":
+      case "ADD_LOG": {
         handleAddLogFromModal(effect.log, effect.client);
+        const taskAction = effect.log.nextActionTodo || effect.log.content || "跟进";
+        const dueDateISO = extractDueDateISO(effect.log);
+        const result = await runTool("task.create", {
+          clientId: effect.client.id,
+          action: taskAction,
+          dueDateISO,
+        });
+        if (!result.ok) {
+          console.warn("[AI] task.create fallback to local only:", result.error);
+        }
         break;
+      }
       case "OPEN_CLIENT":
+        await runTool("crm.openClient", { clientId: effect.clientId });
         setSelectedClientId(effect.clientId);
         break;
+      case "SEARCH_CLIENT": {
+        const serverResult = await searchClientOnServer(effect.query);
+        if (!serverResult.ok) {
+          setToastMessage(`云端搜索失败：${serverResult.error || "请稍后再试"}`);
+          break;
+        }
+        if (serverResult.matches.length === 0) {
+          setToastMessage(`云端也没找到「${effect.query}」`);
+          break;
+        }
+        if (serverResult.matches.length === 1) {
+          const one = serverResult.matches[0];
+          setSelectedClientId(one.id);
+          setToastMessage(`云端找到「${one.name}」`);
+          break;
+        }
+        setToastMessage(`云端找到 ${serverResult.matches.length} 位客户，请去客户列表筛选`);
+        break;
+      }
       case "OPEN_ADD_CLIENT":
         setShowAddClient(true);
         break;
@@ -121,34 +184,21 @@ const AssistantDashboard: React.FC = () => {
       case "COMPLETE_TASK":
         handleCompleteTask(effect.logId);
         break;
-      case "UPDATE_CLIENT":
-        setClients((prev) =>
-          prev.map((c) => {
-            if (c.id !== effect.clientId) return c;
-            const field = effect.field;
-            const value = effect.value;
-            if (field === "status") return { ...c, status: value };
-            if (field === "urgency") {
-              const valid = ["high", "medium", "low"];
-              if (valid.includes(value)) return { ...c, urgency: value as Client["urgency"] };
-              return c;
-            }
-            if (field === "phone") return { ...c, phone: value };
-            if (field === "wechat") return { ...c, wechat: value };
-            if (field === "budget") {
-              return { ...c, requirements: { ...c.requirements, budgetMax: value } };
-            }
-            if (field === "tags") {
-              const newTags = value.split(/[,，、\s]+/).filter(Boolean);
-              return { ...c, tags: [...new Set([...c.tags, ...newTags])] };
-            }
-            return c;
-          })
-        );
+      case "UPDATE_CLIENT": {
+        applyLocalClientUpdate(effect);
+        const result = await runTool("crm.updateClient", {
+          clientId: effect.clientId,
+          field: effect.field,
+          value: effect.value,
+        });
+        if (!result.ok) {
+          console.warn("[AI] crm.updateClient fallback to local only:", result.error);
+        }
         setToastMessage(`已更新客户信息`);
         break;
+      }
     }
-  }, [handleAddLogFromModal, handleCompleteTask]);
+  }, [applyLocalClientUpdate, handleAddLogFromModal, handleCompleteTask]);
 
   // ── Action dispatch ────────────────────────────────────────
   const handleAction = useCallback((key: ActionKey) => {

@@ -53,6 +53,7 @@ export interface ClientCandidate {
 export type SideEffect =
   | { type: "ADD_LOG"; log: ClientLog; client: Client }
   | { type: "OPEN_CLIENT"; clientId: string }
+  | { type: "SEARCH_CLIENT"; query: string }
   | { type: "OPEN_ADD_CLIENT" }
   | { type: "OPEN_ADD_TASK" }
   | { type: "COMPLETE_TASK"; logId: string }
@@ -221,9 +222,13 @@ function handleFindClient(parsed: ParsedIntent, context: ChatContext): Assistant
 
   if (matches.length === 0) {
     return {
-      text: "没有匹配到客户，帮你打开搜索。",
+      text: parsed.slots.clientQuery
+        ? `本地没有匹配到「${parsed.slots.clientQuery}」，我去云端帮你再找一下。`
+        : "没有匹配到客户，帮你打开搜索。",
       newState: INITIAL_STATE,
-      sideEffects: [],
+      sideEffects: parsed.slots.clientQuery
+        ? [{ type: "SEARCH_CLIENT", query: parsed.slots.clientQuery }]
+        : [],
     };
   }
 
