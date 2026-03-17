@@ -96,6 +96,13 @@ curl -X POST http://localhost:3001/api/parse \
 
 > 如果后端未启动，会自动降级到本地 regex 解析。
 
+## 线上地址
+
+- **前端**: https://grandma-crm-frontend.onrender.com
+- **后端**: https://grandma-crm.onrender.com
+
+> Render 免费套餐后端会在 15 分钟无请求后休眠，首次访问约 30 秒启动。
+
 ## 部署到 Render
 
 ### Static Site（前端）

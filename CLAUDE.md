@@ -17,6 +17,11 @@
 - **代码规范**: ESLint 9 flat config + typescript-eslint
 - **部署**: Render（Static Site + Web Service）
 
+## 线上地址
+
+- **前端**: https://grandma-crm-frontend.onrender.com
+- **后端 API**: https://grandma-crm.onrender.com
+
 ## 常用命令
 
 ```bash
