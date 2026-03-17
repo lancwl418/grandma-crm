@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Menu } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { Menu, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface Props {
   isMobile: boolean;
@@ -11,13 +11,20 @@ export default function Header({ isMobile, onToggle }: Props) {
   const [displayName, setDisplayName] = useState<string>("U");
 
   useEffect(() => {
-    if (auth) {
-      const user = auth.currentUser;
-      if (user?.email) {
-        setDisplayName(user.email[0]?.toUpperCase() || "U");
-      }
+    if (supabase) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user?.email) {
+          setDisplayName(user.email[0]?.toUpperCase() || "U");
+        }
+      });
     }
   }, []);
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
 
   return (
     <header className="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-4">
@@ -39,6 +46,15 @@ export default function Header({ isMobile, onToggle }: Props) {
         <div className="h-7 w-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">
           {displayName}
         </div>
+        {supabase && (
+          <button
+            onClick={handleLogout}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+            title="退出登录"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </header>
   );

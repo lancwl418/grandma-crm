@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic } from "lucide-react";
 import type { Client, ClientLog } from "@/crm/types";
 import { getSampleClientsWithDemoTasks } from "@/crm/constants";
+import { fetchClients, addClientLog as addClientLogDB, updateClientLog as updateClientLogDB } from "@/lib/clientService";
 import {
   getOverdueTasks,
   getTodayDueTasks,
@@ -265,8 +266,14 @@ function SectionTitle({
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [clients, setClients] = useState<Client[]>(getSampleClientsWithDemoTasks());
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchClients().then((data) => {
+      setClients(data.length > 0 ? data : getSampleClientsWithDemoTasks());
+    });
+  }, []);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [taskFormClient, setTaskFormClient] = useState<Client | null>(null);
   const [snoozedTaskIds, setSnoozedTaskIds] = useState<Set<string>>(() => new Set());
@@ -337,6 +344,8 @@ const Dashboard: React.FC = () => {
         return { ...client, logs: updatedLogs };
       })
     );
+    // 持久化
+    updateClientLogDB(logId, { nextAction: undefined, nextActionTodo: undefined });
   };
 
   const handleSnooze = useCallback((taskId: string) => {
@@ -347,17 +356,25 @@ const Dashboard: React.FC = () => {
   const handlePostpone = useCallback(
     (clientId: string, logId: string, newDate: Date) => {
       const dateStr = formatDateForNextAction(newDate);
+      let newNextAction = "";
+      let newTitle = "";
       setClients((prev) =>
         prev.map((client) => {
           if (client.id !== clientId) return client;
           const updatedLogs = (client.logs || []).map((log) => {
             if (log.id !== logId || !log.nextAction) return log;
             const title = log.nextActionTodo || log.nextAction.split(/[：:]/)[1]?.trim() || log.nextAction;
-            return { ...log, nextAction: `${dateStr}：${title}`, nextActionTodo: title };
+            newNextAction = `${dateStr}：${title}`;
+            newTitle = title;
+            return { ...log, nextAction: newNextAction, nextActionTodo: title };
           });
           return { ...client, logs: updatedLogs };
         })
       );
+      // 持久化
+      if (newNextAction) {
+        updateClientLogDB(logId, { nextAction: newNextAction, nextActionTodo: newTitle });
+      }
     },
     []
   );
@@ -374,7 +391,8 @@ const Dashboard: React.FC = () => {
     setShowAddTaskModal(true);
   };
 
-  const handleAddLogFromModal = (log: ClientLog, targetClient: Client) => {
+  const handleAddLogFromModal = async (log: ClientLog, targetClient: Client) => {
+    // 先乐观更新 UI
     setClients((prev) =>
       prev.map((c) =>
         c.id === targetClient.id
@@ -384,6 +402,21 @@ const Dashboard: React.FC = () => {
     );
     const name = targetClient.remarkName || targetClient.name || "客户";
     setToastMessage(`已为「${name}」添加记录`);
+
+    // 持久化到 Supabase
+    const saved = await addClientLogDB(targetClient.id, log);
+    if (saved) {
+      // 用 Supabase 返回的真实 ID 替换临时 ID
+      setClients((prev) =>
+        prev.map((c) => {
+          if (c.id !== targetClient.id) return c;
+          const updatedLogs = c.logs.map((l) =>
+            l.id === log.id ? { ...l, id: saved.id } : l
+          );
+          return { ...c, logs: updatedLogs };
+        })
+      );
+    }
   };
 
   if (selectedClient) {

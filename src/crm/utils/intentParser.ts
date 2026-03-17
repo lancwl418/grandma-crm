@@ -150,7 +150,8 @@ async function callParseAPI(input: string): Promise<ParseAPIResponse | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-    const response = await fetch("/api/parse", {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    const response = await fetch(`${baseUrl}/api/parse`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ utterance: input }),

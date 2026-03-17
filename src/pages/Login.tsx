@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -10,14 +9,19 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) return;
+    setError("");
+
     try {
       if (mode === "login") {
-        await signInWithEmailAndPassword(auth!, email, password);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
-        await createUserWithEmailAndPassword(auth!, email, password);
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "登录失败");
     }
   };
 

@@ -21,7 +21,8 @@ interface SearchClientOutput {
   matches: Array<{ id: string; name: string }>;
 }
 
-const AI_TOOL_ENDPOINT = import.meta.env.VITE_AI_TOOL_ENDPOINT || "/api/runTool";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const AI_TOOL_ENDPOINT = import.meta.env.VITE_AI_TOOL_ENDPOINT || `${API_BASE_URL}/api/tools/execute`;
 const AI_TOOL_USER_ID = import.meta.env.VITE_AI_TOOL_USER_ID || "demo-user";
 
 export async function runTool(

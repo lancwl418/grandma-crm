@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 import Login from "@/pages/Login";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -8,16 +8,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth) {
-      // 如果没有 Firebase，直接允许访问
+    if (!supabase) {
       setLoading(false);
       return;
     }
 
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (loading)
@@ -27,8 +34,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
 
-  // 如果没有 Firebase 配置，直接允许访问
-  if (!auth) {
+  if (!supabase) {
     return <>{children}</>;
   }
 

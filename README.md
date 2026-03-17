@@ -5,40 +5,47 @@
 ## 技术栈
 
 - **前端**: React 19 + TypeScript 5.9 + Vite 7 + Tailwind CSS 4
-- **后端**: Firebase Functions (v2) — AI Parse API
-- **LLM**: Anthropic Claude（可切换 OpenAI）
-- **数据**: Firebase Auth + Firestore（可选，无配置时优雅降级）
+- **后端**: Express (Node.js)
+- **数据库**: Supabase (PostgreSQL + Auth)
+- **LLM**: Anthropic Claude（AI 意图解析）
+- **部署**: Render（Static Site + Web Service）
 
 ## 环境变量
 
-### 前端（可选）
+### 前端
 
 在项目根目录创建 `.env.local`：
 
 ```bash
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_API_BASE_URL=                # 生产环境填后端 URL，本地开发留空
 ```
 
-> 不配置也可运行，使用内存数据。
+> 不配置也可运行，使用内存 mock 数据。
 
-### AI Parse API（`functions/.env`）
+### 后端
+
+在 `server/` 目录创建 `.env`（参考 `server/.env.example`）：
 
 ```bash
-LLM_PROVIDER=anthropic          # anthropic 或 openai
-ANTHROPIC_API_KEY=sk-ant-...    # Anthropic API Key
-ANTHROPIC_MODEL=claude-sonnet-4-20250514  # 可选，默认 claude-sonnet
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_PROVIDER=anthropic
+FRONTEND_URL=http://localhost:5173
+PORT=3001
 ```
 
-> 此文件已被 `.gitignore` 忽略，不会提交。
+## 数据库初始化
+
+1. 在 [Supabase Dashboard](https://supabase.com) 创建项目
+2. 进入 SQL Editor，执行 `supabase-schema.sql` 中的全部 SQL
+3. 这会创建 `clients` 和 `client_logs` 表，以及 RLS 安全策略
 
 ## 本地启动
 
-### 仅前端（无 AI Parse API，使用本地 regex 降级）
+### 仅前端（无后端，使用 mock 数据 + 本地 regex 解析）
 
 ```bash
 npm install
@@ -46,98 +53,83 @@ npm run dev
 # → http://localhost:5173/
 ```
 
-### 完整启动（前端 + AI Parse API）
+### 完整启动（前端 + 后端 + AI）
 
 需要两个终端：
 
 ```bash
-# 终端 1: 启动 Firebase Functions Emulator
-cd functions
+# 终端 1: 启动 Express 后端
+cd server
 npm install
-npm run build
-firebase emulators:start --only functions
-# → Functions emulator 运行在 http://localhost:5001/
+npm run dev
+# → http://localhost:3001/
 
 # 终端 2: 启动前端
 npm run dev
 # → http://localhost:5173/
-# Vite 代理自动将 /api/parse → Firebase emulator
+# Vite 代理自动将 /api/* → Express 后端
 ```
-
-> 需要安装 Firebase CLI：`npm install -g firebase-tools`
 
 ## 验证 AI Parse API
 
-### 方式 1: curl 直接测试
-
 ```bash
-# 确保 emulator 已运行
-curl -X POST http://localhost:5001/grandma-crm/us-central1/parse \
+# 确保后端已运行
+curl -X POST http://localhost:3001/api/parse \
   -H "Content-Type: application/json" \
   -d '{"utterance":"明天提醒我给王小明打电话"}'
 
 # 期望返回：
-# {"intent":"CREATE_TASK","slots":{"clientQuery":"王小明","action":"打电话","dueDateText":"明天"},"confidence":0.95}
+# {"intent":"CREATE_TASK","slots":{"clientQuery":"王小明","action":"打电话","dueDateText":"明天"},"confidence":0.95,"traceId":"..."}
 ```
 
-### 方式 2: 在聊天面板中测试
-
-启动完整环境后，在聊天面板输入以下内容：
+在聊天面板中测试：
 
 | 输入 | 期望 intent | 关键 slots |
 |------|-------------|------------|
 | `你好` | GREETING | — |
 | `今天有什么任务` | VIEW_TODAY | — |
-| `明天提醒我给王小明打电话` | CREATE_TASK | clientQuery=王小明, action=打电话, dueDateText=明天 |
+| `明天提醒我给王小明打电话` | CREATE_TASK | clientQuery=王小明, action=打电话 |
 | `找一下王小明` | FIND_CLIENT | clientQuery=王小明 |
 | `加个新客户` | ADD_CLIENT | — |
+| `打开王小明的资料` | OPEN_CLIENT | clientQuery=王小明 |
+| `把王小明的状态改为看房中` | UPDATE_CLIENT | field=status, value=看房中 |
 
-> 如果 emulator 未启动，会自动降级到本地 regex 解析，功能不受影响。
+> 如果后端未启动，会自动降级到本地 regex 解析。
+
+## 部署到 Render
+
+### Static Site（前端）
+
+| 配置 | 值 |
+|------|-----|
+| Build Command | `npm install && npm run build` |
+| Publish Directory | `dist` |
+| Rewrite | `/* → /index.html` |
+
+环境变量：`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`、`VITE_API_BASE_URL`（后端 Render URL）
+
+### Web Service（后端）
+
+| 配置 | 值 |
+|------|-----|
+| Root Directory | `server` |
+| Build Command | `npm install && npm run build` |
+| Start Command | `npm start` |
+| Health Check | `/health` |
+
+环境变量：`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`ANTHROPIC_API_KEY`、`LLM_PROVIDER`、`FRONTEND_URL`（前端 Render URL）
 
 ## 常用命令
 
 ```bash
+# 前端
 npm run dev       # 启动前端开发服务器
 npm run build     # TypeScript 编译 + Vite 生产构建
 npm run lint      # ESLint 检查
-npm run preview   # 预览生产构建
-```
 
-## Supabase 底层方案（推荐）
-
-如果你要从一开始就搭可扩展底层，使用 Supabase/Postgres：
-
-1. 先执行数据库初始化 SQL：
-   - `docs/supabase/001_init_crm.sql`
-2. 再按迁移清单逐步替换前后端数据层：
-   - `docs/supabase/MIGRATION_PLAN.md`
-
-## 项目结构
-
-```
-├── src/                    # 前端源码
-│   ├── crm/
-│   │   ├── components/     # CRM 业务组件
-│   │   ├── utils/
-│   │   │   ├── intentParser.ts   # 意图解析（LLM API + 本地 regex 降级）
-│   │   │   ├── chatEngine.ts     # 状态机编排器
-│   │   │   └── voiceTaskParser.ts # 本地 regex 解析
-│   │   ├── constants.ts    # 常量与示例数据
-│   │   └── types.ts        # 核心类型定义
-│   ├── pages/              # 页面组件
-│   └── lib/                # 第三方集成
-├── functions/              # Firebase Functions（AI Parse API）
-│   ├── src/
-│   │   ├── index.ts        # HTTP endpoint + 限流
-│   │   ├── parseHandler.ts # 请求校验 + LLM 调用 + 输出校验
-│   │   ├── schema.ts       # Zod 校验 schema
-│   │   ├── prompt.ts       # LLM system prompt
-│   │   └── providers/      # LLM provider 抽象层
-│   │       ├── types.ts    # 接口定义
-│   │       ├── anthropic.ts # Claude 实现
-│   │       ├── openai.ts   # OpenAI stub
-│   │       └── index.ts    # 工厂函数
-│   └── package.json
-├── firebase.json           # Firebase 配置
-└── vite.config.ts          # Vite 配置（含 dev proxy）
+# 后端
+cd server
+npm run dev       # 启动 Express 开发服务器（热重载）
+npm run build     # TypeScript 编译
+npm start         # 启动生产服务器
 ```

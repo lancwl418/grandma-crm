@@ -15,10 +15,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api/parse": {
-        target: "http://127.0.0.1:5001/grandma-crm/us-central1",
+      "/api": {
+        target: "http://127.0.0.1:3001",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
       },
     },
   },
