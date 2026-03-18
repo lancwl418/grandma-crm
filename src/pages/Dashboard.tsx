@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic } from "lucide-react";
+import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic, UserPlus } from "lucide-react";
 import type { Client, ClientLog } from "@/crm/types";
 import { getSampleClientsWithDemoTasks } from "@/crm/constants";
 import { fetchClients, addClientLog as addClientLogDB, updateClientLog as updateClientLogDB } from "@/lib/clientService";
@@ -18,6 +18,8 @@ import AddTaskModal from "@/crm/components/AddTaskModal";
 import VoiceTaskFlow from "@/crm/components/VoiceTaskFlow";
 import { requestNotificationPermission, sendTaskReminders, cleanupOldNotifications } from "@/crm/utils/notifications";
 import FloatingActionButton from "@/crm/components/FloatingActionButton";
+import AddClientPopup from "@/crm/components/AddClientPopup";
+import { createClient as createClientDB } from "@/lib/clientService";
 
 function isPhoneTask(title: string): boolean {
   return /📞|电话/.test(title);
@@ -279,6 +281,7 @@ const Dashboard: React.FC = () => {
   const [snoozedTaskIds, setSnoozedTaskIds] = useState<Set<string>>(() => new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showVoiceFlow, setShowVoiceFlow] = useState(false);
+  const [showAddClientPopup, setShowAddClientPopup] = useState(false);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -391,6 +394,43 @@ const Dashboard: React.FC = () => {
     setShowAddTaskModal(true);
   };
 
+  const handleAddClient = async (data: any) => {
+    const mergedTags: string[] = Array.from(
+      new Set([...(data.tags || []), ...(data.requirements?.tags || [])])
+    );
+    const clientData: Partial<Client> = {
+      remarkName: data.remarkName || "",
+      name: data.name || "",
+      phone: data.phone || "",
+      wechat: data.wechat || "",
+      birthday: data.birthday || "",
+      status: data.status || "新客户",
+      urgency: data.urgency || "medium",
+      tags: mergedTags,
+      requirements: {
+        budgetMin: data.requirements?.budgetMin || "",
+        budgetMax: data.requirements?.budgetMax || "",
+        notes: data.requirements?.notes || "",
+        areas: data.requirements?.areas || [],
+        tags: mergedTags,
+      },
+    };
+    const saved = await createClientDB(clientData);
+    const newClient: Client = saved ?? {
+      ...clientData,
+      id: Date.now().toString(),
+      remarkName: clientData.remarkName!,
+      status: clientData.status!,
+      urgency: clientData.urgency!,
+      tags: clientData.tags!,
+      requirements: clientData.requirements!,
+      logs: [],
+    } as Client;
+    setClients((prev) => [newClient, ...prev]);
+    setShowAddClientPopup(false);
+    setToastMessage(`已添加客户「${newClient.remarkName || newClient.name}」`);
+  };
+
   const handleAddLogFromModal = async (log: ClientLog, targetClient: Client) => {
     // 先乐观更新 UI
     setClients((prev) =>
@@ -442,6 +482,14 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">今日工作台</h1>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAddClientPopup(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition shadow-sm"
+            >
+              <UserPlus className="h-4 w-4" />
+              加客户
+            </button>
             <button
               type="button"
               onClick={() => setShowVoiceFlow(true)}
@@ -688,6 +736,12 @@ const Dashboard: React.FC = () => {
         onClose={() => setShowVoiceFlow(false)}
         clients={clients}
         onAddLog={handleAddLogFromModal}
+      />
+
+      <AddClientPopup
+        open={showAddClientPopup}
+        onClose={() => setShowAddClientPopup(false)}
+        onSubmit={handleAddClient}
       />
 
       <FloatingActionButton
