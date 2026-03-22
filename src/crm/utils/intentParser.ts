@@ -380,7 +380,13 @@ function parseLocal(input: string, clients: Client[]): ParsedIntent {
  * Calls /api/parse (LLM), falls back to local regex on failure.
  */
 export async function parse(input: string, clients: Client[]): Promise<ParsedIntent> {
-  // 1. Try LLM API
+  // 0. Simple intents — regex is reliable enough, skip API to save tokens
+  const quickIntent = classifyIntent(input);
+  if (quickIntent === "GREETING" || quickIntent === "VIEW_TODAY" || quickIntent === "ADD_CLIENT") {
+    return parseLocal(input, clients);
+  }
+
+  // 1. Try LLM API for complex intents
   const apiResult = await callParseAPI(input);
 
   if (apiResult) {
