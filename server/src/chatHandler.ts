@@ -7,6 +7,9 @@ import {
   searchClientTool,
   createTaskTool,
   updateClientTool,
+  addClientLogTool,
+  getClientDetailTool,
+  listClientsByFilterTool,
 } from "./tools/implementations.js";
 import type { ToolContext } from "./tools/types.js";
 
@@ -284,6 +287,43 @@ async function executeToolCall(
     case "show_today_tasks": {
       actions.push({ type: "SHOW_TASKS" });
       return { ok: true, message: "已展示今日任务列表" };
+    }
+
+    // ─ New data tools ───────────────────────────────
+    case "add_client_log": {
+      const result = await addClientLogTool(
+        {
+          clientId: input.clientId as string,
+          content: input.content as string,
+          nextAction: input.nextAction as string | undefined,
+        },
+        context
+      );
+      if (result.ok) {
+        actions.push({
+          type: "LOG_ADDED",
+          clientId: input.clientId as string,
+        });
+      }
+      return result;
+    }
+
+    case "get_client_detail": {
+      return getClientDetailTool(
+        { clientId: input.clientId as string },
+        context
+      );
+    }
+
+    case "list_clients_by_filter": {
+      return listClientsByFilterTool(
+        {
+          status: input.status as string | undefined,
+          urgency: input.urgency as string | undefined,
+          limit: input.limit as number | undefined,
+        },
+        context
+      );
     }
 
     default:

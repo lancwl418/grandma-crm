@@ -1,6 +1,9 @@
 import { supabaseAdmin } from "../lib/supabase.js";
 import type {
+  AddClientLogInput,
   CreateTaskInput,
+  GetClientDetailInput,
+  ListClientsByFilterInput,
   OpenClientInput,
   SearchClientInput,
   ToolContext,
@@ -172,4 +175,138 @@ export async function updateClientTool(
   }
 
   return { ok: true, output: { clientId, field, value } };
+}
+
+export async function addClientLogTool(
+  input: AddClientLogInput,
+  context: ToolContext
+): Promise<ToolResult<ToolOutputMap["crm.addClientLog"]>> {
+  const content = input.content.trim();
+  if (!input.clientId || !content) {
+    return { ok: false, error: "clientId and content are required" };
+  }
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  // Verify client exists
+  const { data: client, error: clientError } = await supabaseAdmin
+    .from("clients")
+    .select("id")
+    .eq("id", input.clientId)
+    .eq("user_id", context.userId)
+    .single();
+
+  if (clientError || !client) {
+    return { ok: false, error: "client not found" };
+  }
+
+  const { data: log, error: logError } = await supabaseAdmin
+    .from("client_logs")
+    .insert({
+      client_id: input.clientId,
+      date: new Date().toISOString(),
+      content,
+      next_action: input.nextAction ?? null,
+      next_action_todo: null,
+    })
+    .select("id")
+    .single();
+
+  if (logError || !log) {
+    console.error("[addClientLog]", { traceId: context.traceId, error: logError?.message });
+    return { ok: false, error: "Failed to add log" };
+  }
+
+  return { ok: true, output: { logId: log.id } };
+}
+
+export async function getClientDetailTool(
+  input: GetClientDetailInput,
+  context: ToolContext
+): Promise<ToolResult<ToolOutputMap["crm.getClientDetail"]>> {
+  if (!input.clientId) {
+    return { ok: false, error: "clientId is required" };
+  }
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, remark_name, status, urgency, phone, wechat, budget_min, budget_max, areas, tags, requirement_tags, client_logs(date, content, next_action)")
+    .eq("id", input.clientId)
+    .eq("user_id", context.userId)
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: "client not found" };
+  }
+
+  const logs = (data.client_logs ?? []) as Array<{ date: string; content: string; next_action: string | null }>;
+  // Sort by date desc, take last 5
+  logs.sort((a, b) => b.date.localeCompare(a.date));
+  const recentLogs = logs.slice(0, 5).map((l) => ({
+    date: l.date,
+    content: l.content,
+    nextAction: l.next_action ?? undefined,
+  }));
+
+  const budget = [data.budget_min, data.budget_max].filter(Boolean).join(" - ") || undefined;
+
+  return {
+    ok: true,
+    output: {
+      id: data.id,
+      name: (data.remark_name || data.name || "").trim(),
+      status: data.status,
+      urgency: data.urgency,
+      phone: data.phone ?? undefined,
+      wechat: data.wechat ?? undefined,
+      budget,
+      areas: data.areas ?? [],
+      tags: [...(data.tags ?? []), ...(data.requirement_tags ?? [])],
+      recentLogs,
+    },
+  };
+}
+
+export async function listClientsByFilterTool(
+  input: ListClientsByFilterInput,
+  context: ToolContext
+): Promise<ToolResult<ToolOutputMap["crm.listClientsByFilter"]>> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  let query = supabaseAdmin
+    .from("clients")
+    .select("id, name, remark_name, status, urgency", { count: "exact" })
+    .eq("user_id", context.userId);
+
+  if (input.status) {
+    query = query.eq("status", input.status);
+  }
+  if (input.urgency) {
+    query = query.eq("urgency", input.urgency);
+  }
+
+  const limit = Math.min(input.limit ?? 20, 50);
+  query = query.order("created_at", { ascending: false }).limit(limit);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("[listClientsByFilter]", { traceId: context.traceId, error: error.message });
+    return { ok: false, error: "Database query failed" };
+  }
+
+  const clients = (data ?? []).map((row) => ({
+    id: row.id,
+    name: (row.remark_name || row.name || "").trim(),
+    status: row.status,
+    urgency: row.urgency,
+  }));
+
+  return { ok: true, output: { clients, total: count ?? clients.length } };
 }

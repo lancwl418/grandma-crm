@@ -108,4 +108,60 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
       properties: {},
     },
   },
+  {
+    name: "add_client_log",
+    description:
+      "为客户添加跟进记录。用于记录已经发生的沟通，如打了电话、发了微信、带看了房子等。需要先通过 search_clients 确认客户ID。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        clientId: { type: "string", description: "客户ID（从搜索结果获取）" },
+        content: {
+          type: "string",
+          description: "跟进内容（如：电话沟通，客户表示预算可以提高到500万）",
+        },
+        nextAction: {
+          type: "string",
+          description: "下一步计划（可选，如：周五再跟进确认看房时间）",
+        },
+      },
+      required: ["clientId", "content"],
+    },
+  },
+  {
+    name: "get_client_detail",
+    description:
+      "查看客户的详细信息，包括状态、联系方式、预算、需求标签和最近的跟进记录。当用户询问某个客户的情况时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        clientId: { type: "string", description: "客户ID（从搜索结果获取）" },
+      },
+      required: ["clientId"],
+    },
+  },
+  {
+    name: "list_clients_by_filter",
+    description:
+      "按条件筛选客户列表。可按状态（新客户/看房中/意向强烈/已下Offer/已成交/停滞/暂缓）或紧急度（high/medium/low）筛选。当用户问「看房中的客户有哪些」、「紧急客户」等问题时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        status: {
+          type: "string",
+          description: "客户状态筛选",
+          enum: ["新客户", "看房中", "意向强烈", "已下Offer", "已成交", "停滞", "暂缓"],
+        },
+        urgency: {
+          type: "string",
+          description: "紧急度筛选",
+          enum: ["high", "medium", "low"],
+        },
+        limit: {
+          type: "number",
+          description: "返回数量上限（默认20，最大50）",
+        },
+      },
+    },
+  },
 ];

@@ -176,6 +176,10 @@ function mapActions(
         }
         ctaClientId = action.clientId;
         break;
+
+      case "LOG_ADDED":
+        ctaClientId = action.clientId;
+        break;
     }
   }
 

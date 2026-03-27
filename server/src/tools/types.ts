@@ -43,6 +43,22 @@ export interface CreateTaskInput {
   dueDateISO: string;
 }
 
+export interface AddClientLogInput {
+  clientId: string;
+  content: string;
+  nextAction?: string;
+}
+
+export interface GetClientDetailInput {
+  clientId: string;
+}
+
+export interface ListClientsByFilterInput {
+  status?: string;
+  urgency?: string;
+  limit?: number;
+}
+
 export interface CompleteTaskInput {
   taskId: string;
 }
@@ -74,6 +90,9 @@ export type ToolInputMap = {
   "crm.searchClient": SearchClientInput;
   "crm.openClient": OpenClientInput;
   "crm.updateClient": UpdateClientInput;
+  "crm.addClientLog": AddClientLogInput;
+  "crm.getClientDetail": GetClientDetailInput;
+  "crm.listClientsByFilter": ListClientsByFilterInput;
   "task.create": CreateTaskInput;
   "task.complete": CompleteTaskInput;
   "task.reschedule": RescheduleTaskInput;
@@ -87,6 +106,23 @@ export type ToolOutputMap = {
   "crm.searchClient": { matches: Array<{ id: string; name: string }> };
   "crm.openClient": { clientId: string };
   "crm.updateClient": { clientId: string; field: string; value: string };
+  "crm.addClientLog": { logId: string };
+  "crm.getClientDetail": {
+    id: string;
+    name: string;
+    status: string;
+    urgency: string;
+    phone?: string;
+    wechat?: string;
+    budget?: string;
+    areas: string[];
+    tags: string[];
+    recentLogs: Array<{ date: string; content: string; nextAction?: string }>;
+  };
+  "crm.listClientsByFilter": {
+    clients: Array<{ id: string; name: string; status: string; urgency: string }>;
+    total: number;
+  };
   "task.create": { taskId: string };
   "task.complete": { taskId: string };
   "task.reschedule": { taskId: string; dueDateISO: string };
