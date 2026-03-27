@@ -59,7 +59,6 @@ export interface ChatContext {
 // ── API Client ──────────────────────────────────────────────
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-const AI_TOOL_USER_ID = import.meta.env.VITE_AI_TOOL_USER_ID || "demo-user";
 const API_TIMEOUT_MS = 30_000;
 
 interface ChatAPIAction {
@@ -81,7 +80,8 @@ interface ChatAPIResponse {
 
 async function callChatAPI(
   messages: Array<{ role: string; content: string }>,
-  context: ChatContext
+  context: ChatContext,
+  userId: string
 ): Promise<ChatAPIResponse | null> {
   try {
     const controller = new AbortController();
@@ -92,7 +92,7 @@ async function callChatAPI(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages,
-        userId: AI_TOOL_USER_ID,
+        userId,
         context: {
           todayDate: new Date().toISOString().split("T")[0],
           overdueTaskCount: context.overdueTasks.length,
@@ -192,8 +192,17 @@ export async function processInput(
   input: string,
   _state: AssistantState,
   context: ChatContext,
-  conversationHistory?: Array<{ role: string; content: string }>
+  conversationHistory?: Array<{ role: string; content: string }>,
+  userId?: string
 ): Promise<AssistantResponse> {
+  if (!userId) {
+    return {
+      text: "请先登录后再使用 AI 助理。",
+      newState: INITIAL_STATE,
+      sideEffects: [],
+    };
+  }
+
   // Build message list: history + current input
   const messages = [
     ...(conversationHistory || []),
@@ -201,7 +210,7 @@ export async function processInput(
   ];
 
   // Call /api/chat
-  const apiResponse = await callChatAPI(messages, context);
+  const apiResponse = await callChatAPI(messages, context, userId);
 
   // Handle failure
   if (!apiResponse || apiResponse.error) {
@@ -239,12 +248,13 @@ export async function processInput(
 export async function selectCandidateAsync(
   clientId: string,
   context: ChatContext,
-  conversationHistory: Array<{ role: string; content: string }>
+  conversationHistory: Array<{ role: string; content: string }>,
+  userId?: string
 ): Promise<AssistantResponse> {
   const client = context.clients.find((c) => c.id === clientId);
   const name = client?.remarkName || client?.name || "";
   const message = `我选择了「${name}」`;
-  return processInput(message, INITIAL_STATE, context, conversationHistory);
+  return processInput(message, INITIAL_STATE, context, conversationHistory, userId);
 }
 
 /**

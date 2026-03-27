@@ -30,6 +30,7 @@ interface Props {
   clients: Client[];
   overdueTasks: FlatTask[];
   todayTasks: FlatTask[];
+  userId?: string;
   onSideEffect: (effect: SideEffect) => void;
 }
 
@@ -42,6 +43,7 @@ export default function ChatPanel({
   clients,
   overdueTasks,
   todayTasks,
+  userId,
   onSideEffect,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -131,7 +133,8 @@ export default function ChatPanel({
           text,
           assistantState,
           context,
-          conversationHistory
+          conversationHistory,
+          userId
         );
         applyResponse(response, displayText || text);
       } finally {
@@ -163,7 +166,8 @@ export default function ChatPanel({
         const response = await selectCandidateAsync(
           clientId,
           context,
-          conversationHistory
+          conversationHistory,
+          userId
         );
         applyResponse(response, displayText);
       } finally {
