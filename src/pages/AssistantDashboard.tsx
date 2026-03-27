@@ -18,7 +18,7 @@ import ChatPanel from "@/crm/components/ChatPanel";
 import type { SideEffect } from "@/crm/utils/chatEngine";
 import { X } from "lucide-react";
 import { runTool, searchClientOnServer } from "@/crm/ai/toolClient";
-import { createClient } from "@/lib/clientService";
+import { createClient, fetchClients } from "@/lib/clientService";
 import { useUserId } from "@/lib/userContext";
 
 const AssistantDashboard: React.FC = () => {
@@ -28,6 +28,16 @@ const AssistantDashboard: React.FC = () => {
   // ── State (mirrors Dashboard pattern) ──────────────────────
   const [clients, setClients] = useState<Client[]>(getSampleClientsWithDemoTasks());
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Load real clients from Supabase
+  useEffect(() => {
+    fetchClients().then((data) => {
+      if (data.length > 0) setClients(data);
+    });
+  }, []);
+
+  // Chat notification
+  const [chatNotification, setChatNotification] = useState<{ id: string; text: string } | undefined>();
 
   // Modal visibility
   const [showAddClient, setShowAddClient] = useState(false);
@@ -136,7 +146,12 @@ const AssistantDashboard: React.FC = () => {
     const saved = await createClient(clientData);
     if (saved) {
       setClients((prev) => [...prev, saved]);
-      setToastMessage(`已添加客户「${saved.remarkName || saved.name}」`);
+      const displayName = saved.remarkName || saved.name || "新客户";
+      setToastMessage(`已添加客户「${displayName}」`);
+      setChatNotification({
+        id: `notify-add-${saved.id}`,
+        text: `✅ 已成功录入新客户「${displayName}」！你可以对我说「找一下${displayName}」查看详情，或继续添加跟进任务。`,
+      });
     } else {
       // Fallback: add locally if DB save fails
       const localClient: Client = {
@@ -319,6 +334,7 @@ const AssistantDashboard: React.FC = () => {
         overdueTasks={overdueTasks}
         todayTasks={todayTasks}
         userId={userId}
+        notification={chatNotification}
         onSideEffect={handleSideEffect}
       />
 

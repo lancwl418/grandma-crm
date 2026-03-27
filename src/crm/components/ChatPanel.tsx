@@ -31,6 +31,8 @@ interface Props {
   overdueTasks: FlatTask[];
   todayTasks: FlatTask[];
   userId?: string;
+  /** System notification to inject into chat (change value to trigger) */
+  notification?: { id: string; text: string };
   onSideEffect: (effect: SideEffect) => void;
 }
 
@@ -44,6 +46,7 @@ export default function ChatPanel({
   overdueTasks,
   todayTasks,
   userId,
+  notification,
   onSideEffect,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,6 +67,23 @@ export default function ChatPanel({
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
+
+  // Inject system notifications into chat
+  useEffect(() => {
+    if (!notification) return;
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === notification.id)) return prev;
+      return [
+        ...prev,
+        {
+          id: notification.id,
+          role: "assistant" as const,
+          text: notification.text,
+          timestamp: new Date(),
+        },
+      ];
+    });
+  }, [notification]);
 
   const context = useMemo(
     () => ({ clients, overdueTasks, todayTasks }),
