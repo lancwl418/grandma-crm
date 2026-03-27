@@ -288,8 +288,8 @@ const AssistantDashboard: React.FC = () => {
       )}
 
       {/* Greeting */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
+      <div className="text-center mb-4 sm:mb-8 px-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
           Hi! 今天有 {totalTaskCount} 件事要做
         </h1>
         <p className="text-sm text-gray-400 mt-1">点击助理开始</p>
@@ -299,7 +299,7 @@ const AssistantDashboard: React.FC = () => {
       <div
         className="relative"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: 300, height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{ width: "min(300px, 80vw)", height: "min(300px, 80vw)", display: "flex", alignItems: "center", justifyContent: "center" }}
       >
         <RadialActionMenu open={menuOpen} onAction={handleAction} />
         <AssistantAvatar

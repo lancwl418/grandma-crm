@@ -142,7 +142,7 @@ export default function AddClientPopup({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl w-full max-w-2xl p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -154,10 +154,10 @@ export default function AddClientPopup({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-4 border-b pb-2">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 border-b pb-2 overflow-x-auto">
           <button
             onClick={() => setMode("paste")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 text-sm whitespace-nowrap ${
               mode === "paste" ? "bg-blue-600 text-white" : "bg-gray-100"
             }`}
           >
@@ -166,7 +166,7 @@ export default function AddClientPopup({
 
           <button
             onClick={() => setMode("image")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 text-sm whitespace-nowrap ${
               mode === "image" ? "bg-blue-600 text-white" : "bg-gray-100"
             }`}
           >
@@ -175,7 +175,7 @@ export default function AddClientPopup({
 
           <button
             onClick={() => setMode("manual")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 text-sm whitespace-nowrap ${
               mode === "manual" ? "bg-blue-600 text-white" : "bg-gray-100"
             }`}
           >
@@ -184,7 +184,7 @@ export default function AddClientPopup({
 
           <button
             onClick={() => setMode("voice")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 text-sm whitespace-nowrap ${
               mode === "voice" ? "bg-blue-600 text-white" : "bg-gray-100"
             }`}
           >

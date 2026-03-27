@@ -64,13 +64,13 @@ export default function AddClientForm({
 
         <div className="flex gap-4 flex-wrap">
           <input
-            className="flex-1 border rounded-lg p-2 min-w-[140px]"
+            className="flex-1 border rounded-lg p-2 min-w-0 sm:min-w-[140px]"
             placeholder="手机号"
             value={form.phone}
             onChange={(e) => update({ phone: e.target.value })}
           />
           <input
-            className="flex-1 border rounded-lg p-2 min-w-[140px]"
+            className="flex-1 border rounded-lg p-2 min-w-0 sm:min-w-[140px]"
             placeholder="微信号"
             value={form.wechat}
             onChange={(e) => update({ wechat: e.target.value })}
@@ -116,13 +116,13 @@ export default function AddClientForm({
       <SectionCard title="需求">
         <div className="flex gap-4 flex-wrap">
           <input
-            className="flex-1 border rounded-lg p-2 min-w-[120px]"
+            className="flex-1 border rounded-lg p-2 min-w-0 sm:min-w-[120px]"
             placeholder="预算下限（万）"
             value={form.requirements.budgetMin}
             onChange={(e) => updateReq({ budgetMin: e.target.value })}
           />
           <input
-            className="flex-1 border rounded-lg p-2 min-w-[120px]"
+            className="flex-1 border rounded-lg p-2 min-w-0 sm:min-w-[120px]"
             placeholder="预算上限（万）"
             value={form.requirements.budgetMax}
             onChange={(e) => updateReq({ budgetMax: e.target.value })}

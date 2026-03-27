@@ -50,7 +50,7 @@ const AddTaskModal: React.FC<Props> = ({ open, onClose, client: externalClient, 
       onClick={resetAndClose}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl w-full max-w-2xl p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

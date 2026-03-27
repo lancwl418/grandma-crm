@@ -94,8 +94,8 @@ function TaskRow({
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 py-3 px-4 rounded-lg border border-gray-100 bg-white hover:bg-gray-50/50 transition">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-3 px-3 sm:px-4 rounded-lg border border-gray-100 bg-white hover:bg-gray-50/50 transition">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <span
           className={`
             flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium
@@ -133,7 +133,7 @@ function TaskRow({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end pl-6 sm:pl-0">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -479,24 +479,26 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">今日工作台</h1>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">今日工作台</h1>
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setShowAddClientPopup(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition shadow-sm"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 bg-purple-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-purple-700 transition shadow-sm"
             >
               <UserPlus className="h-4 w-4" />
-              加客户
+              <span className="hidden sm:inline">加客户</span>
+              <span className="sm:hidden">加客户</span>
             </button>
             <button
               type="button"
               onClick={() => setShowVoiceFlow(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-sm"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 transition shadow-sm"
             >
               <Mic className="h-4 w-4" />
-              语音建任务
+              <span className="hidden sm:inline">语音建任务</span>
+              <span className="sm:hidden">语音</span>
             </button>
             <button
               type="button"
@@ -504,10 +506,11 @@ const Dashboard: React.FC = () => {
                 setTaskFormClient(null);
                 setShowAddTaskModal(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition shadow-sm"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition shadow-sm"
             >
               <Plus className="h-4 w-4" />
-              新建任务
+              <span className="hidden sm:inline">新建任务</span>
+              <span className="sm:hidden">任务</span>
             </button>
           </div>
         </div>

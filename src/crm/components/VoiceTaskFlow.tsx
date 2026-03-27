@@ -154,7 +154,7 @@ const VoiceTaskFlow: React.FC<Props> = ({ open, onClose, clients, onAddLog }) =>
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl"
+        className="bg-white rounded-xl w-full max-w-md p-4 sm:p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

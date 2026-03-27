@@ -118,7 +118,7 @@ useEffect(() => {
         );
 
   return (
-    <div className="flex flex-col md:flex-row h-full gap-6 p-4 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full gap-4 sm:gap-6 p-3 sm:p-4 overflow-hidden">
       {/* ===== 左侧信息栏（手机在上方，PC 左侧） ===== */}
       <div className="w-full md:w-80 md:shrink-0 overflow-y-auto space-y-4">
         {/* 返回按钮（只在手机/小屏显示） */}
@@ -135,7 +135,7 @@ useEffect(() => {
           <div className="flex justify-between items-start mb-4">
             <div>
               {/* 大号：remarkName（微信昵称 / 备注） */}
-              <div className="text-3xl font-extrabold text-gray-900 leading-tight">
+              <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                 {client.remarkName || "未命名客户"}
               </div>
               {/* 小号：真实姓名 */}
@@ -222,7 +222,7 @@ useEffect(() => {
           <div className="font-semibold text-gray-900 mb-3">预算：</div>
           <div className="flex items-center gap-2">
             <input
-              className="w-24 border border-gray-300 rounded-2xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-28 border border-gray-300 rounded-2xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={client.requirements?.budgetMin || ""}
               placeholder="最低（万）"
               onChange={(e) =>
@@ -235,7 +235,7 @@ useEffect(() => {
             />
             <span className="text-gray-400">—</span>
             <input
-              className="w-24 border border-gray-300 rounded-2xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-28 border border-gray-300 rounded-2xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={client.requirements?.budgetMax || ""}
               placeholder="最高（万）"
               onChange={(e) =>
