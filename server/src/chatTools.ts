@@ -141,6 +141,15 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
   {
+    name: "get_client_stats",
+    description:
+      "获取客户统计概览：总数、各状态分布、各紧急度分布。当用户问「我有多少客户」、「客户情况怎么样」、「目前有多少看房中的」等统计类问题时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
     name: "list_clients_by_filter",
     description:
       "按条件筛选客户列表。可按状态（新客户/看房中/意向强烈/已下Offer/已成交/停滞/暂缓）或紧急度（high/medium/low）筛选。当用户问「看房中的客户有哪些」、「紧急客户」等问题时使用。",

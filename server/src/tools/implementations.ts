@@ -271,6 +271,42 @@ export async function getClientDetailTool(
   };
 }
 
+export async function getClientStatsTool(
+  _input: Record<string, never>,
+  context: ToolContext
+): Promise<ToolResult<{
+  total: number;
+  byStatus: Record<string, number>;
+  byUrgency: Record<string, number>;
+}>> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .select("status, urgency")
+    .eq("user_id", context.userId);
+
+  if (error) {
+    console.error("[getClientStats]", { traceId: context.traceId, error: error.message });
+    return { ok: false, error: "Database query failed" };
+  }
+
+  const rows = data ?? [];
+  const byStatus: Record<string, number> = {};
+  const byUrgency: Record<string, number> = {};
+
+  for (const row of rows) {
+    const s = row.status || "未知";
+    byStatus[s] = (byStatus[s] || 0) + 1;
+    const u = row.urgency || "medium";
+    byUrgency[u] = (byUrgency[u] || 0) + 1;
+  }
+
+  return { ok: true, output: { total: rows.length, byStatus, byUrgency } };
+}
+
 export async function listClientsByFilterTool(
   input: ListClientsByFilterInput,
   context: ToolContext

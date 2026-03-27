@@ -9,6 +9,7 @@ import {
   updateClientTool,
   addClientLogTool,
   getClientDetailTool,
+  getClientStatsTool,
   listClientsByFilterTool,
 } from "./tools/implementations.js";
 import type { ToolContext } from "./tools/types.js";
@@ -313,6 +314,10 @@ async function executeToolCall(
         { clientId: input.clientId as string },
         context
       );
+    }
+
+    case "get_client_stats": {
+      return getClientStatsTool({} as Record<string, never>, context);
     }
 
     case "list_clients_by_filter": {
