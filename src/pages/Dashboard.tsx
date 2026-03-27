@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic, UserPlus } from "lucide-react";
+import { CheckCircle2, ChevronRight, AlertCircle, Calendar, Users, Eye, Clock, CalendarPlus, Phone, MessageCircle, Plus, Mic, UserPlus, Pencil } from "lucide-react";
 import type { Client, ClientLog } from "@/crm/types";
 import { getSampleClientsWithDemoTasks } from "@/crm/constants";
 import { fetchClients, addClientLog as addClientLogDB, updateClientLog as updateClientLogDB } from "@/lib/clientService";
@@ -94,136 +94,100 @@ function TaskRow({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-3 px-3 sm:px-4 rounded-lg border border-gray-100 bg-white hover:bg-gray-50/50 transition">
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-        <span
-          className={`
-            flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium
-            ${statusTag === "overdue" ? "bg-orange-100 text-orange-700" : ""}
-            ${statusTag === "today" ? "bg-blue-100 text-blue-700" : ""}
-            ${statusTag === "momentum" ? "bg-gray-100 text-gray-600" : ""}
-          `}
-        >
-          {statusTag === "overdue" ? "逾期" : statusTag === "today" ? "今日" : "本周"}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-          <div className="flex items-center gap-2 flex-wrap">
-            {!grouped && <p className="text-xs text-gray-500">{task.clientName}</p>}
-            {isPhone && clientPhone && (
-              <a
-                href={`tel:${clientPhone}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
-              >
-                <Phone className="h-3 w-3" />
-                {clientPhone}
-              </a>
-            )}
-            {isWechat && clientWechat && (
-              <button
-                type="button"
-                onClick={handleCopyWechat}
-                className="text-xs text-green-600 hover:text-green-700 flex items-center gap-0.5"
-              >
-                <MessageCircle className="h-3 w-3" />
-                {copyFeedback ? "已复制" : "复制微信号"}
-              </button>
-            )}
-          </div>
+    <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
+      {/* Top: task info — tappable to open client */}
+      <button
+        type="button"
+        onClick={() => onOpenClient(task.clientId)}
+        className="w-full text-left px-4 py-3 active:bg-gray-50 transition"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className={`
+              flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium
+              ${statusTag === "overdue" ? "bg-orange-100 text-orange-700" : ""}
+              ${statusTag === "today" ? "bg-blue-100 text-blue-700" : ""}
+              ${statusTag === "momentum" ? "bg-gray-100 text-gray-600" : ""}
+            `}
+          >
+            {statusTag === "overdue" ? "逾期" : statusTag === "today" ? "今日" : "本周"}
+          </span>
+          {!grouped && <span className="text-xs text-gray-400">{task.clientName}</span>}
         </div>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end pl-6 sm:pl-0">
+        <p className="text-sm font-medium text-gray-900 mt-1 leading-snug">{task.title}</p>
+      </button>
+
+      {/* Bottom: action buttons — large touch targets */}
+      <div className="flex items-center border-t border-gray-50 divide-x divide-gray-100">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onComplete(task.logId);
-          }}
-          className="text-xs text-green-600 hover:text-green-700 flex items-center gap-1"
+          onClick={(e) => { e.stopPropagation(); onComplete(task.logId); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 active:bg-green-50 transition"
         >
           <CheckCircle2 className="h-4 w-4" />
           完成
         </button>
-        {showActionButtons && onSnooze && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onSnooze(task.id);
-            }}
-            className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1"
+
+        {isPhone && clientPhone && (
+          <a
+            href={`tel:${clientPhone}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 active:bg-blue-50 transition"
           >
-            <Clock className="h-4 w-4" />
-            稍后
+            <Phone className="h-4 w-4" />
+            拨号
+          </a>
+        )}
+
+        {isWechat && clientWechat && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleCopyWechat(e); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 active:bg-green-50 transition"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {copyFeedback ? "已复制" : "微信"}
           </button>
         )}
+
         {showActionButtons && onPostpone && (
-          <div className="relative flex items-center gap-1">
-            {postponeExpanded ? (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pickPostpone(1);
-                  }}
-                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                >
-                  明天
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pickPostpone(2);
-                  }}
-                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                >
-                  后天
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pickPostpone(7);
-                  }}
-                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                >
-                  下周
-                </button>
-              </>
-            ) : (
+          postponeExpanded ? (
+            <>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPostponeExpanded(true);
-                }}
-                className="text-xs text-gray-600 hover:text-gray-700 flex items-center gap-1"
+                onClick={(e) => { e.stopPropagation(); pickPostpone(1); }}
+                className="flex-1 flex items-center justify-center py-2.5 text-xs font-medium text-gray-600 active:bg-gray-50 transition"
               >
-                <CalendarPlus className="h-4 w-4" />
-                延期
+                明天
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); pickPostpone(7); }}
+                className="flex-1 flex items-center justify-center py-2.5 text-xs font-medium text-gray-600 active:bg-gray-50 transition"
+              >
+                下周
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setPostponeExpanded(true); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-gray-500 active:bg-gray-50 transition"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              延期
+            </button>
+          )
         )}
+
         {onQuickRecord && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickRecord(task.clientId);
-            }}
-            className="text-xs px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+            onClick={(e) => { e.stopPropagation(); onQuickRecord(task.clientId); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 active:bg-blue-50 transition"
           >
-            去记录
+            <Pencil className="h-3.5 w-3.5" />
+            记录
           </button>
         )}
-        <button
-          onClick={() => onOpenClient(task.clientId)}
-          className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5"
-        >
-          打开客户
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );
