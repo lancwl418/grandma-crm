@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, Bot, MessageCircle, ChevronDown, ChevronRight, MapPin } from "lucide-react";
 import type { Client, ClientLog } from "@/crm/types";
 import type { FlatTask } from "@/crm/utils/dashboardTasks";
 import {
   processInput,
-  selectCandidate,
+  selectCandidateAsync,
   INITIAL_STATE,
   type AssistantState,
   type AssistantResponse,
@@ -47,7 +47,7 @@ export default function ChatPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [assistantState, setAssistantState] = useState<AssistantState>(INITIAL_STATE);
+  const [assistantState] = useState<AssistantState>(INITIAL_STATE);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "welcome", role: "assistant", text: WELCOME_TEXT, timestamp: new Date() },
   ]);
@@ -63,9 +63,24 @@ export default function ChatPanel({
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
+  const context = useMemo(
+    () => ({ clients, overdueTasks, todayTasks }),
+    [clients, overdueTasks, todayTasks]
+  );
+
   const clientForTask = useCallback(
     (task: FlatTask) => clients.find((c) => c.id === task.clientId),
     [clients]
+  );
+
+  // ── Build conversation history for API ──────────────────────
+
+  const conversationHistory = useMemo(
+    () =>
+      messages
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.text })),
+    [messages]
   );
 
   // ── Process response from engine ────────────────────────────
@@ -95,7 +110,6 @@ export default function ChatPanel({
       });
 
       setMessages((prev) => [...prev, ...msgs]);
-      setAssistantState(response.newState);
 
       // Execute side effects
       for (const effect of response.sideEffects) {
@@ -105,33 +119,58 @@ export default function ChatPanel({
     [onSideEffect]
   );
 
-  // ── Send text message ───────────────────────────────────────
+  // ── Send message ──────────────────────────────────────────
 
-  const handleSend = useCallback(async () => {
+  const sendMessage = useCallback(
+    async (text: string, displayText?: string) => {
+      if (!text.trim() || isLoading) return;
+      setIsLoading(true);
+
+      try {
+        const response = await processInput(
+          text,
+          assistantState,
+          context,
+          conversationHistory
+        );
+        applyResponse(response, displayText || text);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, assistantState, context, conversationHistory, applyResponse]
+  );
+
+  const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text) return;
     setInput("");
-    setIsLoading(true);
-
-    const context = { clients, overdueTasks, todayTasks };
-
-    try {
-      const response = await processInput(text, assistantState, context);
-      applyResponse(response, text);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, isLoading, clients, overdueTasks, todayTasks, assistantState, applyResponse]);
+    sendMessage(text);
+  }, [input, sendMessage]);
 
   // ── Select a candidate card ─────────────────────────────────
 
   const handleSelectCandidate = useCallback(
-    (clientId: string) => {
-      const context = { clients, overdueTasks, todayTasks };
-      const response = selectCandidate(clientId, assistantState, context);
-      applyResponse(response);
+    async (clientId: string) => {
+      if (isLoading) return;
+      setIsLoading(true);
+
+      const client = clients.find((c) => c.id === clientId);
+      const name = client?.remarkName || client?.name || "";
+      const displayText = `选择了「${name}」`;
+
+      try {
+        const response = await selectCandidateAsync(
+          clientId,
+          context,
+          conversationHistory
+        );
+        applyResponse(response, displayText);
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [clients, overdueTasks, todayTasks, assistantState, applyResponse]
+    [isLoading, clients, context, conversationHistory, applyResponse]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -140,15 +179,6 @@ export default function ChatPanel({
       handleSend();
     }
   };
-
-  // ── Mode indicator ──────────────────────────────────────────
-
-  const modeHint =
-    assistantState.mode === "AWAITING_DISAMBIGUATION"
-      ? "请选择一位客户，或输入更多描述"
-      : assistantState.mode === "AWAITING_MISSING_SLOTS"
-        ? "请回答上面的问题"
-        : undefined;
 
   // ── Collapsed ───────────────────────────────────────────────
 
@@ -179,11 +209,6 @@ export default function ChatPanel({
             <Bot className="h-3.5 w-3.5 text-white" />
           </div>
           <span className="text-sm font-medium text-gray-700">CRM 助理</span>
-          {modeHint && (
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              {assistantState.mode === "AWAITING_DISAMBIGUATION" ? "选择客户" : "补充信息"}
-            </span>
-          )}
         </div>
         <button
           type="button"
@@ -312,7 +337,7 @@ export default function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isLoading}
-          placeholder={isLoading ? "思考中..." : (modeHint || "输入消息...")}
+          placeholder={isLoading ? "思考中..." : "输入消息..."}
           className="flex-1 text-sm outline-none bg-transparent disabled:text-gray-300"
         />
         <button

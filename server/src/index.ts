@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { parseRouter } from "./routes/parse.js";
 import { toolsRouter } from "./routes/tools.js";
+import { chatRouter } from "./routes/chat.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 // Routes
 app.use("/api/parse", parseRouter);
 app.use("/api/tools", toolsRouter);
+app.use("/api/chat", chatRouter);
 
 // Health check
 app.get("/health", (_req, res) => {
