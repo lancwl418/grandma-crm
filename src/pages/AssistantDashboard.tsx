@@ -19,6 +19,7 @@ import type { SideEffect } from "@/crm/utils/chatEngine";
 import { X } from "lucide-react";
 import { runTool, searchClientOnServer } from "@/crm/ai/toolClient";
 import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/clientService";
 
 const AssistantDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -129,21 +130,38 @@ const AssistantDashboard: React.FC = () => {
     return dateText || new Date().toISOString().slice(0, 10);
   };
 
-  const handleAddClient = useCallback((data: any) => {
-    const newClient: Client = {
-      id: Date.now().toString(),
+  const handleAddClient = useCallback(async (data: any) => {
+    const clientData: Partial<Client> = {
       name: data.name || "",
       remarkName: data.remarkName || "",
       phone: data.phone || "",
       wechat: data.wechat || "",
-      status: data.status || "new",
+      status: data.status || "新客户",
       urgency: data.urgency || "medium",
       tags: data.tags || [],
-      requirements: data.requirements || {},
+      requirements: data.requirements || { areas: [], tags: [] },
       logs: [],
     };
-    setClients((prev) => [...prev, newClient]);
-    setToastMessage(`已添加客户「${newClient.remarkName || newClient.name}」`);
+
+    const saved = await createClient(clientData);
+    if (saved) {
+      setClients((prev) => [...prev, saved]);
+      setToastMessage(`已添加客户「${saved.remarkName || saved.name}」`);
+    } else {
+      // Fallback: add locally if DB save fails
+      const localClient: Client = {
+        ...clientData,
+        id: Date.now().toString(),
+        remarkName: clientData.remarkName || "",
+        status: clientData.status || "新客户",
+        urgency: clientData.urgency || "medium",
+        tags: clientData.tags || [],
+        requirements: clientData.requirements || { areas: [], tags: [] },
+        logs: [],
+      };
+      setClients((prev) => [...prev, localClient]);
+      setToastMessage(`客户已本地添加（云端保存失败）`);
+    }
   }, []);
 
   // ── Side effect handler (from ChatPanel) ──────────────────
