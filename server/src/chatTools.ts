@@ -173,4 +173,46 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
       },
     },
   },
+  {
+    name: "get_recent_activity",
+    description:
+      "获取最近的跟进活动记录。显示最近几天跟进了哪些客户、做了什么。当用户问「最近跟进了谁」、「这几天做了什么」、「工作汇报」时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        days: {
+          type: "number",
+          description: "查看最近几天的记录（默认7天）",
+        },
+      },
+    },
+  },
+  {
+    name: "get_stale_clients",
+    description:
+      "获取长时间未跟进的客户列表。当用户问「哪些客户很久没跟进了」、「有没有被遗忘的客户」、「需要跟进的客户」时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        days: {
+          type: "number",
+          description: "超过多少天未跟进算「长时间」（默认7天）",
+        },
+      },
+    },
+  },
+  {
+    name: "get_new_clients_count",
+    description:
+      "获取指定时间段内新增的客户数量。当用户问「这周新增了几个客户」、「本月新客户」、「最近有多少新客户」时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        days: {
+          type: "number",
+          description: "查看最近几天新增的客户（默认7天，传30为本月）",
+        },
+      },
+    },
+  },
 ];

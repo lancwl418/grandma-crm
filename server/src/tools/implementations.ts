@@ -307,6 +307,132 @@ export async function getClientStatsTool(
   return { ok: true, output: { total: rows.length, byStatus, byUrgency } };
 }
 
+export async function getRecentActivityTool(
+  input: { days?: number },
+  context: ToolContext
+): Promise<ToolResult<{
+  activities: Array<{ clientName: string; date: string; content: string }>;
+  total: number;
+}>> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  const days = input.days ?? 7;
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data, error } = await supabaseAdmin
+    .from("client_logs")
+    .select("date, content, client_id, clients!inner(name, remark_name, user_id)")
+    .eq("clients.user_id", context.userId)
+    .gte("date", since.toISOString())
+    .order("date", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("[getRecentActivity]", { traceId: context.traceId, error: error.message });
+    return { ok: false, error: "Database query failed" };
+  }
+
+  const activities = (data ?? []).map((row: any) => ({
+    clientName: (row.clients?.remark_name || row.clients?.name || "").trim(),
+    date: row.date,
+    content: row.content,
+  }));
+
+  return { ok: true, output: { activities, total: activities.length } };
+}
+
+export async function getStaleClientsTool(
+  input: { days?: number },
+  context: ToolContext
+): Promise<ToolResult<{
+  clients: Array<{ id: string; name: string; status: string; lastContactDate: string | null; daysSinceContact: number }>;
+  total: number;
+}>> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  const days = input.days ?? 7;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  // Get all active clients with their latest log date
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, remark_name, status, client_logs(date)")
+    .eq("user_id", context.userId)
+    .not("status", "in", '("已成交","暂缓")');
+
+  if (error) {
+    console.error("[getStaleClients]", { traceId: context.traceId, error: error.message });
+    return { ok: false, error: "Database query failed" };
+  }
+
+  const now = Date.now();
+  const stale = (data ?? [])
+    .map((row: any) => {
+      const logs = (row.client_logs ?? []) as Array<{ date: string }>;
+      const lastLog = logs.length > 0
+        ? logs.sort((a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date))[0].date
+        : null;
+      const daysSince = lastLog
+        ? Math.floor((now - new Date(lastLog).getTime()) / (1000 * 60 * 60 * 24))
+        : 999;
+      return {
+        id: row.id,
+        name: (row.remark_name || row.name || "").trim(),
+        status: row.status,
+        lastContactDate: lastLog,
+        daysSinceContact: daysSince,
+      };
+    })
+    .filter((c) => c.daysSinceContact >= days)
+    .sort((a, b) => b.daysSinceContact - a.daysSinceContact)
+    .slice(0, 20);
+
+  return { ok: true, output: { clients: stale, total: stale.length } };
+}
+
+export async function getNewClientsCountTool(
+  input: { days?: number },
+  context: ToolContext
+): Promise<ToolResult<{
+  count: number;
+  clients: Array<{ id: string; name: string; status: string; createdAt: string }>;
+}>> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: "Database not configured" };
+  }
+
+  const days = input.days ?? 7;
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data, error, count } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, remark_name, status, created_at", { count: "exact" })
+    .eq("user_id", context.userId)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getNewClientsCount]", { traceId: context.traceId, error: error.message });
+    return { ok: false, error: "Database query failed" };
+  }
+
+  const clients = (data ?? []).map((row) => ({
+    id: row.id,
+    name: (row.remark_name || row.name || "").trim(),
+    status: row.status,
+    createdAt: row.created_at,
+  }));
+
+  return { ok: true, output: { count: count ?? clients.length, clients } };
+}
+
 export async function listClientsByFilterTool(
   input: ListClientsByFilterInput,
   context: ToolContext

@@ -10,6 +10,9 @@ import {
   addClientLogTool,
   getClientDetailTool,
   getClientStatsTool,
+  getRecentActivityTool,
+  getStaleClientsTool,
+  getNewClientsCountTool,
   listClientsByFilterTool,
 } from "./tools/implementations.js";
 import type { ToolContext } from "./tools/types.js";
@@ -318,6 +321,27 @@ async function executeToolCall(
 
     case "get_client_stats": {
       return getClientStatsTool({} as Record<string, never>, context);
+    }
+
+    case "get_recent_activity": {
+      return getRecentActivityTool(
+        { days: input.days as number | undefined },
+        context
+      );
+    }
+
+    case "get_stale_clients": {
+      return getStaleClientsTool(
+        { days: input.days as number | undefined },
+        context
+      );
+    }
+
+    case "get_new_clients_count": {
+      return getNewClientsCountTool(
+        { days: input.days as number | undefined },
+        context
+      );
     }
 
     case "list_clients_by_filter": {
