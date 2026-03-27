@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Client, ClientLog } from "@/crm/types";
 import { getSampleClientsWithDemoTasks } from "@/crm/constants";
@@ -18,22 +18,12 @@ import ChatPanel from "@/crm/components/ChatPanel";
 import type { SideEffect } from "@/crm/utils/chatEngine";
 import { X } from "lucide-react";
 import { runTool, searchClientOnServer } from "@/crm/ai/toolClient";
-import { supabase } from "@/lib/supabase";
 import { createClient } from "@/lib/clientService";
+import { useUserId } from "@/lib/userContext";
 
 const AssistantDashboard: React.FC = () => {
   const navigate = useNavigate();
-
-  // ── Auth: get current user ID ──────────────────────────────
-  const [userId, setUserId] = useState<string | undefined>();
-  const authChecked = useRef(false);
-  useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
-    supabase?.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id);
-    });
-  }, []);
+  const userId = useUserId();
 
   // ── State (mirrors Dashboard pattern) ──────────────────────
   const [clients, setClients] = useState<Client[]>(getSampleClientsWithDemoTasks());

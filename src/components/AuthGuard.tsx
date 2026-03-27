@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { UserContext } from "@/lib/userContext";
 import type { User } from "@supabase/supabase-js";
 import Login from "@/pages/Login";
 
@@ -40,5 +41,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) return <Login />;
 
-  return <>{children}</>;
+  return (
+    <UserContext.Provider value={user.id}>
+      {children}
+    </UserContext.Provider>
+  );
 }
