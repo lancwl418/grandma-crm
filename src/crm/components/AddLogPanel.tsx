@@ -124,8 +124,8 @@ const AddLogPanel: React.FC<Props> = ({ onAddLog }) => {
 
       {/* 下一步计划 */}
       <div className="space-y-2">
-        <div className="flex gap-2 items-center">
-          <div className="flex items-center border rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-50">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex items-center border rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-50 shrink-0">
             <CalendarIcon size={16} className="mr-2 text-gray-400" />
             <input
               type="date"
@@ -135,21 +135,23 @@ const AddLogPanel: React.FC<Props> = ({ onAddLog }) => {
             />
           </div>
 
-          <input
-            type="text"
-            placeholder="下一步计划…（可选）"
-            value={nextActionContent}
-            onChange={(e) => setNextActionContent(e.target.value)}
-            className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex gap-2 flex-1 min-w-0">
+            <input
+              type="text"
+              placeholder="下一步计划…（可选）"
+              value={nextActionContent}
+              onChange={(e) => setNextActionContent(e.target.value)}
+              className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            记录
-          </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm shrink-0"
+            >
+              记录
+            </button>
+          </div>
         </div>
 
         {/* 下一步计划预设选项 */}
