@@ -9,10 +9,10 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/app" element={<Home />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<ProfilePage />} />
         <Route path="clients" element={<RealEstateCRM />} />
         <Route path="assistant" element={<AssistantDashboard />} />
-        <Route path="me" element={<ProfilePage />} />
+        <Route path="settings" element={<Dashboard />} />
       </Route>
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="*" element={<Navigate to="/app" replace />} />
