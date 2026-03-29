@@ -234,11 +234,11 @@ browseRouter.get("/lookup-username", async (req, res) => {
     return;
   }
 
-  // Search agent_profiles by display_name
+  // Search agent_profiles by username first, then display_name
   const { data } = await supabaseAdmin
     .from("agent_profiles")
     .select("user_id")
-    .ilike("display_name", username.trim())
+    .or(`username.ilike.${username.trim()},display_name.ilike.${username.trim()}`)
     .limit(1)
     .single();
 

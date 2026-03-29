@@ -12,6 +12,7 @@ interface Stats {
 }
 
 interface AgentProfile {
+  username: string;
   display_name: string;
   title: string;
   phone: string;
@@ -21,6 +22,7 @@ interface AgentProfile {
 }
 
 const DEFAULT_PROFILE: AgentProfile = {
+  username: "",
   display_name: "",
   title: "房地产经纪人",
   phone: "",
@@ -61,6 +63,7 @@ export default function ProfilePage() {
       .then(({ data }) => {
         if (data) {
           const p = {
+            username: data.username || "",
             display_name: data.display_name || "",
             title: data.title || "房地产经纪人",
             phone: data.phone || "",
@@ -182,7 +185,12 @@ export default function ProfilePage() {
 
           {/* Fields */}
           <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-            <ProfileField label="姓名" value={draft.display_name} placeholder="你的名字"
+            {/* Username — read only */}
+            <div className="flex items-center px-4 py-3">
+              <span className="w-16 text-sm text-gray-500 shrink-0">用户名</span>
+              <span className="flex-1 text-sm text-gray-400 text-right">{draft.username || "—"}</span>
+            </div>
+            <ProfileField label="显示名" value={draft.display_name} placeholder="显示名称"
               onChange={(v) => setDraft((p) => ({ ...p, display_name: v }))} />
             <ProfileField label="职称" value={draft.title} placeholder="房地产经纪人"
               onChange={(v) => setDraft((p) => ({ ...p, title: v }))} />
@@ -226,6 +234,7 @@ export default function ProfilePage() {
           )}
           <div>
             <h1 className="text-xl font-bold">{displayName}</h1>
+            {profile.username && <p className="text-white/60 text-xs">@{profile.username}</p>}
             <p className="text-blue-200 text-sm">{profile.title || "房地产经纪人"}</p>
             {profile.phone && <p className="text-blue-200 text-xs mt-0.5">{profile.phone}</p>}
           </div>

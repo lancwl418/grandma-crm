@@ -56,6 +56,7 @@ export default function Login() {
         if (data.user) {
           await supabase.from("agent_profiles").upsert({
             user_id: data.user.id,
+            username: username.trim().toLowerCase(),
             display_name: username.trim(),
           });
         }
