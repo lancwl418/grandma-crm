@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, Bot, User, Settings, ChevronsLeft, ChevronsRight, Menu, Eye, Search } from "lucide-react";
+import { Users, Bot, User, ChevronsLeft, ChevronsRight, Menu, Eye, Search, Megaphone } from "lucide-react";
 
 interface Props {
   collapsed: boolean;
@@ -17,7 +17,7 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
   const isVisitors = location.pathname === "/app/visitors";
   const isSearch = location.pathname === "/app/search";
   const isAssistant = location.pathname === "/app/assistant";
-  const isSettings = location.pathname === "/app/settings";
+  const isMarketing = location.pathname === "/app/marketing";
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -97,11 +97,11 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
           onClick={() => handleNav("/app/assistant")}
         />
         <SidebarItem
-          icon={Settings}
-          label="设置"
-          active={isSettings}
+          icon={Megaphone}
+          label="营销"
+          active={isMarketing}
           collapsed={collapsed && !isMobile}
-          onClick={() => handleNav("/app/settings")}
+          onClick={() => handleNav("/app/marketing")}
         />
       </nav>
 

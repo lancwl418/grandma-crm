@@ -1,11 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, Bot, User, Settings } from "lucide-react";
+import { Eye, Bot, User, Users, Megaphone } from "lucide-react";
 
 const TABS = [
-  { path: "/app", label: "我的", icon: User },
+  { path: "/app", label: "首页", icon: User },
   { path: "/app/visitors", label: "访客", icon: Eye },
+  { path: "/app/clients", label: "客户库", icon: Users },
   { path: "/app/assistant", label: "助理", icon: Bot },
-  { path: "/app/settings", label: "设置", icon: Settings },
+  { path: "/app/marketing", label: "营销", icon: Megaphone },
 ] as const;
 
 export default function MobileTabBar() {

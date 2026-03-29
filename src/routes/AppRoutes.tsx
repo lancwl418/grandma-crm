@@ -6,6 +6,7 @@ import AssistantDashboard from "@/pages/AssistantDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import VisitorsPage from "@/pages/VisitorsPage";
 import AgentSearchPage from "@/pages/AgentSearchPage";
+import MarketingPage from "@/pages/MarketingPage";
 
 export default function AppRoutes() {
   return (
@@ -16,7 +17,7 @@ export default function AppRoutes() {
         <Route path="visitors" element={<VisitorsPage />} />
         <Route path="search" element={<AgentSearchPage />} />
         <Route path="assistant" element={<AssistantDashboard />} />
-        <Route path="settings" element={<Dashboard />} />
+        <Route path="marketing" element={<MarketingPage />} />
       </Route>
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="*" element={<Navigate to="/app" replace />} />
