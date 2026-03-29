@@ -24,7 +24,7 @@ export default function FloatingAI() {
   if (!visible) return null;
 
   return (
-    <div className="fixed right-4 top-1/3 z-30 flex flex-col items-end gap-2">
+    <div className="fixed right-4 bottom-20 md:bottom-6 z-30 flex flex-col items-end gap-2">
       {/* Chat bubble */}
       {showBubble && (
         <div className="relative bg-white rounded-2xl rounded-br-sm shadow-lg border border-gray-100 px-4 py-3 max-w-[220px] animate-fade-in">
