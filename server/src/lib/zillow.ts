@@ -34,6 +34,7 @@ export interface ZillowListingResult {
   imageUrl: string;
   detailUrl: string;
   zestimate: number | null;
+  photos: string[];
 }
 
 export interface ZillowPropertyDetail {
@@ -115,6 +116,7 @@ export async function searchListings(
       imageUrl: r.image_url,
       detailUrl: r.detail_url,
       zestimate: r.zestimate,
+      photos: (r.photos ?? []).slice(0, 10).map((p: any) => p.urls?.large ?? p.urls?.medium ?? "").filter(Boolean),
     })
   );
 
