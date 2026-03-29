@@ -75,7 +75,7 @@ export default function BrowseListings() {
   const [listingType, setListingType] = useState<"sale" | "rent">("sale");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [bedsMin, setBedsMin] = useState("");
+  const [bedsMin, set卧Min] = useState("");
   const [homeType, setHomeType] = useState("");
 
   // Results (allListings = full API response, listings = current page slice)
@@ -233,7 +233,18 @@ export default function BrowseListings() {
     try {
       const res = await fetch(`${API_BASE}/api/browse/search?${buildSearchParams(loc)}`);
       const data = await res.json();
-      const all = data.results || [];
+      let all: Listing[] = data.results || [];
+
+      // Client-side price filter (API doesn't support it)
+      const min = minPrice ? Number(minPrice) : 0;
+      const max = maxPrice ? Number(maxPrice) : Infinity;
+      if (min > 0 || max < Infinity) {
+        all = all.filter((l) => {
+          const p = l.price || l.minPrice || 0;
+          return p >= min && p <= max;
+        });
+      }
+
       setAllListings(all);
       setListings(all.slice(0, PAGE_SIZE));
       setTotalResults(all.length);
@@ -385,10 +396,10 @@ export default function BrowseListings() {
         setClientName(data.clientName);
         setShowVerify(false);
       } else {
-        setVerifyError("Phone number does not match our records");
+        setVerifyError("电话号码不匹配 our records");
       }
     } catch {
-      setVerifyError("Verification failed, please try again");
+      setVerifyError("验证失败，请重试");
     }
   }, [phoneInput, clientId]);
 
@@ -447,7 +458,7 @@ export default function BrowseListings() {
             ))
           ) : (
             <div className="h-56 w-full bg-gray-200 flex items-center justify-center text-gray-400">
-              No photos
+              暂无图片
             </div>
           )}
         </div>
@@ -460,15 +471,15 @@ export default function BrowseListings() {
           </div>
 
           <div className="flex gap-4 text-sm text-gray-700">
-            <span className="flex items-center gap-1"><BedDouble className="h-4 w-4" /> {selectedDetail.beds} Beds</span>
-            <span className="flex items-center gap-1"><Bath className="h-4 w-4" /> {selectedDetail.baths} Baths</span>
+            <span className="flex items-center gap-1"><BedDouble className="h-4 w-4" /> {selectedDetail.beds} 卧</span>
+            <span className="flex items-center gap-1"><Bath className="h-4 w-4" /> {selectedDetail.baths} 卫</span>
             <span className="flex items-center gap-1"><Ruler className="h-4 w-4" /> {selectedDetail.sqft?.toLocaleString()} sqft</span>
           </div>
 
           <div className="flex gap-3 text-xs text-gray-500">
             <span>{HOME_TYPE_LABELS[selectedDetail.homeType] || selectedDetail.homeType}</span>
-            {selectedDetail.yearBuilt && <span>Built {selectedDetail.yearBuilt}</span>}
-            <span>{selectedDetail.daysOnZillow} days on Zillow</span>
+            {selectedDetail.year建于&& <span>建于{selectedDetail.yearBuilt}</span>}
+            <span>{selectedDetail.daysOnZillow} 天前上市</span>
           </div>
 
           {selectedDetail.zestimate && (
@@ -488,19 +499,19 @@ export default function BrowseListings() {
             rel="noopener noreferrer"
             className="text-xs text-blue-500 underline"
           >
-            View on Zillow →
+            在 Zillow 查看 →
           </a>
 
           {selectedDetail.description && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">房屋描述</h3>
               <p className="text-sm text-gray-600 leading-relaxed">{selectedDetail.description}</p>
             </div>
           )}
 
           {selectedDetail.schools.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Schools</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">学区</h3>
               <div className="space-y-2">
                 {selectedDetail.schools.map((s, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
@@ -518,7 +529,7 @@ export default function BrowseListings() {
           )}
 
           {selectedDetail.broker && (
-            <p className="text-xs text-gray-400">Listed by {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
+            <p className="text-xs text-gray-400">经纪公司 {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
           )}
 
         </div>
@@ -605,7 +616,7 @@ export default function BrowseListings() {
               listingType === "sale" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
             }`}
           >
-            Buy
+            买房
           </button>
           <button
             type="button"
@@ -614,7 +625,7 @@ export default function BrowseListings() {
               listingType === "rent" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
             }`}
           >
-            Rent
+            租房
           </button>
         </div>
 
@@ -626,7 +637,7 @@ export default function BrowseListings() {
               onChange={(e) => { setLocation(e.target.value); fetchSuggestions(e.target.value); }}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               onKeyDown={(e) => { if (e.key === "Enter") { setShowSuggestions(false); handleSearch(); } }}
-              placeholder="City, ZIP, or address..."
+              placeholder="输入城市、邮编或地址..."
               className="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {showSuggestions && suggestions.length > 0 && (
@@ -668,7 +679,7 @@ export default function BrowseListings() {
               type="number"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
-              placeholder="Min $"
+              placeholder="最低价"
               className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
             />
             <span className="text-gray-300 text-xs">-</span>
@@ -676,16 +687,16 @@ export default function BrowseListings() {
               type="number"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
-              placeholder="Max $"
+              placeholder="最高价"
               className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
             />
           </div>
           <select
             value={bedsMin}
-            onChange={(e) => setBedsMin(e.target.value)}
+            onChange={(e) => set卧Min(e.target.value)}
             className="border rounded-lg px-3 py-1.5 text-xs text-gray-700 bg-white shrink-0"
           >
-            <option value="">Beds</option>
+            <option value="">卧室</option>
             <option value="1">1+</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
@@ -697,10 +708,10 @@ export default function BrowseListings() {
             onChange={(e) => setHomeType(e.target.value)}
             className="border rounded-lg px-3 py-1.5 text-xs text-gray-700 bg-white shrink-0"
           >
-            <option value="">Type</option>
-            <option value="SINGLE_FAMILY">Single Family</option>
-            <option value="CONDO">Condo</option>
-            <option value="TOWNHOUSE">Townhouse</option>
+            <option value="">类型</option>
+            <option value="SINGLE_FAMILY">独栋</option>
+            <option value="CONDO">公寓</option>
+            <option value="TOWNHOUSE">联排</option>
           </select>
         </div>
       </div>
@@ -708,27 +719,27 @@ export default function BrowseListings() {
       {/* Results */}
       <div className="p-4 space-y-3">
         {loading && (
-          <div className="text-center py-12 text-gray-400 text-sm">Searching...</div>
+          <div className="text-center py-12 text-gray-400 text-sm">搜索中...</div>
         )}
 
         {!loading && searched && totalResults > 0 && (
           <div className="flex items-center justify-between text-xs text-gray-400 px-1">
-            <span>{totalResults} results found</span>
-            <span>Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalResults)}</span>
+            <span>{totalResults} 条结果</span>
+            <span>显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalResults)}</span>
           </div>
         )}
 
         {!loading && searched && listings.length === 0 && (
-          <div className="text-center py-12 text-gray-400 text-sm">No listings found. Try a different location.</div>
+          <div className="text-center py-12 text-gray-400 text-sm">未找到房源，请尝试其他地区</div>
         )}
 
         {/* Home page: recently viewed + hot areas */}
         {!loading && !searched && (
           <div className="space-y-6">
-            {/* Recently Viewed */}
+            {/* 最近浏览 */}
             {recentViews.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-2">Recently Viewed</h3>
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">最近浏览</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {recentViews.map((listing) => (
                     <button
@@ -756,7 +767,7 @@ export default function BrowseListings() {
 
             {/* Hot Areas */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Popular Areas</h3>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">热门地区</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { name: "Irvine", label: "Irvine, CA", emoji: "🏘️" },
@@ -875,7 +886,7 @@ export default function BrowseListings() {
               onClick={() => { setCurrentPage((p) => p - 1); }}
               className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-30 active:bg-gray-50"
             >
-              Previous
+              上一页
             </button>
             <span className="text-sm text-gray-500">
               Page {currentPage} / {totalPages}
@@ -886,7 +897,7 @@ export default function BrowseListings() {
               onClick={() => { setCurrentPage((p) => p + 1); }}
               className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-30 active:bg-gray-50"
             >
-              Next
+              下一页
             </button>
           </div>
         )}
@@ -902,15 +913,15 @@ export default function BrowseListings() {
             className="bg-white w-full sm:max-w-sm sm:rounded-xl rounded-t-2xl p-6 safe-bottom"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Verify Your Identity</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">验证身份</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Enter the phone number your agent has on file to save favorites.
+              请输入您经纪人记录的电话号码以保存收藏
             </p>
             <input
               type="tel"
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
-              placeholder="Phone number"
+              placeholder="电话号码"
               className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {verifyError && (
@@ -921,7 +932,7 @@ export default function BrowseListings() {
               disabled={!phoneInput.trim()}
               className="w-full mt-4 py-3 bg-blue-600 text-white rounded-xl font-medium active:bg-blue-700 transition disabled:bg-gray-300"
             >
-              Verify
+              验证
             </button>
           </div>
         </div>
@@ -930,7 +941,7 @@ export default function BrowseListings() {
       {/* Detail loading overlay */}
       {detailLoading && (
         <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
-          <div className="text-gray-500 text-sm">Loading...</div>
+          <div className="text-gray-500 text-sm">加载中...</div>
         </div>
       )}
 
