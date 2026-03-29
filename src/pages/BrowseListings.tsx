@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Search, Home, Heart, BedDouble, Bath, Ruler, ChevronLeft, Phone } from "lucide-react";
 
@@ -81,12 +81,9 @@ export default function BrowseListings() {
   // Results
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Detail view
   const [selectedDetail, setSelectedDetail] = useState<ListingDetail | null>(null);
@@ -169,10 +166,8 @@ export default function BrowseListings() {
       const data = await res.json();
       setListings(data.results || []);
       setTotalPages(data.totalPages || 1);
-      setHasMore((data.totalPages || 1) > 1);
     } catch {
       setListings([]);
-      setHasMore(false);
     } finally {
       setLoading(false);
     }
@@ -183,42 +178,21 @@ export default function BrowseListings() {
     searchLocation(location);
   }, [location, searchLocation]);
 
-  // Load more (next page)
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore || !location.trim()) return;
-    const nextPage = currentPage + 1;
-    setLoadingMore(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/browse/search?${buildSearchParams(location, nextPage)}`);
-      const data = await res.json();
-      const newResults = data.results || [];
-      if (newResults.length === 0) {
-        setHasMore(false);
-      } else {
-        setListings((prev) => [...prev, ...newResults]);
-        setCurrentPage(nextPage);
-        setHasMore(nextPage < (data.totalPages || 1));
-      }
-    } catch {
-      setHasMore(false);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMore, location, currentPage, buildSearchParams]);
-
-  // Infinite scroll — observe sentinel element
+  // Re-fetch when page changes
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMore]);
+    if (!searched || !location.trim() || currentPage === 1) return;
+    setLoading(true);
+    fetch(`${API_BASE}/api/browse/search?${buildSearchParams(location, currentPage)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setListings(data.results || []);
+        setTotalPages(data.totalPages || 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      })
+      .catch(() => setListings([]))
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // ── View Detail ───────────────────────────────────────────
 
@@ -708,19 +682,29 @@ export default function BrowseListings() {
           </div>
         ))}
 
-        {/* Infinite scroll sentinel + loading indicator */}
-        {hasMore && (
-          <div ref={sentinelRef} className="py-6 text-center">
-            {loadingMore ? (
-              <span className="text-sm text-gray-400">Loading more...</span>
-            ) : (
-              <span className="text-xs text-gray-300">Scroll for more</span>
-            )}
+        {/* Pagination */}
+        {searched && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 py-4">
+            <button
+              type="button"
+              disabled={currentPage <= 1 || loading}
+              onClick={() => { setCurrentPage((p) => p - 1); }}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-30 active:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              Page {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages || loading}
+              onClick={() => { setCurrentPage((p) => p + 1); }}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-30 active:bg-gray-50"
+            >
+              Next
+            </button>
           </div>
-        )}
-
-        {!hasMore && searched && listings.length > 0 && (
-          <div className="py-4 text-center text-xs text-gray-300">No more results</div>
         )}
       </div>
 
