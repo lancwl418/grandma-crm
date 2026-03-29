@@ -13,7 +13,7 @@ const RealEstateCRM: React.FC = () => {
 
   useEffect(() => {
     fetchClients().then((data) => {
-      setClients(data.length > 0 ? data : SAMPLE_CLIENTS);
+      setClients(data);
       setLoading(false);
     });
   }, []);
