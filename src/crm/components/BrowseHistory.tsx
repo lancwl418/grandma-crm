@@ -119,7 +119,7 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
     return 0;
   });
 
-  const interestedItems = allItems.filter((v) => v.hasInquiry);
+  const interestedItems = allItems.filter((v) => v.hasInquiry || v.hasFavorite);
   const displayItems = tab === "interested" ? interestedItems : allItems;
   const shouldCollapse = displayItems.length > COLLAPSED_COUNT && !expanded;
   const visibleItems = shouldCollapse ? displayItems.slice(0, COLLAPSED_COUNT) : displayItems;
