@@ -188,6 +188,39 @@ browseRouter.get("/agent/:clientId", async (req, res) => {
   res.json({ agentName: name, agentPhone: "", agentWechat: "", agentEmail: emailAddr, agentAvatar: "" });
 });
 
+// ── Lookup username → email (for login) ─────────────────────
+
+browseRouter.get("/lookup-username", async (req, res) => {
+  const { username } = req.query;
+
+  if (!username || typeof username !== "string") {
+    res.json({ email: null });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.json({ email: null });
+    return;
+  }
+
+  // Search agent_profiles by display_name
+  const { data } = await supabaseAdmin
+    .from("agent_profiles")
+    .select("user_id")
+    .ilike("display_name", username.trim())
+    .limit(1)
+    .single();
+
+  if (!data) {
+    res.json({ email: null });
+    return;
+  }
+
+  // Get email from auth
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+  res.json({ email: userData?.user?.email ?? null });
+});
+
 // ── Get agent profile by userId (for register page) ─────────
 
 browseRouter.get("/agent-profile/:userId", async (req, res) => {
