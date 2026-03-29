@@ -487,24 +487,56 @@ export default function BrowseListings() {
             <p className="text-xs text-gray-400">Listed by {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
           )}
 
-          {/* Contact agent button */}
+        </div>
+
+        {/* Fixed bottom: contact agent */}
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom z-20">
+          {/* Expanded contact options */}
+          {contactOpen && (
+            <div className="px-4 py-3 space-y-2 border-b border-gray-100">
+              {agentPhone && (
+                <a href={`tel:${agentPhone}`} className="flex items-center gap-3 py-2.5 px-3 bg-green-50 rounded-xl active:bg-green-100 transition">
+                  <Phone className="h-5 w-5 text-green-600" />
+                  <div className="flex-1"><p className="text-sm font-medium text-gray-900">电话联系</p><p className="text-xs text-gray-400">{agentPhone}</p></div>
+                </a>
+              )}
+              {agentWechat && (
+                <button type="button" onClick={() => { navigator.clipboard.writeText(agentWechat); setWechatCopied(true); setTimeout(() => setWechatCopied(false), 2000); }}
+                  className="w-full flex items-center gap-3 py-2.5 px-3 bg-emerald-50 rounded-xl active:bg-emerald-100 transition">
+                  <MessageCircle className="h-5 w-5 text-emerald-600" />
+                  <div className="flex-1 text-left"><p className="text-sm font-medium text-gray-900">{wechatCopied ? "已复制微信号" : "微信联系"}</p><p className="text-xs text-gray-400">{agentWechat}</p></div>
+                </button>
+              )}
+              {agentEmail && (
+                <button type="button" onClick={() => {
+                  setEmailListingInfo({ zpid: selectedDetail.zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl });
+                  setEmailBody(`Hi ${agentName},\n\nI'm interested in this property:\n${selectedDetail.address}\nPrice: ${selectedDetail.priceFormatted}\n\nPlease contact me with more details.\n\nThank you!`);
+                  setEmailSubject(`Inquiry: ${selectedDetail.address}`);
+                  setEmailOpen(true); setContactOpen(false);
+                }} className="w-full flex items-center gap-3 py-2.5 px-3 bg-blue-50 rounded-xl active:bg-blue-100 transition">
+                  <Send className="h-5 w-5 text-blue-600" />
+                  <div className="flex-1 text-left"><p className="text-sm font-medium text-gray-900">发送留言</p><p className="text-xs text-gray-400">{agentEmail}</p></div>
+                </button>
+              )}
+            </div>
+          )}
           <button
             type="button"
-            onClick={() => {
-              setEmailListingInfo({
-                zpid: selectedDetail.zpid,
-                address: selectedDetail.address,
-                price: selectedDetail.price,
-                imageUrl: selectedDetail.imageUrl,
-              });
-              setContactOpen(true);
-            }}
-            className="w-full py-3 bg-green-600 text-white rounded-xl font-medium text-sm active:bg-green-700 transition flex items-center justify-center gap-2"
+            onClick={() => setContactOpen(!contactOpen)}
+            className="w-full px-4 py-3 flex items-center justify-center gap-2 active:bg-gray-50"
           >
-            <Phone className="h-4 w-4" />
-            联系经纪人 {agentName}
+            {agentAvatar ? (
+              <img src={agentAvatar} alt="" className="w-7 h-7 rounded-full object-cover" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">{agentName[0]}</div>
+            )}
+            <span className="text-sm font-medium text-green-700">联系经纪人 {agentName}</span>
+            <ChevronDown className={`h-4 w-4 text-gray-400 transition ${contactOpen ? "rotate-180" : ""}`} />
           </button>
         </div>
+
+        {/* Click outside to close */}
+        {contactOpen && <div className="fixed inset-0 z-10" onClick={() => setContactOpen(false)} />}
       </div>
     );
   }
