@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Home, User, Phone, Mail, MessageCircle } from "lucide-react";
+import { Home, User, Phone, Mail, MessageCircle, Star } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+// Sample listings for the fade preview
+const PREVIEW_LISTINGS = [
+  { img: "https://photos.zillowstatic.com/fp/40b7077a545b01fb212c46fd467a373f-p_d.jpg", price: "$939K", addr: "Chino Hills, CA" },
+  { img: "https://photos.zillowstatic.com/fp/55de5261588247b703fcc952b49be948-p_d.jpg", price: "$1.2M", addr: "Irvine, CA" },
+  { img: "https://photos.zillowstatic.com/fp/366401355f96f8e2e0dc28c14cf0bf94-p_d.jpg", price: "$850K", addr: "Arcadia, CA" },
+  { img: "https://photos.zillowstatic.com/fp/3136f65f9d0d374dc54a4f0085012589-p_d.jpg", price: "$1.5M", addr: "San Marino, CA" },
+];
 
 export default function BrowseRegister() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -20,14 +28,19 @@ export default function BrowseRegister() {
   const [agentAvatar, setAgentAvatar] = useState("");
   const [agentTitle, setAgentTitle] = useState("");
 
-  // Load agent profile
   useEffect(() => {
     if (!agentId) return;
-    // We need an endpoint to get agent info by user_id (not client_id)
-    // For now, just show default
+    fetch(`${API_BASE}/api/browse/agent-profile/${agentId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.agentName) setAgentName(data.agentName);
+        if (data.agentAvatar) setAgentAvatar(data.agentAvatar);
+        if (data.agentTitle) setAgentTitle(data.agentTitle);
+      })
+      .catch(() => {});
   }, [agentId]);
 
-  const canSubmit = name.trim() || phone.trim() || email.trim();
+  const canSubmit = name.trim() || phone.trim();
 
   const handleSubmit = async () => {
     if (!canSubmit || !agentId) return;
@@ -49,106 +62,154 @@ export default function BrowseRegister() {
 
       const data = await res.json();
       if (data.ok && data.clientId) {
-        // Redirect to personal browse page
         navigate(`/browse/${data.clientId}`, { replace: true });
       } else {
-        setError(data.error || "Registration failed");
+        setError(data.error || "提交失败，请重试");
       }
     } catch {
-      setError("Network error, please try again");
+      setError("网络错误，请重试");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
-      {/* Header */}
-      <div className="px-6 pt-12 pb-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center mx-auto mb-4">
-          <Home className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Top section */}
+      <div className="bg-gradient-to-b from-blue-50 to-white px-6 pt-10 pb-4 text-center">
+        {/* Agent info */}
+        {agentName && (
+          <div className="flex items-center justify-center gap-3 mb-5">
+            {agentAvatar ? (
+              <img src={agentAvatar} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow">
+                {agentName[0]}
+              </div>
+            )}
+            <div className="text-left">
+              <p className="text-base font-bold text-gray-900">{agentName}</p>
+              {agentTitle && <p className="text-xs text-gray-400">{agentTitle}</p>}
+            </div>
+          </div>
+        )}
+
+        <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <Home className="h-7 w-7 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Estate Epic 找房</h1>
-        <p className="text-sm text-gray-500 mt-1">填写信息开始浏览房源</p>
+        <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
+          为了更好地为您服务，请填写以下联系方式
+        </p>
       </div>
 
       {/* Form */}
-      <div className="flex-1 px-6 pb-8">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4 max-w-md mx-auto">
-          {/* Name */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5" /> Name / 姓名
+      <div className="px-5 pb-6 max-w-md mx-auto">
+        <div className="space-y-4">
+          {/* Name — required */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <User className="h-4 w-4 text-blue-600" />
+              姓名 / Name
+              <Star className="h-2 w-2 text-red-500 fill-red-500" />
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="请输入您的姓名"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
             />
           </div>
 
-          {/* Phone */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5" /> Phone / 电话
+          {/* Phone — required */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <Phone className="h-4 w-4 text-green-600" />
+              电话 / Phone
+              <Star className="h-2 w-2 text-red-500 fill-red-500" />
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="Phone number"
-              className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="请输入您的电话号码"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
             />
           </div>
 
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5" /> Email / 邮箱
-              <span className="text-gray-300 font-normal">optional</span>
+          {/* Email — optional */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-purple-600" />
+              邮箱 / Email
+              <span className="text-xs text-orange-400 bg-orange-50 px-1.5 py-0.5 rounded">选填</span>
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
-              className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
             />
           </div>
 
-          {/* WeChat */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-              <MessageCircle className="h-3.5 w-3.5" /> WeChat / 微信
-              <span className="text-gray-300 font-normal">optional</span>
+          {/* WeChat — optional */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <MessageCircle className="h-4 w-4 text-emerald-600" />
+              微信 / WeChat
+              <span className="text-xs text-orange-400 bg-orange-50 px-1.5 py-0.5 rounded">选填</span>
             </label>
             <input
               type="text"
               value={wechat}
               onChange={(e) => setWechat(e.target.value)}
-              placeholder="WeChat ID"
-              className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="微信号"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
             />
           </div>
 
-          {error && (
-            <p className="text-xs text-red-500 text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit || submitting}
-            className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-medium text-base active:bg-blue-700 transition disabled:bg-gray-300"
+            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium text-base active:from-blue-700 active:to-indigo-700 transition disabled:from-gray-300 disabled:to-gray-300 shadow-lg shadow-blue-200"
           >
-            {submitting ? "提交中..." : "开始浏览房源"}
+            {submitting ? "提交中..." : "开始浏览房源 →"}
           </button>
 
-          <p className="text-[10px] text-gray-300 text-center">
-            Your information will only be shared with your agent
+          <p className="text-xs text-gray-400 text-center">
+            您的信息仅用于房产服务，不会分享给第三方
           </p>
+        </div>
+      </div>
+
+      {/* Preview listings with fade overlay */}
+      <div className="relative mt-4">
+        <div className="grid grid-cols-2 gap-2 px-5">
+          {PREVIEW_LISTINGS.map((l, i) => (
+            <div
+              key={i}
+              className="rounded-xl overflow-hidden border border-gray-100"
+              onClick={handleSubmit}
+            >
+              <img src={l.img} alt="" className="w-full h-28 object-cover" />
+              <div className="p-2">
+                <p className="text-sm font-bold text-gray-900">{l.price}</p>
+                <p className="text-[10px] text-gray-400">{l.addr}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Fade overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/60 to-white pointer-events-none" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-sm text-gray-500 bg-white/90 px-4 py-2 rounded-full shadow-sm border border-gray-200">
+            填写信息即可浏览更多房源
+          </span>
         </div>
       </div>
     </div>

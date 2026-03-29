@@ -188,6 +188,42 @@ browseRouter.get("/agent/:clientId", async (req, res) => {
   res.json({ agentName: name, agentPhone: "", agentWechat: "", agentEmail: emailAddr, agentAvatar: "" });
 });
 
+// ── Get agent profile by userId (for register page) ─────────
+
+browseRouter.get("/agent-profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({ agentName: "Agent", agentTitle: "", agentAvatar: "" });
+    return;
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("agent_profiles")
+    .select("display_name, title, avatar_url, phone")
+    .eq("user_id", userId)
+    .single();
+
+  if (profile?.display_name) {
+    res.json({
+      agentName: profile.display_name,
+      agentTitle: profile.title || "",
+      agentAvatar: profile.avatar_url || "",
+      agentPhone: profile.phone || "",
+    });
+    return;
+  }
+
+  // Fallback
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+  res.json({
+    agentName: userData?.user?.user_metadata?.full_name ?? userData?.user?.email?.split("@")[0] ?? "Agent",
+    agentTitle: "",
+    agentAvatar: "",
+    agentPhone: "",
+  });
+});
+
 // ── Register new client from browse page ────────────────────
 
 browseRouter.post("/register", async (req, res) => {
