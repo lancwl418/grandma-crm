@@ -197,7 +197,7 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-10 text-white relative rounded-b-3xl md:rounded-b-none md:mx-0">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-14 text-white relative">
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -222,7 +222,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="px-4 -mt-5">
+      <div className="px-4 -mt-8">
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={<Users className="h-5 w-5 text-blue-600" />} label="客户总数" value={stats.totalClients} loading={loading} />
           <StatCard icon={<UserPlus className="h-5 w-5 text-green-600" />} label="本月新增" value={stats.newThisMonth} loading={loading} />
