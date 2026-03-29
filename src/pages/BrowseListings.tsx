@@ -78,12 +78,15 @@ export default function BrowseListings() {
   const [bedsMin, setBedsMin] = useState("");
   const [homeType, setHomeType] = useState("");
 
-  // Results
+  // Results (allListings = full API response, listings = current page slice)
+  const [allListings, setAllListings] = useState<Listing[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const PAGE_SIZE = 50;
 
   // Detail view
   const [selectedDetail, setSelectedDetail] = useState<ListingDetail | null>(null);
@@ -164,10 +167,15 @@ export default function BrowseListings() {
     try {
       const res = await fetch(`${API_BASE}/api/browse/search?${buildSearchParams(loc)}`);
       const data = await res.json();
-      setListings(data.results || []);
-      setTotalPages(data.totalPages || 1);
+      const all = data.results || [];
+      setAllListings(all);
+      setListings(all.slice(0, PAGE_SIZE));
+      setTotalResults(all.length);
+      setTotalPages(Math.ceil(all.length / PAGE_SIZE));
     } catch {
+      setAllListings([]);
       setListings([]);
+      setTotalResults(0);
     } finally {
       setLoading(false);
     }
@@ -178,21 +186,13 @@ export default function BrowseListings() {
     searchLocation(location);
   }, [location, searchLocation]);
 
-  // Re-fetch when page changes
+  // Local pagination — slice allListings when page changes
   useEffect(() => {
-    if (!searched || !location.trim() || currentPage === 1) return;
-    setLoading(true);
-    fetch(`${API_BASE}/api/browse/search?${buildSearchParams(location, currentPage)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setListings(data.results || []);
-        setTotalPages(data.totalPages || 1);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      })
-      .catch(() => setListings([]))
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+    if (!searched || allListings.length === 0) return;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    setListings(allListings.slice(start, start + PAGE_SIZE));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage, allListings, searched]);
 
   // ── View Detail ───────────────────────────────────────────
 
@@ -532,6 +532,13 @@ export default function BrowseListings() {
       <div className="p-4 space-y-3">
         {loading && (
           <div className="text-center py-12 text-gray-400 text-sm">Searching...</div>
+        )}
+
+        {!loading && searched && totalResults > 0 && (
+          <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+            <span>{totalResults} results found</span>
+            <span>Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalResults)}</span>
+          </div>
         )}
 
         {!loading && searched && listings.length === 0 && (
