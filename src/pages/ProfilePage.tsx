@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, UserPlus, TrendingUp, Eye, LogOut, ChevronRight, Bot, Search, ClipboardList, Pencil, Check, Camera, Link, Share2 } from "lucide-react";
+import ActivityFeed from "@/components/ActivityFeed";
 import { supabase } from "@/lib/supabase";
 import { UserContext } from "@/lib/userContext";
 
@@ -257,6 +258,9 @@ export default function ProfilePage() {
           <StatCard icon={<TrendingUp className="h-5 w-5 text-orange-600" />} label="感兴趣" value={stats.inquiries} loading={loading} subtitle="近7天" onClick={() => navigate("/app/visitors")} />
         </div>
       </div>
+
+      {/* Activity Feed */}
+      <ActivityFeed />
 
       {/* Share Link */}
       {userId && (
