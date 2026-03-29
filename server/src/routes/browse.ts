@@ -6,6 +6,37 @@ export const browseRouter = Router();
 
 // ── Search listings (public, for client browse page) ────────
 
+// ── Autocomplete ────────────────────────────────────────────
+
+browseRouter.get("/autocomplete", async (req, res) => {
+  const { query } = req.query;
+  if (!query || typeof query !== "string" || query.length < 2) {
+    res.json({ results: [] });
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `https://private-zillow.p.rapidapi.com/autocomplete?query=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-rapidapi-host": "private-zillow.p.rapidapi.com",
+          "x-rapidapi-key": process.env.RAPIDAPI_KEY || "",
+        },
+      }
+    );
+    const data = await response.json();
+    const results = (data.results ?? []).slice(0, 6).map((r: any) => ({
+      display: r.display,
+      type: r.metaData?.regionType || r.resultType || "",
+    }));
+    res.json({ results });
+  } catch {
+    res.json({ results: [] });
+  }
+});
+
 browseRouter.get("/search", async (req, res) => {
   try {
     const {

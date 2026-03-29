@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Search, Home, Heart, BedDouble, Bath, Ruler, ChevronLeft, ChevronDown, Phone, MessageCircle, Send } from "lucide-react";
 
@@ -102,6 +102,24 @@ export default function BrowseListings() {
   const [agentEmail, setAgentEmail] = useState("");
   const [agentAvatar, setAgentAvatar] = useState("");
   const [agentTitle, setAgentTitle] = useState("");
+
+  // Autocomplete
+  const [suggestions, setSuggestions] = useState<Array<{ display: string; type: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const acTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback((query: string) => {
+    if (acTimerRef.current) clearTimeout(acTimerRef.current);
+    if (query.length < 2) { setSuggestions([]); return; }
+    acTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/browse/autocomplete?query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setSuggestions(data.results || []);
+        setShowSuggestions(true);
+      } catch { setSuggestions([]); }
+    }, 300);
+  }, []);
 
   // Contact panel
   const [contactOpen, setContactOpen] = useState(false);
@@ -591,23 +609,48 @@ export default function BrowseListings() {
           </button>
         </div>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="City, ZIP, or address..."
-            className="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="flex gap-2 relative">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => { setLocation(e.target.value); fetchSuggestions(e.target.value); }}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              onKeyDown={(e) => { if (e.key === "Enter") { setShowSuggestions(false); handleSearch(); } }}
+              placeholder="City, ZIP, or address..."
+              className="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg z-20 overflow-hidden">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setLocation(s.display);
+                      setShowSuggestions(false);
+                      setSuggestions([]);
+                      setTimeout(() => searchLocation(s.display), 0);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 active:bg-gray-100 border-b border-gray-50 last:border-0 flex items-center justify-between"
+                  >
+                    <span className="text-gray-900">{s.display}</span>
+                    <span className="text-[10px] text-gray-400">{s.type}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
-            onClick={handleSearch}
+            onClick={() => { setShowSuggestions(false); handleSearch(); }}
             disabled={loading || !location.trim()}
             className="px-4 py-2.5 bg-blue-600 text-white rounded-xl active:bg-blue-700 transition disabled:bg-gray-300"
           >
             <Search className="h-4 w-4" />
           </button>
         </div>
+        {/* Click outside to close suggestions */}
+        {showSuggestions && <div className="fixed inset-0 z-10" onClick={() => setShowSuggestions(false)} />}
 
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto">
