@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Search, Home, Heart, BedDouble, Bath, Ruler, ChevronLeft, Phone } from "lucide-react";
+import { Search, Home, Heart, BedDouble, Bath, Ruler, ChevronLeft, ChevronDown, Phone, MessageCircle, Send } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -97,18 +97,38 @@ export default function BrowseListings() {
 
   // Agent info
   const [agentName, setAgentName] = useState("Your Agent");
+  const [agentPhone, setAgentPhone] = useState("");
+  const [agentWechat, setAgentWechat] = useState("");
+  const [agentEmail, setAgentEmail] = useState("");
+  const [agentAvatar, setAgentAvatar] = useState("");
+  const [agentTitle, setAgentTitle] = useState("");
+
+  // Contact panel
+  const [contactOpen, setContactOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSubject, setEmailSubject] = useState("Property Inquiry");
+  const [emailListingInfo, setEmailListingInfo] = useState<{ zpid: number; address: string; price: number; imageUrl: string } | null>(null);
+  const [wechatCopied, setWechatCopied] = useState(false);
 
   // Verification
   const [verified, setVerified] = useState(false);
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
-  // Load agent name on mount
+  // Load agent info on mount
   useEffect(() => {
     if (!clientId) return;
     fetch(`${API_BASE}/api/browse/agent/${clientId}`)
       .then((res) => res.json())
-      .then((data) => { if (data.agentName) setAgentName(data.agentName); })
+      .then((data) => {
+        if (data.agentName) setAgentName(data.agentName);
+        if (data.agentPhone) setAgentPhone(data.agentPhone);
+        if (data.agentWechat) setAgentWechat(data.agentWechat);
+        if (data.agentEmail) setAgentEmail(data.agentEmail);
+        if (data.agentAvatar) setAgentAvatar(data.agentAvatar);
+        if (data.agentTitle) setAgentTitle(data.agentTitle);
+      })
       .catch(() => {});
   }, [clientId]);
 
@@ -228,6 +248,9 @@ export default function BrowseListings() {
       }).catch(() => {});
     }
 
+    // Store listing info for email
+    setEmailListingInfo({ zpid: listing.zpid, address: listing.address, price: listing.price, imageUrl: listing.imageUrl });
+
     // Rent listings or listings without zpid — use search data directly
     if (!listing.zpid) {
       setSelectedDetail({
@@ -339,10 +362,10 @@ export default function BrowseListings() {
 
   if (selectedDetail) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-16">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setSelectedDetail(null)} className="p-1">
+          <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="p-1">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-medium truncate flex-1">{selectedDetail.address}</h1>
@@ -436,33 +459,6 @@ export default function BrowseListings() {
           )}
 
         </div>
-
-        {/* Floating contact bar */}
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 safe-bottom">
-          <button
-            type="button"
-            onClick={() => {
-              if (clientId) {
-                fetch(`${API_BASE}/api/browse/track`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    clientId,
-                    zpid: selectedDetail.zpid || selectedDetail.address,
-                    address: selectedDetail.address,
-                    price: selectedDetail.price,
-                    imageUrl: selectedDetail.imageUrl,
-                    action: "inquiry",
-                  }),
-                }).catch(() => {});
-              }
-              alert(`Your interest has been sent to ${agentName}! They will contact you soon.`);
-            }}
-            className="w-full py-3 bg-green-600 text-white rounded-xl font-medium active:bg-green-700 transition text-base shadow-lg"
-          >
-            I'm Interested — Contact {agentName}
-          </button>
-        </div>
       </div>
     );
   }
@@ -470,13 +466,13 @@ export default function BrowseListings() {
   // ── Main Search View ──────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Home className="h-5 w-5 text-blue-600" />
-            <h1 className="text-base font-bold text-gray-900">Find Your Home</h1>
+            <h1 className="text-base font-bold text-gray-900">Estate Epic 找房</h1>
           </div>
           {verified && (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
@@ -799,6 +795,143 @@ export default function BrowseListings() {
         <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
           <div className="text-gray-500 text-sm">Loading...</div>
         </div>
+      )}
+
+      {/* Agent contact bottom bar */}
+      <div className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
+        {/* Expanded contact panel */}
+        {contactOpen && (
+          <div className="bg-white border-t border-gray-200 px-4 py-3 space-y-2">
+            {agentPhone && (
+              <a href={`tel:${agentPhone}`} className="flex items-center gap-3 py-2.5 px-3 bg-green-50 rounded-xl active:bg-green-100 transition">
+                <Phone className="h-5 w-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">电话联系</p>
+                  <p className="text-xs text-gray-400">{agentPhone}</p>
+                </div>
+              </a>
+            )}
+            {agentWechat && (
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(agentWechat);
+                  setWechatCopied(true);
+                  setTimeout(() => setWechatCopied(false), 2000);
+                }}
+                className="w-full flex items-center gap-3 py-2.5 px-3 bg-emerald-50 rounded-xl active:bg-emerald-100 transition"
+              >
+                <MessageCircle className="h-5 w-5 text-emerald-600" />
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-gray-900">{wechatCopied ? "已复制微信号" : "微信联系"}</p>
+                  <p className="text-xs text-gray-400">{agentWechat}</p>
+                </div>
+              </button>
+            )}
+            {agentEmail && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (emailListingInfo) {
+                    setEmailBody(`Hi ${agentName},\n\nI'm interested in this property:\n${emailListingInfo.address}\nPrice: $${emailListingInfo.price.toLocaleString()}\n\nPlease contact me with more details.\n\nThank you!`);
+                    setEmailSubject(`Inquiry: ${emailListingInfo.address}`);
+                  } else {
+                    setEmailBody(`Hi ${agentName},\n\nI'm looking for properties and would like to learn more.\n\nThank you!`);
+                    setEmailSubject("Property Inquiry");
+                  }
+                  setEmailOpen(true);
+                  setContactOpen(false);
+                }}
+                className="w-full flex items-center gap-3 py-2.5 px-3 bg-blue-50 rounded-xl active:bg-blue-100 transition"
+              >
+                <Send className="h-5 w-5 text-blue-600" />
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-gray-900">发送邮件</p>
+                  <p className="text-xs text-gray-400">{agentEmail}</p>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Agent bar */}
+        <button
+          type="button"
+          onClick={() => setContactOpen(!contactOpen)}
+          className="w-full bg-white border-t border-gray-200 px-4 py-2.5 flex items-center justify-center gap-3"
+        >
+          {agentAvatar ? (
+            <img src={agentAvatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+              {agentName[0]}
+            </div>
+          )}
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900">{agentName}</p>
+            {agentTitle && <p className="text-[10px] text-gray-400">{agentTitle}</p>}
+          </div>
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition ${contactOpen ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+
+      {/* Email modal */}
+      {emailOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setEmailOpen(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-2xl p-5 safe-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-gray-900 mb-1">发送邮件给 {agentName}</h3>
+            <p className="text-xs text-gray-400 mb-3">{agentEmail}</p>
+            <textarea
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              rows={6}
+              className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => setEmailOpen(false)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 active:bg-gray-50"
+              >
+                取消
+              </button>
+              <a
+                href={`mailto:${agentEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`}
+                onClick={() => {
+                  setEmailOpen(false);
+                  if (clientId && emailListingInfo) {
+                    fetch(`${API_BASE}/api/browse/track`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        clientId,
+                        zpid: emailListingInfo.zpid || emailListingInfo.address,
+                        address: emailListingInfo.address,
+                        price: emailListingInfo.price,
+                        imageUrl: emailListingInfo.imageUrl,
+                        action: "inquiry",
+                      }),
+                    }).catch(() => {});
+                  }
+                }}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium text-center active:bg-blue-700"
+              >
+                发送
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close contact panel */}
+      {contactOpen && (
+        <div className="fixed inset-0 z-30" onClick={() => setContactOpen(false)} />
       )}
     </div>
   );
