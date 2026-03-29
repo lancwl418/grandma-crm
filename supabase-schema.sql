@@ -116,3 +116,29 @@ CREATE POLICY "Users can delete logs for own clients"
     WHERE clients.id = client_logs.client_id
     AND clients.user_id = auth.uid()
   ));
+
+-- ══════════════════════════════════════════════════
+-- 4. client_listing_views 表（客户房源浏览记录）
+-- ══════════════════════════════════════════════════
+CREATE TABLE client_listing_views (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  zpid TEXT NOT NULL,
+  address TEXT,
+  price NUMERIC,
+  action TEXT NOT NULL DEFAULT 'view'
+    CHECK (action IN ('view', 'favorite', 'inquiry')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_listing_views_client_id ON client_listing_views(client_id);
+CREATE INDEX idx_listing_views_created_at ON client_listing_views(created_at);
+
+-- RLS: 通过 service_role 访问（后端 API 使用），无需前端 RLS
+ALTER TABLE client_listing_views ENABLE ROW LEVEL SECURITY;
+
+-- 允许 service_role 完全访问（后端使用 service_role key）
+CREATE POLICY "Service role full access on listing views"
+  ON client_listing_views FOR ALL
+  USING (true)
+  WITH CHECK (true);

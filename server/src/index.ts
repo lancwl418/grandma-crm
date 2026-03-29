@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { parseRouter } from "./routes/parse.js";
 import { toolsRouter } from "./routes/tools.js";
 import { chatRouter } from "./routes/chat.js";
+import { browseRouter } from "./routes/browse.js";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use("/api/parse", parseRouter);
 app.use("/api/tools", toolsRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/browse", browseRouter);
 
 // Health check
 app.get("/health", (_req, res) => {
