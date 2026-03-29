@@ -13,6 +13,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/app" element={<Home />}>
         <Route index element={<ProfilePage />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="clients" element={<RealEstateCRM />} />
         <Route path="visitors" element={<VisitorsPage />} />
         <Route path="search" element={<AgentSearchPage />} />

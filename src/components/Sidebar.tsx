@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, Bot, User, ChevronsLeft, ChevronsRight, Menu, Eye, Search, Megaphone } from "lucide-react";
+import { Users, Bot, User, ChevronsLeft, ChevronsRight, Menu, Eye, Search, Megaphone, ClipboardList } from "lucide-react";
 
 interface Props {
   collapsed: boolean;
@@ -13,6 +13,7 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
   const navigate = useNavigate();
 
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/";
+  const isWorkbench = location.pathname === "/app/dashboard";
   const isClients = location.pathname === "/app/clients";
   const isVisitors = location.pathname === "/app/visitors";
   const isSearch = location.pathname === "/app/search";
@@ -63,10 +64,17 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
       <nav className={`flex-1 py-4 space-y-1 text-sm ${collapsed && !isMobile ? "px-1" : "px-3"}`}>
         <SidebarItem
           icon={User}
-          label="我的"
+          label="首页"
           active={isDashboard}
           collapsed={collapsed && !isMobile}
           onClick={() => handleNav("/app")}
+        />
+        <SidebarItem
+          icon={ClipboardList}
+          label="工作台"
+          active={isWorkbench}
+          collapsed={collapsed && !isMobile}
+          onClick={() => handleNav("/app/dashboard")}
         />
         <SidebarItem
           icon={Users}

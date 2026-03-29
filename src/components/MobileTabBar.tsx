@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, Bot, User, Users, Megaphone } from "lucide-react";
+import { Eye, Bot, User, Users, Megaphone, ClipboardList } from "lucide-react";
 
 const TABS = [
   { path: "/app", label: "首页", icon: User },
+  { path: "/app/dashboard", label: "工作台", icon: ClipboardList },
   { path: "/app/visitors", label: "访客", icon: Eye },
   { path: "/app/clients", label: "客户库", icon: Users },
   { path: "/app/assistant", label: "助理", icon: Bot },
