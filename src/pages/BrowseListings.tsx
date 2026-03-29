@@ -111,8 +111,8 @@ export default function BrowseListings() {
   const [emailListingInfo, setEmailListingInfo] = useState<{ zpid: number; address: string; price: number; imageUrl: string } | null>(null);
   const [wechatCopied, setWechatCopied] = useState(false);
 
-  // Verification
-  const [verified, setVerified] = useState(false);
+  // Verification — if clientId exists in URL, already verified
+  const [verified, setVerified] = useState(!!clientId);
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
