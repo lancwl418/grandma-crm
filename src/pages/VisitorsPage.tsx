@@ -146,19 +146,19 @@ function VisitorCard({ visitor }: { visitor: VisitorInfo }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-      {/* Main row */}
-      <div className="flex items-center gap-3 p-4">
+      {/* Main row — click to expand */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 p-4 active:bg-gray-50 transition text-left"
+      >
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
           {visitor.clientName[0]}
         </div>
 
         {/* Info */}
-        <button
-          type="button"
-          onClick={() => navigate("/app/clients")}
-          className="flex-1 min-w-0 text-left"
-        >
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-900 truncate">
               {visitor.clientName}
@@ -180,33 +180,37 @@ function VisitorCard({ visitor }: { visitor: VisitorInfo }) {
               {visitor.viewCount} 条浏览
             </span>
           </div>
-        </button>
+        </div>
 
-        {/* Expand toggle */}
-        {uniqueListings > 0 && (
+        {/* Expand indicator */}
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+        )}
+      </button>
+
+      {/* Expanded: listing slider + client detail link */}
+      {expanded && (
+        <div className="border-t border-gray-50 px-4 py-3 bg-gray-50/50">
+          {sortedListings.length > 0 && (
+            <>
+              <p className="text-xs text-gray-400 mb-2">浏览了 {uniqueListings} 套房源</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                {sortedListings.map((listing) => (
+                  <ListingSliderCard key={listing.zpid} listing={listing} />
+                ))}
+              </div>
+            </>
+          )}
           <button
             type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="p-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition"
+            onClick={() => navigate("/app/clients")}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg active:bg-blue-100 transition"
           >
-            {expanded ? (
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            )}
+            查看客户详情
+            <ChevronRight className="h-3 w-3" />
           </button>
-        )}
-      </div>
-
-      {/* Expanded: listing slider */}
-      {expanded && sortedListings.length > 0 && (
-        <div className="border-t border-gray-50 px-4 py-3 bg-gray-50/50">
-          <p className="text-xs text-gray-400 mb-2">浏览了 {uniqueListings} 套房源</p>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {sortedListings.map((listing) => (
-              <ListingSliderCard key={listing.zpid} listing={listing} />
-            ))}
-          </div>
         </div>
       )}
     </div>
