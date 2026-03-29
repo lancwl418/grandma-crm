@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Search, Home, Heart, BedDouble, Bath, Ruler, ChevronLeft, Phone } from "lucide-react";
 
@@ -81,7 +81,12 @@ export default function BrowseListings() {
   // Results
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Detail view
   const [selectedDetail, setSelectedDetail] = useState<ListingDetail | null>(null);
@@ -141,52 +146,79 @@ export default function BrowseListings() {
 
   // ── Search ────────────────────────────────────────────────
 
+  const buildSearchParams = useCallback((loc: string, page = 1) => {
+    const params = new URLSearchParams({ location: loc.trim() });
+    params.set("listingType", listingType);
+    if (page > 1) params.set("page", String(page));
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (bedsMin) params.set("bedsMin", bedsMin);
+    if (homeType) params.set("homeType", homeType);
+    return params;
+  }, [listingType, minPrice, maxPrice, bedsMin, homeType]);
+
   const searchLocation = useCallback(async (loc: string) => {
     if (!loc.trim()) return;
     setLocation(loc);
     setLoading(true);
     setSearched(true);
     setSelectedDetail(null);
+    setCurrentPage(1);
     try {
-      const params = new URLSearchParams({ location: loc.trim() });
-      params.set("listingType", listingType);
-      if (minPrice) params.set("minPrice", minPrice);
-      if (maxPrice) params.set("maxPrice", maxPrice);
-      if (bedsMin) params.set("bedsMin", bedsMin);
-      if (homeType) params.set("homeType", homeType);
-      const res = await fetch(`${API_BASE}/api/browse/search?${params}`);
+      const res = await fetch(`${API_BASE}/api/browse/search?${buildSearchParams(loc)}`);
       const data = await res.json();
       setListings(data.results || []);
+      setTotalPages(data.totalPages || 1);
+      setHasMore((data.totalPages || 1) > 1);
     } catch {
       setListings([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [listingType, minPrice, maxPrice, bedsMin, homeType]);
+  }, [buildSearchParams]);
 
   const handleSearch = useCallback(async () => {
     if (!location.trim()) return;
-    setLoading(true);
-    setSearched(true);
-    setSelectedDetail(null);
+    searchLocation(location);
+  }, [location, searchLocation]);
 
+  // Load more (next page)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !location.trim()) return;
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
     try {
-      const params = new URLSearchParams({ location: location.trim() });
-      params.set("listingType", listingType);
-      if (minPrice) params.set("minPrice", minPrice);
-      if (maxPrice) params.set("maxPrice", maxPrice);
-      if (bedsMin) params.set("bedsMin", bedsMin);
-      if (homeType) params.set("homeType", homeType);
-
-      const res = await fetch(`${API_BASE}/api/browse/search?${params}`);
+      const res = await fetch(`${API_BASE}/api/browse/search?${buildSearchParams(location, nextPage)}`);
       const data = await res.json();
-      setListings(data.results || []);
+      const newResults = data.results || [];
+      if (newResults.length === 0) {
+        setHasMore(false);
+      } else {
+        setListings((prev) => [...prev, ...newResults]);
+        setCurrentPage(nextPage);
+        setHasMore(nextPage < (data.totalPages || 1));
+      }
     } catch {
-      setListings([]);
+      setHasMore(false);
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
-  }, [location, listingType, minPrice, maxPrice, bedsMin, homeType]);
+  }, [loadingMore, hasMore, location, currentPage, buildSearchParams]);
+
+  // Infinite scroll — observe sentinel element
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   // ── View Detail ───────────────────────────────────────────
 
@@ -675,6 +707,21 @@ export default function BrowseListings() {
             </button>
           </div>
         ))}
+
+        {/* Infinite scroll sentinel + loading indicator */}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-6 text-center">
+            {loadingMore ? (
+              <span className="text-sm text-gray-400">Loading more...</span>
+            ) : (
+              <span className="text-xs text-gray-300">Scroll for more</span>
+            )}
+          </div>
+        )}
+
+        {!hasMore && searched && listings.length > 0 && (
+          <div className="py-4 text-center text-xs text-gray-300">No more results</div>
+        )}
       </div>
 
       {/* Phone Verify Modal */}
