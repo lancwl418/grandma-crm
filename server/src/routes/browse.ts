@@ -233,6 +233,43 @@ browseRouter.post("/register", async (req, res) => {
   res.json({ ok: true, clientId: data.id });
 });
 
+// ── Client message / inquiry ─────────────────────────────────
+
+browseRouter.post("/message", async (req, res) => {
+  const { clientId, message, listingAddress, listingPrice } = req.body;
+
+  if (!clientId || !message) {
+    res.status(400).json({ error: "clientId and message are required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  // Save as client log
+  const content = listingAddress
+    ? `[客户留言] 关于 ${listingAddress}${listingPrice ? ` ($${listingPrice.toLocaleString()})` : ""}:\n${message}`
+    : `[客户留言] ${message}`;
+
+  const { error } = await supabaseAdmin
+    .from("client_logs")
+    .insert({
+      client_id: clientId,
+      date: new Date().toISOString(),
+      content,
+    });
+
+  if (error) {
+    console.error("[browse/message]", error.message);
+    res.status(500).json({ error: "Failed to save message" });
+    return;
+  }
+
+  res.json({ ok: true });
+});
+
 // ── Get client browse history (for CRM side) ────────────────
 
 browseRouter.get("/history/:clientId", async (req, res) => {

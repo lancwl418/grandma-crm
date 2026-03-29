@@ -875,7 +875,7 @@ export default function BrowseListings() {
         </button>
       </div>
 
-      {/* Email modal */}
+      {/* Message modal */}
       {emailOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
@@ -885,45 +885,69 @@ export default function BrowseListings() {
             className="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-2xl p-5 safe-bottom"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-bold text-gray-900 mb-1">发送邮件给 {agentName}</h3>
-            <p className="text-xs text-gray-400 mb-3">{agentEmail}</p>
+            <h3 className="text-base font-bold text-gray-900 mb-1">联系 {agentName}</h3>
+            <p className="text-xs text-gray-400 mb-3">留言将发送给您的经纪人</p>
             <textarea
               value={emailBody}
               onChange={(e) => setEmailBody(e.target.value)}
-              rows={6}
+              rows={5}
               className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-col gap-2 mt-3">
+              {/* Primary: save to CRM */}
               <button
                 type="button"
-                onClick={() => setEmailOpen(false)}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 active:bg-gray-50"
-              >
-                取消
-              </button>
-              <a
-                href={`mailto:${agentEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`}
-                onClick={() => {
-                  setEmailOpen(false);
-                  if (clientId && emailListingInfo) {
-                    fetch(`${API_BASE}/api/browse/track`, {
+                onClick={async () => {
+                  if (clientId && emailBody.trim()) {
+                    await fetch(`${API_BASE}/api/browse/message`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         clientId,
-                        zpid: emailListingInfo.zpid || emailListingInfo.address,
-                        address: emailListingInfo.address,
-                        price: emailListingInfo.price,
-                        imageUrl: emailListingInfo.imageUrl,
-                        action: "inquiry",
+                        message: emailBody.trim(),
+                        listingAddress: emailListingInfo?.address,
+                        listingPrice: emailListingInfo?.price,
                       }),
                     }).catch(() => {});
+                    // Also track as inquiry
+                    if (emailListingInfo) {
+                      fetch(`${API_BASE}/api/browse/track`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          clientId,
+                          zpid: emailListingInfo.zpid || emailListingInfo.address,
+                          address: emailListingInfo.address,
+                          price: emailListingInfo.price,
+                          imageUrl: emailListingInfo.imageUrl,
+                          action: "inquiry",
+                        }),
+                      }).catch(() => {});
+                    }
                   }
+                  setEmailOpen(false);
+                  alert("留言已发送！经纪人会尽快联系您。");
                 }}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium text-center active:bg-blue-700"
+                className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-medium active:bg-blue-700 transition"
               >
-                发送
-              </a>
+                发送留言
+              </button>
+              {/* Secondary: also send email */}
+              {agentEmail && (
+                <a
+                  href={`mailto:${agentEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`}
+                  className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 text-center active:bg-gray-50 transition"
+                >
+                  同时发送邮件
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setEmailOpen(false)}
+                className="w-full py-2 text-xs text-gray-400"
+              >
+                取消
+              </button>
             </div>
           </div>
         </div>
