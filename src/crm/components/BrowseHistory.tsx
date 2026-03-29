@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Heart, Clock, Home } from "lucide-react";
+import { Eye, Heart, Clock, Home, MessageCircleHeart } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -49,18 +49,26 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
   if (views.length === 0) return null;
 
   // Group by unique zpid, keep latest per listing
-  const uniqueViews = new Map<string, BrowseView & { viewCount: number; hasFavorite: boolean }>();
+  const uniqueViews = new Map<string, BrowseView & { viewCount: number; hasFavorite: boolean; hasInquiry: boolean }>();
   for (const v of views) {
     const existing = uniqueViews.get(v.zpid);
     if (!existing) {
-      uniqueViews.set(v.zpid, { ...v, viewCount: 1, hasFavorite: v.action === "favorite" });
+      uniqueViews.set(v.zpid, { ...v, viewCount: 1, hasFavorite: v.action === "favorite", hasInquiry: v.action === "inquiry" });
     } else {
       existing.viewCount++;
       if (v.action === "favorite") existing.hasFavorite = true;
+      if (v.action === "inquiry") existing.hasInquiry = true;
     }
   }
 
-  const grouped = Array.from(uniqueViews.values());
+  // Sort: inquiries first, then favorites, then views
+  const grouped = Array.from(uniqueViews.values()).sort((a, b) => {
+    if (a.hasInquiry !== b.hasInquiry) return a.hasInquiry ? -1 : 1;
+    if (a.hasFavorite !== b.hasFavorite) return a.hasFavorite ? -1 : 1;
+    return 0;
+  });
+
+  const inquiryCount = grouped.filter((v) => v.hasInquiry).length;
 
   return (
     <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-4">
@@ -68,6 +76,11 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
         <Home className="h-4 w-4 text-blue-600" />
         <span className="font-semibold text-gray-900 text-sm">房源浏览记录</span>
         <span className="text-xs text-gray-400">({grouped.length} 套)</span>
+        {inquiryCount > 0 && (
+          <span className="text-xs text-white bg-green-500 px-1.5 py-0.5 rounded-full font-medium">
+            {inquiryCount} 个感兴趣
+          </span>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -102,9 +115,17 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
                 )}
               </div>
             </div>
-            {v.hasFavorite && (
-              <Heart className="h-4 w-4 text-red-500 fill-red-500 shrink-0 mt-0.5" />
-            )}
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {v.hasInquiry && (
+                <span className="flex items-center gap-0.5 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
+                  <MessageCircleHeart className="h-3 w-3" />
+                  感兴趣
+                </span>
+              )}
+              {v.hasFavorite && (
+                <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+              )}
+            </div>
           </a>
         ))}
       </div>
