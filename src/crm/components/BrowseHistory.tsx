@@ -71,12 +71,15 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
 
       <div className="space-y-2">
         {grouped.map((v) => (
-          <div
+          <a
             key={v.zpid}
-            className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0"
+            href={`https://www.zillow.com/homedetails/${v.zpid}_zpid/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-3 py-2 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 rounded-lg px-1 -mx-1 transition"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-800 truncate">{v.address || `Listing #${v.zpid}`}</p>
+              <p className="text-sm text-blue-700 underline-offset-2 hover:underline truncate">{v.address || `Listing #${v.zpid}`}</p>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
                 <span>{formatPrice(v.price)}</span>
                 <span className="flex items-center gap-0.5">
@@ -94,7 +97,7 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
             {v.hasFavorite && (
               <Heart className="h-4 w-4 text-red-500 fill-red-500 shrink-0 mt-0.5" />
             )}
-          </div>
+          </a>
         ))}
       </div>
     </div>
