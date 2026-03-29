@@ -10,6 +10,7 @@ browseRouter.get("/search", async (req, res) => {
   try {
     const {
       location,
+      listingType,
       minPrice,
       maxPrice,
       bedsMin,
@@ -25,6 +26,7 @@ browseRouter.get("/search", async (req, res) => {
 
     const results = await searchListings({
       location,
+      listingType: listingType === "rent" ? "rent" : "sale",
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       bedsMin: bedsMin ? Number(bedsMin) : undefined,

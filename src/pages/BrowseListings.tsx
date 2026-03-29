@@ -67,6 +67,7 @@ export default function BrowseListings() {
 
   // Search state
   const [location, setLocation] = useState("");
+  const [listingType, setListingType] = useState<"sale" | "rent">("sale");
   const [maxPrice, setMaxPrice] = useState("");
   const [bedsMin, setBedsMin] = useState("");
   const [homeType, setHomeType] = useState("");
@@ -95,6 +96,7 @@ export default function BrowseListings() {
 
     try {
       const params = new URLSearchParams({ location: location.trim() });
+      params.set("listingType", listingType);
       if (maxPrice) params.set("maxPrice", maxPrice);
       if (bedsMin) params.set("bedsMin", bedsMin);
       if (homeType) params.set("homeType", homeType);
@@ -332,6 +334,28 @@ export default function BrowseListings() {
 
       {/* Search Bar */}
       <div className="bg-white p-4 space-y-3 border-b">
+        {/* Buy / Rent toggle */}
+        <div className="flex bg-gray-100 rounded-lg p-0.5 w-fit">
+          <button
+            type="button"
+            onClick={() => setListingType("sale")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${
+              listingType === "sale" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            }`}
+          >
+            Buy
+          </button>
+          <button
+            type="button"
+            onClick={() => setListingType("rent")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${
+              listingType === "rent" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            }`}
+          >
+            Rent
+          </button>
+        </div>
+
         <div className="flex gap-2">
           <input
             type="text"

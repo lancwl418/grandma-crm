@@ -387,6 +387,7 @@ async function executeToolCall(
       try {
         const result = await searchListings({
           location: input.location as string,
+          listingType: input.listingType as "sale" | "rent" | undefined,
           minPrice: input.minPrice as number | undefined,
           maxPrice: input.maxPrice as number | undefined,
           bedsMin: input.bedsMin as number | undefined,

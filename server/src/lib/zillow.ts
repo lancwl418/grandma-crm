@@ -66,6 +66,7 @@ export interface ZillowPropertyDetail {
 
 export interface SearchListingsParams {
   location: string;
+  listingType?: "sale" | "rent";
   minPrice?: number;
   maxPrice?: number;
   bedsMin?: number;
@@ -78,8 +79,10 @@ export async function searchListings(
   params: SearchListingsParams
 ): Promise<{ results: ZillowListingResult[]; totalPages: number }> {
   const url = new URL(`${BASE_URL}/v1/search`);
+  const isRent = params.listingType === "rent";
   url.searchParams.set("location", params.location);
-  url.searchParams.set("listing_type", "sale");
+  url.searchParams.set("listing_type", isRent ? "rent" : "sale");
+  if (isRent) url.searchParams.set("status", "FOR_RENT");
   url.searchParams.set("page", String(params.page ?? 1));
 
   if (params.minPrice) url.searchParams.set("min_price", String(params.minPrice));

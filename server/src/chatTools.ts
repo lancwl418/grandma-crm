@@ -238,6 +238,11 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
           type: "string",
           description: "搜索地点（城市名+州缩写，如 'Irvine, CA'；或邮编如 '92602'；或具体地址）",
         },
+        listingType: {
+          type: "string",
+          description: "房源类型：sale（买房，默认）或 rent（租房）",
+          enum: ["sale", "rent"],
+        },
         minPrice: {
           type: "number",
           description: "最低价格（美元）",
