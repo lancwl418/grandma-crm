@@ -4,12 +4,12 @@ import { Home, User, Phone, Mail, MessageCircle, Star } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-// Sample listings for the fade preview
-const PREVIEW_LISTINGS = [
-  { img: "https://photos.zillowstatic.com/fp/40b7077a545b01fb212c46fd467a373f-p_d.jpg", price: "$939K", addr: "Chino Hills, CA" },
-  { img: "https://photos.zillowstatic.com/fp/55de5261588247b703fcc952b49be948-p_d.jpg", price: "$1.2M", addr: "Irvine, CA" },
-  { img: "https://photos.zillowstatic.com/fp/366401355f96f8e2e0dc28c14cf0bf94-p_d.jpg", price: "$850K", addr: "Arcadia, CA" },
-  { img: "https://photos.zillowstatic.com/fp/3136f65f9d0d374dc54a4f0085012589-p_d.jpg", price: "$1.5M", addr: "San Marino, CA" },
+const HERO_IMAGES = [
+  "https://photos.zillowstatic.com/fp/40b7077a545b01fb212c46fd467a373f-p_e.jpg",
+  "https://photos.zillowstatic.com/fp/55de5261588247b703fcc952b49be948-p_e.jpg",
+  "https://photos.zillowstatic.com/fp/366401355f96f8e2e0dc28c14cf0bf94-p_e.jpg",
+  "https://photos.zillowstatic.com/fp/3136f65f9d0d374dc54a4f0085012589-p_e.jpg",
+  "https://photos.zillowstatic.com/fp/5d72e46f3250e0bf71a5b2a343e8e46b-p_e.jpg",
 ];
 
 export default function BrowseRegister() {
@@ -27,6 +27,16 @@ export default function BrowseRegister() {
   const [agentName, setAgentName] = useState("");
   const [agentAvatar, setAgentAvatar] = useState("");
   const [agentTitle, setAgentTitle] = useState("");
+
+  // Hero carousel
+  const [heroIdx, setHeroIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIdx((i) => (i + 1) % HERO_IMAGES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!agentId) return;
@@ -74,39 +84,69 @@ export default function BrowseRegister() {
   };
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Top section */}
-      <div className="bg-gradient-to-b from-blue-50 to-white px-6 pt-10 pb-4 text-center">
-        {/* Agent info */}
-        {agentName && (
-          <div className="flex items-center justify-center gap-3 mb-5">
-            {agentAvatar ? (
-              <img src={agentAvatar} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow">
-                {agentName[0]}
-              </div>
-            )}
-            <div className="text-left">
-              <p className="text-base font-bold text-gray-900">{agentName}</p>
-              {agentTitle && <p className="text-xs text-gray-400">{agentTitle}</p>}
-            </div>
-          </div>
-        )}
+    <div className="min-h-screen bg-white">
+      {/* Hero carousel header */}
+      <div className="relative h-56 sm:h-64 overflow-hidden">
+        {HERO_IMAGES.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+              i === heroIdx ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
 
-        <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
-          <Home className="h-7 w-7 text-white" />
+        {/* Content on top of hero */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-6">
+          {/* Agent info */}
+          {agentName && (
+            <div className="flex items-center gap-2.5 mb-4 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2">
+              {agentAvatar ? (
+                <img src={agentAvatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/30" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-sm font-bold">
+                  {agentName[0]}
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium leading-tight">{agentName}</p>
+                {agentTitle && <p className="text-[10px] text-white/70">{agentTitle}</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
+            <Home className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Estate Epic</h1>
+          <p className="text-white/80 text-sm mt-1">Find Your Dream Home</p>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Estate Epic 找房</h1>
-        <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
-          为了更好地为您服务，请填写以下联系方式
-        </p>
+
+        {/* Carousel dots */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {HERO_IMAGES.map((_, i) => (
+            <div
+              key={i}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                i === heroIdx ? "bg-white w-4" : "bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Form */}
-      <div className="px-5 pb-6 max-w-md mx-auto">
-        <div className="space-y-4">
-          {/* Name — required */}
+      {/* Form section */}
+      <div className="px-5 -mt-6 relative z-10 pb-10 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-4">
+          <p className="text-sm text-gray-500 text-center">
+            为了更好地为您服务<br />请填写以下联系方式
+          </p>
+
+          {/* Name */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <User className="h-4 w-4 text-blue-600" />
@@ -122,7 +162,7 @@ export default function BrowseRegister() {
             />
           </div>
 
-          {/* Phone — required */}
+          {/* Phone */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <Phone className="h-4 w-4 text-green-600" />
@@ -138,7 +178,7 @@ export default function BrowseRegister() {
             />
           </div>
 
-          {/* Email — optional */}
+          {/* Email */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <Mail className="h-4 w-4 text-purple-600" />
@@ -154,7 +194,7 @@ export default function BrowseRegister() {
             />
           </div>
 
-          {/* WeChat — optional */}
+          {/* WeChat */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <MessageCircle className="h-4 w-4 text-emerald-600" />
@@ -184,32 +224,6 @@ export default function BrowseRegister() {
           <p className="text-xs text-gray-400 text-center">
             您的信息仅用于房产服务，不会分享给第三方
           </p>
-        </div>
-      </div>
-
-      {/* Preview listings with fade overlay */}
-      <div className="relative mt-4">
-        <div className="grid grid-cols-2 gap-2 px-5">
-          {PREVIEW_LISTINGS.map((l, i) => (
-            <div
-              key={i}
-              className="rounded-xl overflow-hidden border border-gray-100"
-              onClick={handleSubmit}
-            >
-              <img src={l.img} alt="" className="w-full h-28 object-cover" />
-              <div className="p-2">
-                <p className="text-sm font-bold text-gray-900">{l.price}</p>
-                <p className="text-[10px] text-gray-400">{l.addr}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Fade overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/60 to-white pointer-events-none" />
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="text-sm text-gray-500 bg-white/90 px-4 py-2 rounded-full shadow-sm border border-gray-200">
-            填写信息即可浏览更多房源
-          </span>
         </div>
       </div>
     </div>
