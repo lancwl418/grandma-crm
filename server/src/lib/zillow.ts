@@ -124,6 +124,22 @@ export async function searchListings(
   };
 }
 
+// ── Quick image fetch (minimal API call) ────────────────────
+
+export async function getPropertyImage(zpid: number): Promise<string | null> {
+  try {
+    const url = `${BASE_URL}/v1/property/${zpid}`;
+    const response = await fetch(url, { headers: headers() });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.success) return null;
+    const d = data.data;
+    return d.photos?.[0]?.urls?.medium ?? d.street_view_url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Property Detail ─────────────────────────────────────────
 
 export async function getPropertyDetail(

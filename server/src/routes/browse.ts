@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchListings, getPropertyDetail } from "../lib/zillow.js";
+import { searchListings, getPropertyDetail, getPropertyImage } from "../lib/zillow.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
@@ -157,5 +157,29 @@ browseRouter.get("/history/:clientId", async (req, res) => {
     return;
   }
 
-  res.json({ views: data ?? [] });
+  const views = data ?? [];
+
+  // Backfill missing images (fire-and-forget, don't block response)
+  const missingImageViews = views.filter((v: any) => !v.image_url && v.zpid);
+  if (missingImageViews.length > 0) {
+    // Deduplicate by zpid
+    const uniqueZpids = [...new Set(missingImageViews.map((v: any) => v.zpid))];
+    // Backfill up to 3 at a time to avoid too many API calls
+    Promise.all(
+      uniqueZpids.slice(0, 3).map(async (zpid) => {
+        try {
+          const imageUrl = await getPropertyImage(Number(zpid));
+          if (imageUrl && supabaseAdmin) {
+            await supabaseAdmin
+              .from("client_listing_views")
+              .update({ image_url: imageUrl })
+              .eq("zpid", zpid)
+              .is("image_url", null);
+          }
+        } catch { /* ignore */ }
+      })
+    ).catch(() => {});
+  }
+
+  res.json({ views });
 });
