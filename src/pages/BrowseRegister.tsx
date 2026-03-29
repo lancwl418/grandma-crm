@@ -102,28 +102,31 @@ export default function BrowseRegister() {
 
         {/* Content on top of hero */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-6">
-          {/* Agent info */}
-          {agentName && (
-            <div className="flex items-center gap-2.5 mb-4 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2">
+          {/* Agent greeting */}
+          {agentName ? (
+            <div className="flex flex-col items-center mb-4">
               {agentAvatar ? (
-                <img src={agentAvatar} alt="" className="w-8 h-8 rounded-full object-cover border border-white/30" />
+                <img src={agentAvatar} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/40 shadow-lg mb-3" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-sm font-bold">
+                <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center text-2xl font-bold shadow-lg mb-3">
                   {agentName[0]}
                 </div>
               )}
-              <div>
-                <p className="text-sm font-medium leading-tight">{agentName}</p>
-                {agentTitle && <p className="text-[10px] text-white/70">{agentTitle}</p>}
-              </div>
+              <p className="text-base font-medium text-center leading-snug">
+                你好，我是你的专属房产顾问
+              </p>
+              <p className="text-xl font-bold mt-1">{agentName}</p>
+              {agentTitle && <p className="text-xs text-white/60 mt-0.5">{agentTitle}</p>}
             </div>
+          ) : (
+            <>
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
+                <Home className="h-6 w-6" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight">Estate Epic</h1>
+              <p className="text-white/80 text-sm mt-1">找到你的理想家园</p>
+            </>
           )}
-
-          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-            <Home className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Estate Epic</h1>
-          <p className="text-white/80 text-sm mt-1">Find Your Dream Home</p>
         </div>
 
         {/* Carousel dots */}
