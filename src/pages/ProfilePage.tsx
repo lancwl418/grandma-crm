@@ -197,14 +197,7 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-14 text-white relative">
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="absolute top-4 right-4 p-2 bg-white/20 rounded-lg active:bg-white/30"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-14 text-white">
         <div className="flex items-center gap-4">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/30" />
@@ -218,6 +211,13 @@ export default function ProfilePage() {
             <p className="text-blue-200 text-sm">{profile.title || "房地产经纪人"}</p>
             {profile.phone && <p className="text-blue-200 text-xs mt-0.5">{profile.phone}</p>}
           </div>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="ml-auto self-start p-2 bg-white/20 rounded-lg active:bg-white/30"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
