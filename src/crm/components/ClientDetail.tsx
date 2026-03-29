@@ -6,6 +6,8 @@ import {
   Calendar,
   Pencil,
   X,
+  Share2,
+  Check,
 } from "lucide-react";
 
 import LogItem from "./LogItem";
@@ -37,6 +39,9 @@ const ClientDetail: React.FC<Props> = ({
   const [remarkDraft, setRemarkDraft] = useState(
     client.requirements?.notes || ""
   );
+
+  // 分享链接
+  const [shareCopied, setShareCopied] = useState(false);
 
   // 标签 / 区域 输入框文本（用于自动补全）
   const [tagInput, setTagInput] = useState("");
@@ -216,6 +221,29 @@ useEffect(() => {
             </div>
           </div>
         </div>
+
+        {/* 分享房源搜索链接 */}
+        <button
+          type="button"
+          onClick={() => {
+            const baseUrl = window.location.origin;
+            const link = `${baseUrl}/browse/${client.id}`;
+            navigator.clipboard.writeText(link);
+            setShareCopied(true);
+            setTimeout(() => setShareCopied(false), 2000);
+          }}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium transition ${
+            shareCopied
+              ? "bg-green-50 text-green-600 border border-green-200"
+              : "bg-blue-50 text-blue-600 border border-blue-200 active:bg-blue-100"
+          }`}
+        >
+          {shareCopied ? (
+            <><Check className="h-4 w-4" /> 链接已复制</>
+          ) : (
+            <><Share2 className="h-4 w-4" /> 分享房源搜索给客户</>
+          )}
+        </button>
 
         {/* 预算 */}
         <div className="bg-white p-5 rounded-[24px] shadow-sm border border-gray-100">
