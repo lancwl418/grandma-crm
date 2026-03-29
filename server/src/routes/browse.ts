@@ -188,6 +188,51 @@ browseRouter.get("/agent/:clientId", async (req, res) => {
   res.json({ agentName: name, agentPhone: "", agentWechat: "", agentEmail: emailAddr, agentAvatar: "" });
 });
 
+// ── Register new client from browse page ────────────────────
+
+browseRouter.post("/register", async (req, res) => {
+  const { agentId, name, phone, email, wechat } = req.body;
+
+  if (!agentId) {
+    res.status(400).json({ error: "agentId is required" });
+    return;
+  }
+
+  if (!name && !phone && !email) {
+    res.status(400).json({ error: "At least name, phone, or email is required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  // Create new client under this agent
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .insert({
+      user_id: agentId,
+      remark_name: name || phone || email || "新访客",
+      name: name || null,
+      phone: phone || null,
+      wechat: wechat || null,
+      status: "新客户",
+      urgency: "medium",
+      tags: ["网页访客"],
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[browse/register]", error?.message);
+    res.status(500).json({ error: "Failed to create client" });
+    return;
+  }
+
+  res.json({ ok: true, clientId: data.id });
+});
+
 // ── Get client browse history (for CRM side) ────────────────
 
 browseRouter.get("/history/:clientId", async (req, res) => {

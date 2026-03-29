@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, UserPlus, TrendingUp, Eye, LogOut, ChevronRight, Bot, Search, ClipboardList, Pencil, Check, Camera } from "lucide-react";
+import { Users, UserPlus, TrendingUp, Eye, LogOut, ChevronRight, Bot, Search, ClipboardList, Pencil, Check, Camera, Link, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { UserContext } from "@/lib/userContext";
 
@@ -243,6 +243,26 @@ export default function ProfilePage() {
           <StatCard icon={<TrendingUp className="h-5 w-5 text-orange-600" />} label="感兴趣" value={stats.inquiries} loading={loading} subtitle="近7天" onClick={() => navigate("/app/visitors")} />
         </div>
       </div>
+
+      {/* Share Link */}
+      {userId && (
+        <div className="px-4 mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              const link = `${window.location.origin}/browse/new/${userId}`;
+              navigator.clipboard.writeText(link);
+              setToast("推广链接已复制");
+              setTimeout(() => setToast(""), 2000);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium text-sm active:from-blue-700 active:to-indigo-700 transition shadow-sm"
+          >
+            <Share2 className="h-4 w-4" />
+            生成推广链接
+          </button>
+          <p className="text-[10px] text-gray-400 text-center mt-1.5">新客户打开链接填写信息后自动创建</p>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="px-4 mt-6">
