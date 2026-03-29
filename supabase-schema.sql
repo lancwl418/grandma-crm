@@ -118,7 +118,46 @@ CREATE POLICY "Users can delete logs for own clients"
   ));
 
 -- ══════════════════════════════════════════════════
--- 4. client_listing_views 表（客户房源浏览记录）
+-- 4. agent_profiles 表（经纪人个人资料）
+-- ══════════════════════════════════════════════════
+CREATE TABLE agent_profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  title TEXT DEFAULT '房地产经纪人',
+  phone TEXT,
+  wechat TEXT,
+  email TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER update_agent_profiles_updated_at
+  BEFORE UPDATE ON agent_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+ALTER TABLE agent_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own profile"
+  ON agent_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can upsert own profile"
+  ON agent_profiles FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own profile"
+  ON agent_profiles FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Allow public read for agent name display on browse page
+CREATE POLICY "Public can read agent display name"
+  ON agent_profiles FOR SELECT
+  USING (true);
+
+-- ══════════════════════════════════════════════════
+-- 5. client_listing_views 表（客户房源浏览记录）
 -- ══════════════════════════════════════════════════
 CREATE TABLE client_listing_views (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

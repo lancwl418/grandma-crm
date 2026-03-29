@@ -146,7 +146,7 @@ browseRouter.get("/agent/:clientId", async (req, res) => {
     return;
   }
 
-  // Get client's user_id, then get user email as agent name
+  // Get client's user_id
   const { data: client, error } = await supabaseAdmin
     .from("clients")
     .select("user_id")
@@ -154,19 +154,38 @@ browseRouter.get("/agent/:clientId", async (req, res) => {
     .single();
 
   if (error || !client) {
-    res.json({ agentName: "Your Agent" });
+    res.json({ agentName: "Your Agent", agentPhone: "", agentWechat: "", agentEmail: "", agentAvatar: "" });
     return;
   }
 
-  // Try to get agent display name from auth
+  // Try agent_profiles first
+  const { data: profile } = await supabaseAdmin
+    .from("agent_profiles")
+    .select("display_name, phone, wechat, email, avatar_url, title")
+    .eq("user_id", client.user_id)
+    .single();
+
+  if (profile?.display_name) {
+    res.json({
+      agentName: profile.display_name,
+      agentTitle: profile.title || "房地产经纪人",
+      agentPhone: profile.phone || "",
+      agentWechat: profile.wechat || "",
+      agentEmail: profile.email || "",
+      agentAvatar: profile.avatar_url || "",
+    });
+    return;
+  }
+
+  // Fallback to auth user
   const { data: userData } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
-  const email = userData?.user?.email ?? "";
+  const emailAddr = userData?.user?.email ?? "";
   const name = userData?.user?.user_metadata?.full_name
     ?? userData?.user?.user_metadata?.name
-    ?? email.split("@")[0]
+    ?? emailAddr.split("@")[0]
     ?? "Your Agent";
 
-  res.json({ agentName: name });
+  res.json({ agentName: name, agentPhone: "", agentWechat: "", agentEmail: emailAddr, agentAvatar: "" });
 });
 
 // ── Get client browse history (for CRM side) ────────────────

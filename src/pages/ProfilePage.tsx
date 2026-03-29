@@ -1,10 +1,8 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, UserPlus, TrendingUp, Eye, CalendarCheck, LogOut, ChevronRight, Bot, Search, ClipboardList } from "lucide-react";
+import { Users, UserPlus, TrendingUp, Eye, LogOut, ChevronRight, Bot, Search, ClipboardList, Pencil, Check, Camera } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { UserContext } from "@/lib/userContext";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 interface Stats {
   totalClients: number;
@@ -13,64 +11,212 @@ interface Stats {
   inquiries: number;
 }
 
+interface AgentProfile {
+  display_name: string;
+  title: string;
+  phone: string;
+  wechat: string;
+  email: string;
+  avatar_url: string;
+}
+
+const DEFAULT_PROFILE: AgentProfile = {
+  display_name: "",
+  title: "房地产经纪人",
+  phone: "",
+  wechat: "",
+  email: "",
+  avatar_url: "",
+};
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const userId = useContext(UserContext);
-  const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [profile, setProfile] = useState<AgentProfile>(DEFAULT_PROFILE);
   const [stats, setStats] = useState<Stats>({ totalClients: 0, newThisMonth: 0, activeViewers: 0, inquiries: 0 });
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<AgentProfile>(DEFAULT_PROFILE);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
-    if (!supabase) {
+    if (!supabase || !userId) {
       setLoading(false);
       return;
     }
 
-    // Get user info
+    // Get auth email
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setEmail(user.email ?? "");
-        setDisplayName(
-          user.user_metadata?.full_name ??
-          user.user_metadata?.name ??
-          user.email?.split("@")[0] ??
-          "Agent"
-        );
-      }
+      if (user?.email) setAuthEmail(user.email);
     });
 
-    // Fetch stats
-    if (userId) {
-      fetchStats(userId).then((s) => {
-        setStats(s);
-        setLoading(false);
+    // Load profile
+    supabase
+      .from("agent_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          const p = {
+            display_name: data.display_name || "",
+            title: data.title || "房地产经纪人",
+            phone: data.phone || "",
+            wechat: data.wechat || "",
+            email: data.email || "",
+            avatar_url: data.avatar_url || "",
+          };
+          setProfile(p);
+          setDraft(p);
+        }
       });
-    } else {
+
+    // Fetch stats
+    fetchStats(userId).then((s) => {
+      setStats(s);
       setLoading(false);
+    });
+  }, [userId]);
+
+  const displayName = profile.display_name || authEmail?.split("@")[0] || "Agent";
+  const initial = displayName[0]?.toUpperCase() ?? "A";
+
+  const handleSave = useCallback(async () => {
+    if (!supabase || !userId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("agent_profiles")
+      .upsert({
+        user_id: userId,
+        display_name: draft.display_name,
+        title: draft.title,
+        phone: draft.phone,
+        wechat: draft.wechat,
+        email: draft.email || authEmail,
+        avatar_url: draft.avatar_url,
+      });
+    setSaving(false);
+    if (!error) {
+      setProfile(draft);
+      setEditing(false);
+      setToast("保存成功");
+      setTimeout(() => setToast(""), 2000);
+    }
+  }, [userId, draft, authEmail]);
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase || !userId) return;
+
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${userId}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (error) {
+      console.error("Avatar upload failed:", error.message);
+      return;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    if (data?.publicUrl) {
+      setDraft((prev) => ({ ...prev, avatar_url: data.publicUrl }));
     }
   }, [userId]);
 
   const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    if (supabase) await supabase.auth.signOut();
   };
 
-  const initial = displayName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? "A";
+  // ── Edit Modal ──────────────────────────────────────────────
+
+  if (editing) {
+    return (
+      <div className="h-full w-full bg-slate-50 overflow-y-auto pb-20">
+        <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+          <button onClick={() => setEditing(false)} className="text-sm text-gray-500">取消</button>
+          <h2 className="text-base font-semibold">编辑资料</h2>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="text-sm text-blue-600 font-medium disabled:text-gray-300"
+          >
+            {saving ? "保存中..." : "保存"}
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative">
+              {draft.avatar_url ? (
+                <img src={draft.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover" />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600">
+                  {initial}
+                </div>
+              )}
+              <label className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center cursor-pointer">
+                <Camera className="h-3.5 w-3.5 text-white" />
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              </label>
+            </div>
+          </div>
+
+          {/* Fields */}
+          <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+            <ProfileField label="姓名" value={draft.display_name} placeholder="你的名字"
+              onChange={(v) => setDraft((p) => ({ ...p, display_name: v }))} />
+            <ProfileField label="职称" value={draft.title} placeholder="房地产经纪人"
+              onChange={(v) => setDraft((p) => ({ ...p, title: v }))} />
+            <ProfileField label="电话" value={draft.phone} placeholder="联系电话" type="tel"
+              onChange={(v) => setDraft((p) => ({ ...p, phone: v }))} />
+            <ProfileField label="微信" value={draft.wechat} placeholder="微信号"
+              onChange={(v) => setDraft((p) => ({ ...p, wechat: v }))} />
+            <ProfileField label="邮箱" value={draft.email || authEmail} placeholder="电子邮箱" type="email"
+              onChange={(v) => setDraft((p) => ({ ...p, email: v }))} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main View ───────────────────────────────────────────────
 
   return (
     <div className="h-full w-full bg-slate-50 overflow-y-auto pb-20">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-green-600 text-white text-sm rounded-lg shadow-lg flex items-center gap-1.5">
+          <Check className="h-4 w-4" /> {toast}
+        </div>
+      )}
+
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-8 pb-10 text-white">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-8 pb-10 text-white relative">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="absolute top-4 right-4 p-2 bg-white/20 rounded-lg active:bg-white/30"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">
-            {initial}
-          </div>
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/30" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">
+              {initial}
+            </div>
+          )}
           <div>
             <h1 className="text-xl font-bold">{displayName}</h1>
-            <p className="text-blue-200 text-sm">{email}</p>
-            <p className="text-blue-200 text-xs mt-0.5">房地产经纪人</p>
+            <p className="text-blue-200 text-sm">{profile.title || "房地产经纪人"}</p>
+            {profile.phone && <p className="text-blue-200 text-xs mt-0.5">{profile.phone}</p>}
           </div>
         </div>
       </div>
@@ -78,32 +224,10 @@ export default function ProfilePage() {
       {/* Stats Cards */}
       <div className="px-4 -mt-5">
         <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            icon={<Users className="h-5 w-5 text-blue-600" />}
-            label="客户总数"
-            value={stats.totalClients}
-            loading={loading}
-          />
-          <StatCard
-            icon={<UserPlus className="h-5 w-5 text-green-600" />}
-            label="本月新增"
-            value={stats.newThisMonth}
-            loading={loading}
-          />
-          <StatCard
-            icon={<Eye className="h-5 w-5 text-purple-600" />}
-            label="活跃访客"
-            value={stats.activeViewers}
-            loading={loading}
-            subtitle="近7天"
-          />
-          <StatCard
-            icon={<TrendingUp className="h-5 w-5 text-orange-600" />}
-            label="感兴趣"
-            value={stats.inquiries}
-            loading={loading}
-            subtitle="近7天"
-          />
+          <StatCard icon={<Users className="h-5 w-5 text-blue-600" />} label="客户总数" value={stats.totalClients} loading={loading} />
+          <StatCard icon={<UserPlus className="h-5 w-5 text-green-600" />} label="本月新增" value={stats.newThisMonth} loading={loading} />
+          <StatCard icon={<Eye className="h-5 w-5 text-purple-600" />} label="活跃访客" value={stats.activeViewers} loading={loading} subtitle="近7天" />
+          <StatCard icon={<TrendingUp className="h-5 w-5 text-orange-600" />} label="感兴趣" value={stats.inquiries} loading={loading} subtitle="近7天" />
         </div>
       </div>
 
@@ -111,30 +235,10 @@ export default function ProfilePage() {
       <div className="px-4 mt-6">
         <h3 className="text-sm font-semibold text-gray-500 mb-3 px-1">快捷入口</h3>
         <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-          <MenuItem
-            icon={<Users className="h-5 w-5 text-blue-600" />}
-            label="客户管理"
-            subtitle="查看和管理所有客户"
-            onClick={() => navigate("/app/clients")}
-          />
-          <MenuItem
-            icon={<Search className="h-5 w-5 text-purple-600" />}
-            label="房源搜索"
-            subtitle="Zillow 房源搜索"
-            onClick={() => navigate("/app/assistant")}
-          />
-          <MenuItem
-            icon={<Bot className="h-5 w-5 text-indigo-600" />}
-            label="AI 助理"
-            subtitle="智能客户管理助手"
-            onClick={() => navigate("/app/assistant")}
-          />
-          <MenuItem
-            icon={<ClipboardList className="h-5 w-5 text-green-600" />}
-            label="今日待办"
-            subtitle="查看待处理任务"
-            onClick={() => navigate("/app")}
-          />
+          <MenuItem icon={<Users className="h-5 w-5 text-blue-600" />} label="客户管理" subtitle="查看和管理所有客户" onClick={() => navigate("/app/clients")} />
+          <MenuItem icon={<Search className="h-5 w-5 text-purple-600" />} label="房源搜索" subtitle="搜索并分享给客户" onClick={() => navigate("/app/assistant")} />
+          <MenuItem icon={<Bot className="h-5 w-5 text-indigo-600" />} label="AI 助理" subtitle="智能客户管理助手" onClick={() => navigate("/app/assistant")} />
+          <MenuItem icon={<ClipboardList className="h-5 w-5 text-green-600" />} label="今日待办" subtitle="查看待处理任务" onClick={() => navigate("/app")} />
         </div>
       </div>
 
@@ -157,18 +261,28 @@ export default function ProfilePage() {
 
 // ── Sub Components ──────────────────────────────────────────
 
-function StatCard({
-  icon,
-  label,
-  value,
-  loading,
-  subtitle,
+function ProfileField({
+  label, value, placeholder, type = "text", onChange,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  loading: boolean;
-  subtitle?: string;
+  label: string; value: string; placeholder: string; type?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center px-4 py-3">
+      <span className="w-16 text-sm text-gray-500 shrink-0">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 text-sm text-gray-900 outline-none bg-transparent text-right"
+      />
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, loading, subtitle }: {
+  icon: React.ReactNode; label: string; value: number; loading: boolean; subtitle?: string;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
@@ -176,31 +290,17 @@ function StatCard({
         {icon}
         <span className="text-xs text-gray-500">{label}</span>
       </div>
-      <div className="text-2xl font-bold text-gray-900">
-        {loading ? "—" : value}
-      </div>
+      <div className="text-2xl font-bold text-gray-900">{loading ? "—" : value}</div>
       {subtitle && <p className="text-[10px] text-gray-400 mt-0.5">{subtitle}</p>}
     </div>
   );
 }
 
-function MenuItem({
-  icon,
-  label,
-  subtitle,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  subtitle: string;
-  onClick: () => void;
+function MenuItem({ icon, label, subtitle, onClick }: {
+  icon: React.ReactNode; label: string; subtitle: string; onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition"
-    >
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition">
       {icon}
       <div className="flex-1 text-left">
         <p className="text-sm font-medium text-gray-900">{label}</p>
@@ -215,48 +315,33 @@ function MenuItem({
 
 async function fetchStats(userId: string): Promise<Stats> {
   const result: Stats = { totalClients: 0, newThisMonth: 0, activeViewers: 0, inquiries: 0 };
-
   if (!supabase) return result;
 
   try {
-    // Total clients
     const { count: total } = await supabase
-      .from("clients")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
+      .from("clients").select("id", { count: "exact", head: true }).eq("user_id", userId);
     result.totalClients = total ?? 0;
 
-    // New this month
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
     const { count: newCount } = await supabase
-      .from("clients")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", monthStart.toISOString());
+      .from("clients").select("id", { count: "exact", head: true })
+      .eq("user_id", userId).gte("created_at", monthStart.toISOString());
     result.newThisMonth = newCount ?? 0;
 
-    // Active viewers (clients with browse activity in last 7 days)
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const { data: viewData } = await supabase
-      .from("client_listing_views")
-      .select("client_id")
-      .gte("created_at", weekAgo.toISOString());
-    const uniqueViewers = new Set((viewData ?? []).map((v: any) => v.client_id));
-    result.activeViewers = uniqueViewers.size;
+      .from("client_listing_views").select("client_id").gte("created_at", weekAgo.toISOString());
+    result.activeViewers = new Set((viewData ?? []).map((v: any) => v.client_id)).size;
 
-    // Inquiries in last 7 days
     const { count: inquiryCount } = await supabase
-      .from("client_listing_views")
-      .select("id", { count: "exact", head: true })
-      .eq("action", "inquiry")
-      .gte("created_at", weekAgo.toISOString());
+      .from("client_listing_views").select("id", { count: "exact", head: true })
+      .eq("action", "inquiry").gte("created_at", weekAgo.toISOString());
     result.inquiries = inquiryCount ?? 0;
   } catch (err) {
     console.error("[ProfilePage] fetchStats error:", err);
   }
-
   return result;
 }
