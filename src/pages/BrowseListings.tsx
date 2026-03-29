@@ -435,11 +435,13 @@ export default function BrowseListings() {
             <p className="text-xs text-gray-400">Listed by {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
           )}
 
-          {/* Contact agent CTA */}
+        </div>
+
+        {/* Floating contact bar */}
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 safe-bottom">
           <button
             type="button"
             onClick={() => {
-              // Track inquiry
               if (clientId) {
                 fetch(`${API_BASE}/api/browse/track`, {
                   method: "POST",
@@ -456,7 +458,7 @@ export default function BrowseListings() {
               }
               alert(`Your interest has been sent to ${agentName}! They will contact you soon.`);
             }}
-            className="block w-full text-center py-3.5 bg-green-600 text-white rounded-xl font-medium active:bg-green-700 transition text-base"
+            className="w-full py-3 bg-green-600 text-white rounded-xl font-medium active:bg-green-700 transition text-base shadow-lg"
           >
             I'm Interested — Contact {agentName}
           </button>
