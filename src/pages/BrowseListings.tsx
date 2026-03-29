@@ -131,6 +131,11 @@ export default function BrowseListings() {
     try {
       const res = await fetch(`${API_BASE}/api/browse/listing/${listing.zpid}`);
       const data = await res.json();
+      // Use search result image as fallback if detail has no photos
+      if ((!data.photos || data.photos.length === 0) && listing.imageUrl) {
+        data.photos = [listing.imageUrl];
+        data.imageUrl = listing.imageUrl;
+      }
       setSelectedDetail(data);
     } catch {
       // fallback

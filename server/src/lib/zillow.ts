@@ -55,6 +55,7 @@ export interface ZillowPropertyDetail {
   imageUrl: string;
   detailUrl: string;
   photos: string[];
+  streetViewUrl: string | null;
   broker: string | null;
   mlsId: string | null;
   schools: Array<{ name: string; rating: number; distance: string; type: string }>;
@@ -156,9 +157,12 @@ export async function getPropertyDetail(
     description: d.description ?? null,
     zestimate: d.financials?.zestimate ?? null,
     rentZestimate: d.financials?.rent_zestimate ?? null,
-    imageUrl: d.photos?.[0]?.urls?.large ?? "",
-    detailUrl: `https://www.zillow.com/homedetails/${zpid}_zpid/`,
-    photos: (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? ""),
+    imageUrl: d.photos?.[0]?.urls?.large ?? d.street_view_url ?? "",
+    detailUrl: d.detail_url ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
+    photos: (d.photos ?? []).length > 0
+      ? (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? "")
+      : d.street_view_url ? [d.street_view_url] : [],
+    streetViewUrl: d.street_view_url ?? null,
     broker: d.listing?.brokerage ?? null,
     mlsId: d.listing?.mls_id ?? null,
     schools: (d.schools ?? []).slice(0, 5).map((s: any) => ({
