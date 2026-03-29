@@ -46,10 +46,11 @@ interface VisitorInfo {
   listings: ListingView[];
 }
 
-type TabKey = "all" | "focus" | "longterm" | "closed";
+type TabKey = "all" | "active" | "focus" | "longterm" | "closed";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "all", label: "所有访客" },
+  { key: "active", label: "活跃客户" },
   { key: "focus", label: "当前重点" },
   { key: "longterm", label: "长期跟踪" },
   { key: "closed", label: "已成交" },
@@ -343,8 +344,13 @@ export default function VisitorsPage() {
 
   // ── Filtered list ────────────────────────────────────────
 
+  // Active = visited in last 7 days
+  const sevenDaysAgo = Date.now() - 7 * 86400000;
+
   const filtered = useMemo(() => {
     switch (activeTab) {
+      case "active":
+        return visitors.filter((v) => new Date(v.lastActiveAt).getTime() > sevenDaysAgo);
       case "focus":
         return visitors.filter((v) => FOCUS_STATUSES.has(v.clientStatus));
       case "longterm":
@@ -354,14 +360,15 @@ export default function VisitorsPage() {
       default:
         return visitors;
     }
-  }, [visitors, activeTab]);
+  }, [visitors, activeTab, sevenDaysAgo]);
 
   const tabCounts = useMemo(() => ({
     all: visitors.length,
+    active: visitors.filter((v) => new Date(v.lastActiveAt).getTime() > sevenDaysAgo).length,
     focus: visitors.filter((v) => FOCUS_STATUSES.has(v.clientStatus)).length,
     longterm: visitors.filter((v) => LONGTERM_STATUSES.has(v.clientStatus)).length,
     closed: visitors.filter((v) => CLOSED_STATUSES.has(v.clientStatus)).length,
-  }), [visitors]);
+  }), [visitors, sevenDaysAgo]);
 
   return (
     <div className="h-full w-full bg-slate-50 overflow-y-auto pb-20">

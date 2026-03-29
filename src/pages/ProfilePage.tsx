@@ -237,10 +237,10 @@ export default function ProfilePage() {
       {/* Stats Cards */}
       <div className="px-4 -mt-8">
         <div className="grid grid-cols-2 gap-3">
-          <StatCard icon={<Users className="h-5 w-5 text-blue-600" />} label="客户总数" value={stats.totalClients} loading={loading} />
-          <StatCard icon={<UserPlus className="h-5 w-5 text-green-600" />} label="本月新增" value={stats.newThisMonth} loading={loading} />
-          <StatCard icon={<Eye className="h-5 w-5 text-purple-600" />} label="活跃访客" value={stats.activeViewers} loading={loading} subtitle="近7天" />
-          <StatCard icon={<TrendingUp className="h-5 w-5 text-orange-600" />} label="感兴趣" value={stats.inquiries} loading={loading} subtitle="近7天" />
+          <StatCard icon={<Users className="h-5 w-5 text-blue-600" />} label="客户总数" value={stats.totalClients} loading={loading} onClick={() => navigate("/app/clients")} />
+          <StatCard icon={<UserPlus className="h-5 w-5 text-green-600" />} label="本月新增" value={stats.newThisMonth} loading={loading} onClick={() => navigate("/app/clients")} />
+          <StatCard icon={<Eye className="h-5 w-5 text-purple-600" />} label="访客" value={stats.activeViewers} loading={loading} subtitle="近7天" onClick={() => navigate("/app/visitors")} />
+          <StatCard icon={<TrendingUp className="h-5 w-5 text-orange-600" />} label="感兴趣" value={stats.inquiries} loading={loading} subtitle="近7天" onClick={() => navigate("/app/visitors")} />
         </div>
       </div>
 
@@ -249,9 +249,9 @@ export default function ProfilePage() {
         <h3 className="text-sm font-semibold text-gray-500 mb-3 px-1">快捷入口</h3>
         <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
           <MenuItem icon={<Users className="h-5 w-5 text-blue-600" />} label="客户管理" subtitle="查看和管理所有客户" onClick={() => navigate("/app/clients")} />
-          <MenuItem icon={<Search className="h-5 w-5 text-purple-600" />} label="房源搜索" subtitle="搜索并分享给客户" onClick={() => navigate("/app/assistant")} />
+          <MenuItem icon={<Search className="h-5 w-5 text-purple-600" />} label="房源搜索" subtitle="搜索并分享给客户" onClick={() => navigate("/app/search")} />
           <MenuItem icon={<Bot className="h-5 w-5 text-indigo-600" />} label="AI 助理" subtitle="智能客户管理助手" onClick={() => navigate("/app/assistant")} />
-          <MenuItem icon={<ClipboardList className="h-5 w-5 text-green-600" />} label="今日待办" subtitle="查看待处理任务" onClick={() => navigate("/app")} />
+          <MenuItem icon={<Eye className="h-5 w-5 text-green-600" />} label="访客管理" subtitle="查看客户浏览动态" onClick={() => navigate("/app/visitors")} />
         </div>
       </div>
 
@@ -282,18 +282,22 @@ function ProfileField({
   );
 }
 
-function StatCard({ icon, label, value, loading, subtitle }: {
-  icon: React.ReactNode; label: string; value: number; loading: boolean; subtitle?: string;
+function StatCard({ icon, label, value, loading, subtitle, onClick }: {
+  icon: React.ReactNode; label: string; value: number; loading: boolean; subtitle?: string; onClick?: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm text-left active:bg-gray-50 transition"
+    >
       <div className="flex items-center gap-2 mb-2">
         {icon}
         <span className="text-xs text-gray-500">{label}</span>
       </div>
       <div className="text-2xl font-bold text-gray-900">{loading ? "—" : value}</div>
       {subtitle && <p className="text-[10px] text-gray-400 mt-0.5">{subtitle}</p>}
-    </div>
+    </button>
   );
 }
 
