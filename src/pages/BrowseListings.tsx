@@ -68,6 +68,7 @@ export default function BrowseListings() {
   // Search state
   const [location, setLocation] = useState("");
   const [listingType, setListingType] = useState<"sale" | "rent">("sale");
+  const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [bedsMin, setBedsMin] = useState("");
   const [homeType, setHomeType] = useState("");
@@ -81,12 +82,74 @@ export default function BrowseListings() {
   const [selectedDetail, setSelectedDetail] = useState<ListingDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Recently viewed (from tracking history)
+  const [recentViews, setRecentViews] = useState<Listing[]>([]);
+
   // Verification
   const [verified, setVerified] = useState(false);
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
+  // Load recent views on mount
+  useEffect(() => {
+    if (!clientId) return;
+    fetch(`${API_BASE}/api/browse/history/${clientId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const views = (data.views ?? []) as Array<{
+          zpid: string; address: string; price: number; image_url: string | null; action: string;
+        }>;
+        // Deduplicate by zpid, take latest
+        const seen = new Set<string>();
+        const unique: Listing[] = [];
+        for (const v of views) {
+          if (seen.has(v.zpid)) continue;
+          seen.add(v.zpid);
+          unique.push({
+            zpid: Number(v.zpid),
+            address: v.address,
+            city: "", state: "", zipcode: "",
+            price: v.price,
+            priceFormatted: v.price >= 1000000 ? `$${(v.price / 1000000).toFixed(1)}M` : `$${(v.price / 1000).toFixed(0)}K`,
+            beds: 0, baths: 0, sqft: 0,
+            homeType: "",
+            status: v.action === "favorite" ? "FAVORITED" : "VIEWED",
+            daysOnZillow: 0,
+            imageUrl: v.image_url || "",
+            detailUrl: "",
+            zestimate: null,
+            photos: v.image_url ? [v.image_url] : [],
+          });
+        }
+        setRecentViews(unique.slice(0, 6));
+      })
+      .catch(() => {});
+  }, [clientId]);
+
   // ── Search ────────────────────────────────────────────────
+
+  const searchLocation = useCallback(async (loc: string) => {
+    if (!loc.trim()) return;
+    setLocation(loc);
+    setLoading(true);
+    setSearched(true);
+    setSelectedDetail(null);
+    try {
+      const params = new URLSearchParams({ location: loc.trim() });
+      params.set("listingType", listingType);
+      if (minPrice) params.set("minPrice", minPrice);
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      if (bedsMin) params.set("bedsMin", bedsMin);
+      if (homeType) params.set("homeType", homeType);
+      const res = await fetch(`${API_BASE}/api/browse/search?${params}`);
+      const data = await res.json();
+      setListings(data.results || []);
+    } catch {
+      setListings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [listingType, minPrice, maxPrice, bedsMin, homeType]);
 
   const handleSearch = useCallback(async () => {
     if (!location.trim()) return;
@@ -97,6 +160,7 @@ export default function BrowseListings() {
     try {
       const params = new URLSearchParams({ location: location.trim() });
       params.set("listingType", listingType);
+      if (minPrice) params.set("minPrice", minPrice);
       if (maxPrice) params.set("maxPrice", maxPrice);
       if (bedsMin) params.set("bedsMin", bedsMin);
       if (homeType) params.set("homeType", homeType);
@@ -109,7 +173,7 @@ export default function BrowseListings() {
     } finally {
       setLoading(false);
     }
-  }, [location, maxPrice, bedsMin, homeType]);
+  }, [location, listingType, minPrice, maxPrice, bedsMin, homeType]);
 
   // ── View Detail ───────────────────────────────────────────
 
@@ -376,19 +440,23 @@ export default function BrowseListings() {
 
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto">
-          <select
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="border rounded-lg px-3 py-1.5 text-xs text-gray-700 bg-white shrink-0"
-          >
-            <option value="">Max Price</option>
-            <option value="500000">$500K</option>
-            <option value="750000">$750K</option>
-            <option value="1000000">$1M</option>
-            <option value="1500000">$1.5M</option>
-            <option value="2000000">$2M</option>
-            <option value="3000000">$3M</option>
-          </select>
+          <div className="flex items-center border rounded-lg overflow-hidden shrink-0">
+            <input
+              type="number"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              placeholder="Min $"
+              className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
+            />
+            <span className="text-gray-300 text-xs">-</span>
+            <input
+              type="number"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder="Max $"
+              className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
+            />
+          </div>
           <select
             value={bedsMin}
             onChange={(e) => setBedsMin(e.target.value)}
@@ -424,9 +492,64 @@ export default function BrowseListings() {
           <div className="text-center py-12 text-gray-400 text-sm">No listings found. Try a different location.</div>
         )}
 
+        {/* Home page: recently viewed + hot areas */}
         {!loading && !searched && (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            Search for properties by city, ZIP code, or address
+          <div className="space-y-6">
+            {/* Recently Viewed */}
+            {recentViews.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">Recently Viewed</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {recentViews.map((listing) => (
+                    <button
+                      key={listing.zpid}
+                      type="button"
+                      onClick={() => viewDetail(listing)}
+                      className="bg-white rounded-xl border border-gray-100 overflow-hidden text-left active:bg-gray-50"
+                    >
+                      {listing.imageUrl ? (
+                        <img src={listing.imageUrl} alt="" className="w-full h-24 object-cover" />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+                          <Home className="h-6 w-6 text-gray-300" />
+                        </div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs font-medium text-gray-900 truncate">{listing.priceFormatted}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{listing.address}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hot Areas */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Popular Areas</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { name: "Irvine", label: "Irvine, CA", emoji: "🏘️" },
+                  { name: "Arcadia", label: "Arcadia, CA", emoji: "🌳" },
+                  { name: "San Marino", label: "San Marino, CA", emoji: "🏛️" },
+                  { name: "Pasadena", label: "Pasadena, CA", emoji: "🌹" },
+                  { name: "Rowland Heights", label: "Rowland Heights, CA", emoji: "🏡" },
+                  { name: "Diamond Bar", label: "Diamond Bar, CA", emoji: "💎" },
+                  { name: "Chino Hills", label: "Chino Hills, CA", emoji: "⛰️" },
+                  { name: "Walnut", label: "Walnut, CA", emoji: "🌰" },
+                ].map((area) => (
+                  <button
+                    key={area.name}
+                    type="button"
+                    onClick={() => searchLocation(area.label)}
+                    className="flex items-center gap-2 px-3 py-3 bg-white rounded-xl border border-gray-100 active:bg-gray-50 transition"
+                  >
+                    <span className="text-lg">{area.emoji}</span>
+                    <span className="text-sm text-gray-800">{area.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
