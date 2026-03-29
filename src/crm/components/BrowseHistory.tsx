@@ -62,7 +62,7 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
   const grouped = Array.from(uniqueViews.values());
 
   return (
-    <div className="bg-white p-4 sm:p-5 rounded-[24px] shadow-sm border border-gray-100">
+    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Home className="h-4 w-4 text-blue-600" />
         <span className="font-semibold text-gray-900 text-sm">房源浏览记录</span>
