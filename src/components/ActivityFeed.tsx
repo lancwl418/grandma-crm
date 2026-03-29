@@ -91,51 +91,59 @@ export default function ActivityFeed() {
 
   if (activities.length === 0) return null;
 
-  const current = activities[currentIdx];
   // Extract city from address
-  const city = current.address.split(",").slice(-2, -1)[0]?.trim() || current.address.split(",")[0] || "";
+  function getCity(addr: string): string {
+    const parts = addr.split(",").map((s) => s.trim());
+    // Try "City, State" pattern
+    if (parts.length >= 3) return parts[parts.length - 3] + ", " + parts[parts.length - 2];
+    if (parts.length >= 2) return parts[0] + ", " + parts[1];
+    return parts[0] || "未知地区";
+  }
 
   return (
     <div className="px-4 mt-4">
       <button
         type="button"
         onClick={() => navigate("/app/visitors")}
-        className="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden active:bg-gray-50 transition"
+        className="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden active:bg-gray-50 transition relative h-[72px]"
       >
-        <div className="flex items-center gap-3 p-3">
-          {/* Thumbnail */}
-          {current.imageUrl ? (
-            <img src={current.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-          ) : (
-            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-              <Home className="h-5 w-5 text-gray-300" />
+        {activities.map((item, i) => {
+          const city = getCity(item.address);
+          return (
+            <div
+              key={i}
+              className="absolute inset-0 flex items-center gap-3 p-3 transition-all duration-500"
+              style={{
+                transform: i === currentIdx ? "translateY(0)" : i < currentIdx || (currentIdx === 0 && i === activities.length - 1 && i !== 0) ? "translateY(-100%)" : "translateY(100%)",
+                opacity: i === currentIdx ? 1 : 0,
+              }}
+            >
+              {/* Thumbnail */}
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                  <Home className="h-5 w-5 text-gray-300" />
+                </div>
+              )}
+
+              {/* Text */}
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm text-gray-800 truncate">
+                  <span className="font-medium text-blue-600">{item.clientName}</span>
+                  {" "}
+                  {actionLabel(item.action)}
+                </p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">
+                  📍 {city}
+                </p>
+                <p className="text-[10px] text-gray-300 mt-0.5">
+                  {formatTime(item.time)}
+                </p>
+              </div>
             </div>
-          )}
-
-          {/* Text */}
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm text-gray-800 truncate">
-              <span className="font-medium text-blue-600">{current.clientName}</span>
-              {" "}
-              <span className="text-gray-400">{formatTime(current.time)}</span>
-              {" "}
-              {actionLabel(current.action)}
-            </p>
-            <p className="text-xs text-gray-400 truncate mt-0.5">
-              {city} 的房源
-            </p>
-          </div>
-
-          {/* Dot indicator */}
-          <div className="flex flex-col gap-0.5 shrink-0">
-            {activities.slice(0, Math.min(5, activities.length)).map((_, i) => (
-              <div
-                key={i}
-                className={`w-1 h-1 rounded-full ${i === currentIdx % Math.min(5, activities.length) ? "bg-blue-500" : "bg-gray-200"}`}
-              />
-            ))}
-          </div>
-        </div>
+          );
+        })}
       </button>
     </div>
   );
