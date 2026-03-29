@@ -136,6 +136,39 @@ browseRouter.post("/verify-phone", async (req, res) => {
   });
 });
 
+// ── Get agent info for a client ──────────────────────────────
+
+browseRouter.get("/agent/:clientId", async (req, res) => {
+  const { clientId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  // Get client's user_id, then get user email as agent name
+  const { data: client, error } = await supabaseAdmin
+    .from("clients")
+    .select("user_id")
+    .eq("id", clientId)
+    .single();
+
+  if (error || !client) {
+    res.json({ agentName: "Your Agent" });
+    return;
+  }
+
+  // Try to get agent display name from auth
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+  const email = userData?.user?.email ?? "";
+  const name = userData?.user?.user_metadata?.full_name
+    ?? userData?.user?.user_metadata?.name
+    ?? email.split("@")[0]
+    ?? "Your Agent";
+
+  res.json({ agentName: name });
+});
+
 // ── Get client browse history (for CRM side) ────────────────
 
 browseRouter.get("/history/:clientId", async (req, res) => {

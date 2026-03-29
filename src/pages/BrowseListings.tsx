@@ -95,10 +95,22 @@ export default function BrowseListings() {
   // Recently viewed (from tracking history)
   const [recentViews, setRecentViews] = useState<Listing[]>([]);
 
+  // Agent info
+  const [agentName, setAgentName] = useState("Your Agent");
+
   // Verification
   const [verified, setVerified] = useState(false);
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
+
+  // Load agent name on mount
+  useEffect(() => {
+    if (!clientId) return;
+    fetch(`${API_BASE}/api/browse/agent/${clientId}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.agentName) setAgentName(data.agentName); })
+      .catch(() => {});
+  }, [clientId]);
 
   // Auto re-search when toggling Buy/Rent (if already searched)
   useEffect(() => {
@@ -383,6 +395,16 @@ export default function BrowseListings() {
             </div>
           )}
 
+          {/* Zillow link (small) */}
+          <a
+            href={selectedDetail.detailUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-500 underline"
+          >
+            View on Zillow →
+          </a>
+
           {selectedDetail.description && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
@@ -413,14 +435,31 @@ export default function BrowseListings() {
             <p className="text-xs text-gray-400">Listed by {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
           )}
 
-          <a
-            href={selectedDetail.detailUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center py-3 bg-blue-600 text-white rounded-xl font-medium active:bg-blue-700 transition"
+          {/* Contact agent CTA */}
+          <button
+            type="button"
+            onClick={() => {
+              // Track inquiry
+              if (clientId) {
+                fetch(`${API_BASE}/api/browse/track`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    clientId,
+                    zpid: selectedDetail.zpid || selectedDetail.address,
+                    address: selectedDetail.address,
+                    price: selectedDetail.price,
+                    imageUrl: selectedDetail.imageUrl,
+                    action: "inquiry",
+                  }),
+                }).catch(() => {});
+              }
+              alert(`Your interest has been sent to ${agentName}! They will contact you soon.`);
+            }}
+            className="block w-full text-center py-3.5 bg-green-600 text-white rounded-xl font-medium active:bg-green-700 transition text-base"
           >
-            View on Zillow
-          </a>
+            I'm Interested — Contact {agentName}
+          </button>
         </div>
       </div>
     );
