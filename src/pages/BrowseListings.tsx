@@ -369,6 +369,35 @@ export default function BrowseListings() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-medium truncate flex-1">{selectedDetail.address}</h1>
+          <button
+            type="button"
+            onClick={() => {
+              const zpid = selectedDetail.zpid || 0;
+              if (!verified && clientId) {
+                setShowVerify(true);
+                return;
+              }
+              const isFav = favorites.has(zpid);
+              setFavorites((prev) => {
+                const next = new Set(prev);
+                if (isFav) next.delete(zpid); else next.add(zpid);
+                return next;
+              });
+              if (!isFav && clientId) {
+                fetch(`${API_BASE}/api/browse/track`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    clientId, zpid, address: selectedDetail.address,
+                    price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite",
+                  }),
+                }).catch(() => {});
+              }
+            }}
+            className="p-1.5"
+          >
+            <Heart className={`h-5 w-5 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+          </button>
         </div>
 
         {/* Photos */}
@@ -458,6 +487,23 @@ export default function BrowseListings() {
             <p className="text-xs text-gray-400">Listed by {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
           )}
 
+          {/* Contact agent button */}
+          <button
+            type="button"
+            onClick={() => {
+              setEmailListingInfo({
+                zpid: selectedDetail.zpid,
+                address: selectedDetail.address,
+                price: selectedDetail.price,
+                imageUrl: selectedDetail.imageUrl,
+              });
+              setContactOpen(true);
+            }}
+            className="w-full py-3 bg-green-600 text-white rounded-xl font-medium text-sm active:bg-green-700 transition flex items-center justify-center gap-2"
+          >
+            <Phone className="h-4 w-4" />
+            联系经纪人 {agentName}
+          </button>
         </div>
       </div>
     );
