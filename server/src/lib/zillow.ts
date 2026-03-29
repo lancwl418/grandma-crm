@@ -1,4 +1,4 @@
-const RAPIDAPI_HOST = "zillow-real-estate-api.p.rapidapi.com";
+const RAPIDAPI_HOST = "private-zillow.p.rapidapi.com";
 const BASE_URL = `https://${RAPIDAPI_HOST}`;
 
 function getApiKey(): string {
@@ -38,6 +38,8 @@ export interface ZillowListingResult {
   detailUrl: string;
   zestimate: number | null;
   photos: string[];
+  minPrice: number | null;
+  maxPrice: number | null;
 }
 
 export interface ZillowPropertyDetail {
@@ -78,21 +80,26 @@ export interface SearchListingsParams {
   page?: number;
 }
 
+function formatPrice(n: number): string {
+  if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
+  return `$${n}`;
+}
+
 export async function searchListings(
   params: SearchListingsParams
 ): Promise<{ results: ZillowListingResult[]; totalPages: number }> {
-  const url = new URL(`${BASE_URL}/v1/search`);
   const isRent = params.listingType === "rent";
+  const url = new URL(`${BASE_URL}/search/byaddress`);
   url.searchParams.set("location", params.location);
-  url.searchParams.set("listing_type", isRent ? "rent" : "sale");
-  if (isRent) url.searchParams.set("status", "FOR_RENT");
-  url.searchParams.set("page", String(params.page ?? 1));
+  url.searchParams.set("listingStatus", isRent ? "For_Rent" : "For_Sale");
 
-  if (params.minPrice) url.searchParams.set("min_price", String(params.minPrice));
-  if (params.maxPrice) url.searchParams.set("max_price", String(params.maxPrice));
-  if (params.bedsMin) url.searchParams.set("beds_min", String(params.bedsMin));
-  if (params.bathsMin) url.searchParams.set("baths_min", String(params.bathsMin));
-  if (params.homeType) url.searchParams.set("home_type", params.homeType);
+  if (params.page && params.page > 1) url.searchParams.set("page", String(params.page));
+  if (params.minPrice) url.searchParams.set("minPrice", String(params.minPrice));
+  if (params.maxPrice) url.searchParams.set("maxPrice", String(params.maxPrice));
+  if (params.bedsMin) url.searchParams.set("bedsMin", String(params.bedsMin));
+  if (params.bathsMin) url.searchParams.set("bathsMin", String(params.bathsMin));
+  if (params.homeType) url.searchParams.set("homeType", params.homeType);
 
   const response = await fetch(url.toString(), { headers: headers() });
   if (!response.ok) {
@@ -100,55 +107,48 @@ export async function searchListings(
   }
 
   const data = await response.json();
-  if (!data.success) {
-    throw new Error("Zillow API returned unsuccessful response");
-  }
+  const searchResults = data.searchResults ?? [];
 
-  const results: ZillowListingResult[] = (data.data?.results ?? []).map(
-    (r: any) => ({
+  const results: ZillowListingResult[] = searchResults.map((item: any) => {
+    const r = item.property ?? item;
+    const addr = r.address ?? {};
+    const media = r.media ?? {};
+    const allPhotos = media.allPropertyPhotos?.highResolution ?? [];
+    const photoLink = media.propertyPhotoLinks?.highResolutionLink ?? media.propertyPhotoLinks?.mediumSizeLink ?? "";
+
+    const price = r.price?.value ?? r.price ?? r.minPrice ?? 0;
+    const priceNum = typeof price === "number" ? price : 0;
+
+    return {
       zpid: r.zpid ?? 0,
-      address: r.address,
-      city: r.city,
-      state: r.state,
-      zipcode: r.zipcode,
-      price: r.price ?? 0,
-      priceFormatted: r.price_formatted ?? (r.availability_count ? `${r.availability_count} units available` : "See on Zillow"),
-      beds: r.beds ?? 0,
-      baths: r.baths ?? 0,
-      sqft: r.sqft ?? 0,
-      homeType: r.home_type ?? (r.is_building ? "APARTMENT" : ""),
-      status: r.status,
-      statusText: r.status_text ?? null,
-      buildingName: r.building_name ?? null,
-      unitsAvailable: r.availability_count ?? null,
-      daysOnZillow: r.days_on_zillow ?? 0,
-      imageUrl: r.image_url,
-      detailUrl: r.detail_url,
-      zestimate: r.zestimate,
-      photos: (r.photos ?? []).slice(0, 10).map((p: any) => p.urls?.large ?? p.urls?.medium ?? "").filter(Boolean),
-    })
-  );
+      address: [addr.streetAddress, addr.city, addr.state, addr.zipcode].filter(Boolean).join(", "),
+      city: addr.city ?? "",
+      state: addr.state ?? "",
+      zipcode: addr.zipcode ?? "",
+      price: priceNum,
+      priceFormatted: priceNum > 0 ? formatPrice(priceNum) : (r.title || "See on Zillow"),
+      beds: r.bedrooms ?? 0,
+      baths: r.bathrooms ?? 0,
+      sqft: r.livingArea ?? 0,
+      homeType: r.homeType ?? (r.groupType === "apartmentComplex" ? "APARTMENT" : ""),
+      status: r.listingStatus === "forRent" ? "FOR_RENT" : "FOR_SALE",
+      statusText: r.title ?? null,
+      buildingName: r.title ?? null,
+      unitsAvailable: r.matchingHomeCount ?? null,
+      daysOnZillow: r.daysOnZillow ?? 0,
+      imageUrl: photoLink || (allPhotos[0] ?? ""),
+      detailUrl: `https://www.zillow.com/homedetails/${r.zpid}_zpid/`,
+      zestimate: r.zestimate ?? null,
+      photos: allPhotos.slice(0, 10),
+      minPrice: r.minPrice ?? null,
+      maxPrice: r.maxPrice ?? null,
+    };
+  });
 
   return {
-    results: results.slice(0, 10), // Limit to 10 for LLM context
-    totalPages: data.data?.total_pages ?? 1,
+    results: results.slice(0, 20),
+    totalPages: data.pagesInfo?.totalPages ?? 1,
   };
-}
-
-// ── Quick image fetch (minimal API call) ────────────────────
-
-export async function getPropertyImage(zpid: number): Promise<string | null> {
-  try {
-    const url = `${BASE_URL}/v1/property/${zpid}`;
-    const response = await fetch(url, { headers: headers() });
-    if (!response.ok) return null;
-    const data = await response.json();
-    if (!data.success) return null;
-    const d = data.data;
-    return d.photos?.[0]?.urls?.medium ?? null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Property Detail ─────────────────────────────────────────
@@ -156,45 +156,65 @@ export async function getPropertyImage(zpid: number): Promise<string | null> {
 export async function getPropertyDetail(
   zpid: number
 ): Promise<ZillowPropertyDetail> {
-  const url = `${BASE_URL}/v1/property/${zpid}`;
+  const url = `${BASE_URL}/pro/byzpid?zpid=${zpid}`;
   const response = await fetch(url, { headers: headers() });
   if (!response.ok) {
     throw new Error(`Zillow API error: ${response.status}`);
   }
 
   const data = await response.json();
-  if (!data.success) {
-    throw new Error("Zillow API returned unsuccessful response");
-  }
+  const d = data.propertyDetails ?? {};
 
-  const d = data.data;
+  const photos = (d.originalPhotos ?? [])
+    .slice(0, 15)
+    .map((p: any) => {
+      const jpegs = p.mixedSources?.jpeg ?? [];
+      // Pick the largest jpeg
+      const best = jpegs.reduce((a: any, b: any) => ((b.width ?? 0) > (a.width ?? 0) ? b : a), jpegs[0] ?? {});
+      return best.url ?? "";
+    })
+    .filter(Boolean);
+
+  const schools = (d.schools ?? []).slice(0, 5).map((s: any) => ({
+    name: s.name ?? s.link?.text ?? "",
+    rating: s.rating ?? 0,
+    distance: s.distance ?? "",
+    type: s.type ?? s.level ?? "",
+  }));
+
   return {
-    zpid: d.zpid,
-    address: d.address?.full ?? "",
-    price: d.price,
-    priceFormatted: d.price_formatted,
-    beds: d.facts?.beds,
-    baths: d.facts?.baths,
-    sqft: d.facts?.sqft,
-    lotSqft: d.facts?.lot_sqft ?? null,
-    homeType: d.home_type,
-    yearBuilt: d.year_built ?? null,
-    status: d.status,
-    daysOnZillow: d.days_on_zillow,
+    zpid: d.zpid ?? zpid,
+    address: [d.streetAddress, d.city, d.state, d.zipcode].filter(Boolean).join(", "),
+    price: d.price ?? 0,
+    priceFormatted: d.price ? formatPrice(d.price) : "N/A",
+    beds: d.bedrooms ?? 0,
+    baths: d.bathrooms ?? 0,
+    sqft: d.livingArea ?? 0,
+    lotSqft: d.lotSize ?? null,
+    homeType: d.homeType ?? "",
+    yearBuilt: d.yearBuilt ?? null,
+    status: d.homeStatus ?? "",
+    daysOnZillow: d.daysOnZillow ?? 0,
     description: d.description ?? null,
-    zestimate: d.financials?.zestimate ?? null,
-    rentZestimate: d.financials?.rent_zestimate ?? null,
-    imageUrl: d.photos?.[0]?.urls?.large ?? "",
-    detailUrl: d.detail_url ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
-    photos: (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? "").filter(Boolean),
-    streetViewUrl: d.street_view_url ?? null,
-    broker: d.listing?.brokerage ?? null,
-    mlsId: d.listing?.mls_id ?? null,
-    schools: (d.schools ?? []).slice(0, 5).map((s: any) => ({
-      name: s.name,
-      rating: s.rating,
-      distance: s.distance,
-      type: s.type,
-    })),
+    zestimate: d.zestimate ?? null,
+    rentZestimate: d.rentZestimate ?? null,
+    imageUrl: d.hiResImageLink ?? photos[0] ?? "",
+    detailUrl: data.zillowURL ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
+    photos,
+    streetViewUrl: d.streetViewImageUrl ?? null,
+    broker: d.brokerageName ?? d.attributionInfo?.brokerName ?? null,
+    mlsId: d.attributionInfo?.mlsId ?? null,
+    schools,
   };
+}
+
+// ── Quick image fetch ───────────────────────────────────────
+
+export async function getPropertyImage(zpid: number): Promise<string | null> {
+  try {
+    const detail = await getPropertyDetail(zpid);
+    return detail.photos[0] ?? detail.imageUrl ?? null;
+  } catch {
+    return null;
+  }
 }

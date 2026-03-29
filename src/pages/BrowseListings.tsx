@@ -27,6 +27,8 @@ interface Listing {
   statusText?: string | null;
   buildingName?: string | null;
   unitsAvailable?: number | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
 }
 
 interface ListingDetail {
@@ -638,12 +640,19 @@ export default function BrowseListings() {
               onClick={() => viewDetail(listing)}
               className="w-full text-left p-3"
             >
-              {listing.buildingName ? (
+              {listing.buildingName && listing.price === 0 ? (
                 <>
                   <div className="text-base font-bold text-gray-900">{listing.buildingName}</div>
-                  {listing.unitsAvailable && (
-                    <p className="text-xs text-blue-600 mt-0.5">{listing.unitsAvailable} units available</p>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {listing.minPrice && listing.maxPrice ? (
+                      <span className="text-sm font-semibold text-green-700">${listing.minPrice.toLocaleString()} - ${listing.maxPrice.toLocaleString()}/mo</span>
+                    ) : listing.minPrice ? (
+                      <span className="text-sm font-semibold text-green-700">From ${listing.minPrice.toLocaleString()}/mo</span>
+                    ) : null}
+                    {listing.unitsAvailable && (
+                      <span className="text-xs text-gray-400">{listing.unitsAvailable} units</span>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="text-lg font-bold text-gray-900">{listing.priceFormatted}</div>
