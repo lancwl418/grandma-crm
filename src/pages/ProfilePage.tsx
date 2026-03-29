@@ -108,24 +108,37 @@ export default function ProfilePage() {
 
   const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !supabase || !userId) return;
+    if (!file || !userId) return;
 
-    const ext = file.name.split(".").pop();
-    const path = `avatars/${userId}.${ext}`;
+    // Try Supabase Storage first
+    if (supabase) {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true });
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
 
-    if (error) {
-      console.error("Avatar upload failed:", error.message);
-      return;
+      if (!error) {
+        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+        if (data?.publicUrl) {
+          setDraft((prev) => ({ ...prev, avatar_url: data.publicUrl + "?t=" + Date.now() }));
+          setToast("头像已上传");
+          setTimeout(() => setToast(""), 2000);
+          return;
+        }
+      }
+      console.error("Storage upload failed:", error?.message);
     }
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    if (data?.publicUrl) {
-      setDraft((prev) => ({ ...prev, avatar_url: data.publicUrl }));
-    }
+    // Fallback: convert to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft((prev) => ({ ...prev, avatar_url: reader.result as string }));
+      setToast("头像已更新（请点保存）");
+      setTimeout(() => setToast(""), 2000);
+    };
+    reader.readAsDataURL(file);
   }, [userId]);
 
   const handleLogout = async () => {
