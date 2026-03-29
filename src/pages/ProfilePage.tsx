@@ -210,8 +210,15 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-14 text-white">
-        <div className="flex items-center gap-4">
+      <div
+        className="relative px-6 pt-6 pb-14 text-white bg-cover bg-center"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80')`,
+        }}
+      >
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
+        <div className="relative flex items-center gap-4">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/30" />
           ) : (
