@@ -134,7 +134,7 @@ export async function getPropertyImage(zpid: number): Promise<string | null> {
     const data = await response.json();
     if (!data.success) return null;
     const d = data.data;
-    return d.photos?.[0]?.urls?.medium ?? d.street_view_url ?? null;
+    return d.photos?.[0]?.urls?.medium ?? null;
   } catch {
     return null;
   }
@@ -173,11 +173,9 @@ export async function getPropertyDetail(
     description: d.description ?? null,
     zestimate: d.financials?.zestimate ?? null,
     rentZestimate: d.financials?.rent_zestimate ?? null,
-    imageUrl: d.photos?.[0]?.urls?.large ?? d.street_view_url ?? "",
+    imageUrl: d.photos?.[0]?.urls?.large ?? "",
     detailUrl: d.detail_url ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
-    photos: (d.photos ?? []).length > 0
-      ? (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? "")
-      : d.street_view_url ? [d.street_view_url] : [],
+    photos: (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? "").filter(Boolean),
     streetViewUrl: d.street_view_url ?? null,
     broker: d.listing?.brokerage ?? null,
     mlsId: d.listing?.mls_id ?? null,
