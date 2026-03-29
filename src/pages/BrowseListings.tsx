@@ -134,6 +134,15 @@ export default function BrowseListings() {
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
+  // Load client name for greeting
+  useEffect(() => {
+    if (!clientId) return;
+    fetch(`${API_BASE}/api/browse/client-name/${clientId}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.name) setClientName(data.name); })
+      .catch(() => {});
+  }, [clientId]);
+
   // Load agent info on mount
   useEffect(() => {
     if (!clientId) return;

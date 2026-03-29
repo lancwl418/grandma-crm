@@ -167,6 +167,21 @@ browseRouter.post("/verify-phone", async (req, res) => {
   });
 });
 
+// ── Get client name ──────────────────────────────────────────
+
+browseRouter.get("/client-name/:clientId", async (req, res) => {
+  const { clientId } = req.params;
+  if (!supabaseAdmin) { res.json({ name: "" }); return; }
+
+  const { data } = await supabaseAdmin
+    .from("clients")
+    .select("remark_name, name")
+    .eq("id", clientId)
+    .single();
+
+  res.json({ name: data?.remark_name || data?.name || "" });
+});
+
 // ── Get agent info for a client ──────────────────────────────
 
 browseRouter.get("/agent/:clientId", async (req, res) => {
