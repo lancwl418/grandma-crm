@@ -15,9 +15,6 @@ export default function FloatingAI() {
     if (!greeted) {
       setShowBubble(true);
       localStorage.setItem(GREETING_KEY, "1");
-      // Auto hide bubble after 6 seconds
-      const timer = setTimeout(() => setShowBubble(false), 6000);
-      return () => clearTimeout(timer);
     }
   }, []);
 
