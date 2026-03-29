@@ -361,6 +361,12 @@ async function executeToolCall(
       if (!supabaseAdmin) {
         return { ok: false, error: "Database not configured" };
       }
+      // Verify client belongs to this agent
+      const { data: clientCheck } = await supabaseAdmin
+        .from("clients").select("id").eq("id", input.clientId as string).eq("user_id", context.userId).single();
+      if (!clientCheck) {
+        return { ok: false, error: "client not found" };
+      }
       const { data, error: dbError } = await supabaseAdmin
         .from("client_listing_views")
         .select("zpid, address, price, action, created_at")
