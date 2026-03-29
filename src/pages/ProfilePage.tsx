@@ -360,16 +360,27 @@ async function fetchStats(userId: string): Promise<Stats> {
       .eq("user_id", userId).gte("created_at", monthStart.toISOString());
     result.newThisMonth = newCount ?? 0;
 
+    // Get this agent's client IDs first
+    const { data: myClients } = await supabase
+      .from("clients").select("id").eq("user_id", userId);
+    const myClientIds = (myClients ?? []).map((c: any) => c.id);
+
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const { data: viewData } = await supabase
-      .from("client_listing_views").select("client_id").gte("created_at", weekAgo.toISOString());
-    result.activeViewers = new Set((viewData ?? []).map((v: any) => v.client_id)).size;
 
-    const { count: inquiryCount } = await supabase
-      .from("client_listing_views").select("id", { count: "exact", head: true })
-      .eq("action", "inquiry").gte("created_at", weekAgo.toISOString());
-    result.inquiries = inquiryCount ?? 0;
+    if (myClientIds.length > 0) {
+      const { data: viewData } = await supabase
+        .from("client_listing_views").select("client_id")
+        .in("client_id", myClientIds)
+        .gte("created_at", weekAgo.toISOString());
+      result.activeViewers = new Set((viewData ?? []).map((v: any) => v.client_id)).size;
+
+      const { count: inquiryCount } = await supabase
+        .from("client_listing_views").select("id", { count: "exact", head: true })
+        .in("client_id", myClientIds)
+        .eq("action", "inquiry").gte("created_at", weekAgo.toISOString());
+      result.inquiries = inquiryCount ?? 0;
+    }
   } catch (err) {
     console.error("[ProfilePage] fetchStats error:", err);
   }

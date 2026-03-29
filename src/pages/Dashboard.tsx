@@ -237,7 +237,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchClients().then((data) => {
-      setClients(data.length > 0 ? data : getSampleClientsWithDemoTasks());
+      setClients(data);
     });
   }, []);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);

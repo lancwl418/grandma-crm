@@ -26,13 +26,13 @@ const AssistantDashboard: React.FC = () => {
   const userId = useUserId();
 
   // ── State (mirrors Dashboard pattern) ──────────────────────
-  const [clients, setClients] = useState<Client[]>(getSampleClientsWithDemoTasks());
+  const [clients, setClients] = useState<Client[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Load real clients from Supabase
   useEffect(() => {
     fetchClients().then((data) => {
-      if (data.length > 0) setClients(data);
+      setClients(data);
     });
   }, []);
 
