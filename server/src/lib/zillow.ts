@@ -146,7 +146,7 @@ export async function searchListings(
   });
 
   return {
-    results: results.slice(0, 20),
+    results,
     totalPages: data.pagesInfo?.totalPages ?? 1,
   };
 }
