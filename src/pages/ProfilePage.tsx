@@ -242,18 +242,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Logout */}
-      <div className="px-4 mt-6">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-white rounded-xl border border-gray-200 text-red-500 text-sm font-medium active:bg-red-50 transition"
-        >
-          <LogOut className="h-4 w-4" />
-          退出登录
-        </button>
-      </div>
-
       <p className="text-center text-xs text-gray-300 mt-6">GrandmaCRM v1.0</p>
     </div>
   );
