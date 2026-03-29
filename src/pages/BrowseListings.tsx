@@ -149,6 +149,13 @@ export default function BrowseListings() {
         const views = (data.views ?? []) as Array<{
           zpid: string; address: string; price: number; image_url: string | null; action: string;
         }>;
+        // Restore favorites from history
+        const favSet = new Set<number>();
+        for (const v of views) {
+          if (v.action === "favorite") favSet.add(Number(v.zpid));
+        }
+        setFavorites(favSet);
+
         // Deduplicate by zpid, take latest
         const seen = new Set<string>();
         const unique: Listing[] = [];
