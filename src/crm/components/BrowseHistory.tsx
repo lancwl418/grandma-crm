@@ -12,6 +12,8 @@ interface BrowseView {
   created_at: string;
 }
 
+type GroupedView = BrowseView & { viewCount: number; hasFavorite: boolean; hasInquiry: boolean };
+
 function formatTime(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
@@ -33,9 +35,59 @@ function formatPrice(price: number): string {
   return `$${price}`;
 }
 
+const COLLAPSED_COUNT = 5;
+
+function ListingRow({ v }: { v: GroupedView }) {
+  return (
+    <a
+      href={`https://www.zillow.com/homedetails/${v.zpid}_zpid/`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 py-2 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 rounded-lg px-1 -mx-1 transition"
+    >
+      {v.image_url ? (
+        <img src={v.image_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+          <Home className="h-4 w-4 text-gray-300" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-blue-700 underline-offset-2 hover:underline truncate">{v.address || `Listing #${v.zpid}`}</p>
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+          <span>{formatPrice(v.price)}</span>
+          <span className="flex items-center gap-0.5">
+            <Clock className="h-3 w-3" />
+            {formatTime(v.created_at)}
+          </span>
+          {v.viewCount > 1 && (
+            <span className="flex items-center gap-0.5">
+              <Eye className="h-3 w-3" />
+              {v.viewCount}次
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {v.hasInquiry && (
+          <span className="flex items-center gap-0.5 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
+            <MessageCircleHeart className="h-3 w-3" />
+            感兴趣
+          </span>
+        )}
+        {v.hasFavorite && !v.hasInquiry && (
+          <Heart className="h-3.5 w-3.5 text-red-500 fill-red-500" />
+        )}
+      </div>
+    </a>
+  );
+}
+
 export default function BrowseHistory({ clientId }: { clientId: string }) {
   const [views, setViews] = useState<BrowseView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"all" | "interested">("all");
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/browse/history/${clientId}`)
@@ -48,8 +100,8 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
   if (loading) return null;
   if (views.length === 0) return null;
 
-  // Group by unique zpid, keep latest per listing
-  const uniqueViews = new Map<string, BrowseView & { viewCount: number; hasFavorite: boolean; hasInquiry: boolean }>();
+  // Group by unique zpid
+  const uniqueViews = new Map<string, GroupedView>();
   for (const v of views) {
     const existing = uniqueViews.get(v.zpid);
     if (!existing) {
@@ -61,74 +113,74 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
     }
   }
 
-  // Sort: inquiries first, then favorites, then views
-  const grouped = Array.from(uniqueViews.values()).sort((a, b) => {
+  const allItems = Array.from(uniqueViews.values()).sort((a, b) => {
     if (a.hasInquiry !== b.hasInquiry) return a.hasInquiry ? -1 : 1;
     if (a.hasFavorite !== b.hasFavorite) return a.hasFavorite ? -1 : 1;
     return 0;
   });
 
-  const inquiryCount = grouped.filter((v) => v.hasInquiry).length;
+  const interestedItems = allItems.filter((v) => v.hasInquiry);
+  const displayItems = tab === "interested" ? interestedItems : allItems;
+  const shouldCollapse = displayItems.length > COLLAPSED_COUNT && !expanded;
+  const visibleItems = shouldCollapse ? displayItems.slice(0, COLLAPSED_COUNT) : displayItems;
+  const hiddenCount = displayItems.length - COLLAPSED_COUNT;
 
   return (
     <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Home className="h-4 w-4 text-blue-600" />
-        <span className="font-semibold text-gray-900 text-sm">房源浏览记录</span>
-        <span className="text-xs text-gray-400">({grouped.length} 套)</span>
-        {inquiryCount > 0 && (
-          <span className="text-xs text-white bg-green-500 px-1.5 py-0.5 rounded-full font-medium">
-            {inquiryCount} 个感兴趣
-          </span>
-        )}
+      {/* Header + Tabs */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Home className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-gray-900 text-sm">房源动态</span>
+          <span className="text-xs text-gray-400">({allItems.length})</span>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {grouped.map((v) => (
-          <a
-            key={v.zpid}
-            href={`https://www.zillow.com/homedetails/${v.zpid}_zpid/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 py-2 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 rounded-lg px-1 -mx-1 transition"
-          >
-            {v.image_url ? (
-              <img src={v.image_url} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                <Home className="h-5 w-5 text-gray-300" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-blue-700 underline-offset-2 hover:underline truncate">{v.address || `Listing #${v.zpid}`}</p>
-              <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
-                <span>{formatPrice(v.price)}</span>
-                <span className="flex items-center gap-0.5">
-                  <Clock className="h-3 w-3" />
-                  {formatTime(v.created_at)}
-                </span>
-                {v.viewCount > 1 && (
-                  <span className="flex items-center gap-0.5">
-                    <Eye className="h-3 w-3" />
-                    看了 {v.viewCount} 次
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              {v.hasInquiry && (
-                <span className="flex items-center gap-0.5 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
-                  <MessageCircleHeart className="h-3 w-3" />
-                  感兴趣
-                </span>
-              )}
-              {v.hasFavorite && (
-                <Heart className="h-4 w-4 text-red-500 fill-red-500" />
-              )}
-            </div>
-          </a>
-        ))}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-3">
+        <button
+          type="button"
+          onClick={() => { setTab("all"); setExpanded(false); }}
+          className={`px-3 py-1 text-xs rounded-full font-medium transition ${
+            tab === "all" ? "bg-blue-600 text-white" : "bg-white text-gray-500 border border-gray-200"
+          }`}
+        >
+          全部浏览 ({allItems.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => { setTab("interested"); setExpanded(false); }}
+          className={`px-3 py-1 text-xs rounded-full font-medium transition ${
+            tab === "interested" ? "bg-green-600 text-white" : "bg-white text-gray-500 border border-gray-200"
+          }`}
+        >
+          感兴趣 ({interestedItems.length})
+        </button>
       </div>
+
+      {/* List */}
+      {displayItems.length === 0 ? (
+        <p className="text-xs text-gray-400 text-center py-3">
+          {tab === "interested" ? "暂无感兴趣的房源" : "暂无浏览记录"}
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {visibleItems.map((v) => (
+            <ListingRow key={v.zpid} v={v} />
+          ))}
+
+          {/* Expand / Collapse */}
+          {displayItems.length > COLLAPSED_COUNT && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="w-full text-center py-2 text-xs text-blue-600 font-medium active:text-blue-700"
+            >
+              {expanded ? "收起" : `展开更多 (${hiddenCount} 条)`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
