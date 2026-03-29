@@ -197,7 +197,7 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-8 pb-10 text-white relative">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-10 text-white relative rounded-b-3xl md:rounded-b-none md:mx-0">
         <button
           type="button"
           onClick={() => setEditing(true)}
