@@ -24,6 +24,9 @@ interface Listing {
   detailUrl: string;
   zestimate: number | null;
   photos: string[];
+  statusText?: string | null;
+  buildingName?: string | null;
+  unitsAvailable?: number | null;
 }
 
 interface ListingDetail {
@@ -635,16 +638,27 @@ export default function BrowseListings() {
               onClick={() => viewDetail(listing)}
               className="w-full text-left p-3"
             >
-              <div className="text-lg font-bold text-gray-900">{listing.priceFormatted}</div>
+              {listing.buildingName ? (
+                <>
+                  <div className="text-base font-bold text-gray-900">{listing.buildingName}</div>
+                  {listing.unitsAvailable && (
+                    <p className="text-xs text-blue-600 mt-0.5">{listing.unitsAvailable} units available</p>
+                  )}
+                </>
+              ) : (
+                <div className="text-lg font-bold text-gray-900">{listing.priceFormatted}</div>
+              )}
               <div className="flex gap-3 text-xs text-gray-600 mt-1">
-                <span>{listing.beds} bd</span>
-                <span>{listing.baths} ba</span>
-                <span>{listing.sqft?.toLocaleString()} sqft</span>
+                {listing.beds > 0 && <span>{listing.beds} bd</span>}
+                {listing.baths > 0 && <span>{listing.baths} ba</span>}
+                {listing.sqft > 0 && <span>{listing.sqft?.toLocaleString()} sqft</span>}
                 <span>{HOME_TYPE_LABELS[listing.homeType] || listing.homeType}</span>
               </div>
               <p className="text-sm text-gray-500 mt-1 truncate">{listing.address}</p>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-gray-400">{listing.daysOnZillow}d on Zillow</span>
+                {listing.daysOnZillow > 0 && (
+                  <span className="text-[10px] text-gray-400">{listing.daysOnZillow}d on Zillow</span>
+                )}
                 {listing.zestimate && (
                   <span className="text-[10px] text-blue-500">Zestimate ${listing.zestimate.toLocaleString()}</span>
                 )}

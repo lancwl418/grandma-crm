@@ -30,6 +30,9 @@ export interface ZillowListingResult {
   sqft: number;
   homeType: string;
   status: string;
+  statusText: string | null;
+  buildingName: string | null;
+  unitsAvailable: number | null;
   daysOnZillow: number;
   imageUrl: string;
   detailUrl: string;
@@ -109,12 +112,15 @@ export async function searchListings(
       state: r.state,
       zipcode: r.zipcode,
       price: r.price ?? 0,
-      priceFormatted: r.price_formatted ?? (r.building_name || "See on Zillow"),
+      priceFormatted: r.price_formatted ?? (r.availability_count ? `${r.availability_count} units available` : "See on Zillow"),
       beds: r.beds ?? 0,
       baths: r.baths ?? 0,
       sqft: r.sqft ?? 0,
       homeType: r.home_type ?? (r.is_building ? "APARTMENT" : ""),
       status: r.status,
+      statusText: r.status_text ?? null,
+      buildingName: r.building_name ?? null,
+      unitsAvailable: r.availability_count ?? null,
       daysOnZillow: r.days_on_zillow ?? 0,
       imageUrl: r.image_url,
       detailUrl: r.detail_url,
