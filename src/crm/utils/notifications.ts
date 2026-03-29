@@ -31,7 +31,7 @@ export function sendTaskReminders(tasks: FlatTask[]) {
   if (newTasks.length === 0) return;
 
   // 发送一条汇总通知
-  const title = `GrandmaCRM · 你有 ${newTasks.length} 件待办`;
+  const title = `Estate Epic · 你有 ${newTasks.length} 件待办`;
   const lines = newTasks.slice(0, 3).map((t) => {
     const suffix = t.isOverdue ? `（逾期 ${t.daysOverdue} 天）` : "";
     return `${t.clientName} - ${t.title}${suffix}`;

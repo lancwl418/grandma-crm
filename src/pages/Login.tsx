@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-50">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow w-80">
-        <h2 className="text-lg font-bold mb-4">GrandmaCRM</h2>
+        <h2 className="text-lg font-bold mb-4">Estate Epic</h2>
         <input
           className="border p-2 mb-3 w-full"
           placeholder="Email"

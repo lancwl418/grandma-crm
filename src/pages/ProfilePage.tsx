@@ -255,7 +255,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-gray-300 mt-6">GrandmaCRM v1.0</p>
+      <p className="text-center text-xs text-gray-300 mt-6">Estate Epic v1.0</p>
     </div>
   );
 }

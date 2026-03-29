@@ -30,7 +30,7 @@ export default function Header({ isMobile }: Props) {
     <header className={`border-b border-slate-200 bg-white flex items-center justify-between px-4 ${isMobile ? "h-11" : "h-12"}`}>
       <div className="flex items-center gap-3">
         {isMobile && (
-          <span className="text-sm font-bold text-slate-900">GrandmaCRM</span>
+          <span className="text-sm font-bold text-slate-900">Estate Epic</span>
         )}
         {!isMobile && (
           <span className="text-sm font-medium">欢迎回来！</span>

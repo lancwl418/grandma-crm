@@ -47,7 +47,7 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
           </button>
         ) : (
           <>
-            <div className="text-lg font-bold text-slate-900 truncate">GrandmaCRM</div>
+            <div className="text-lg font-bold text-slate-900 truncate">Estate Epic</div>
             <button
               type="button"
               onClick={onToggle}
