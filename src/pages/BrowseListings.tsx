@@ -90,6 +90,14 @@ export default function BrowseListings() {
   const [clientName, setClientName] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
+  // Auto re-search when toggling Buy/Rent (if already searched)
+  useEffect(() => {
+    if (searched && location.trim()) {
+      handleSearch();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingType]);
+
   // Load recent views on mount
   useEffect(() => {
     if (!clientId) return;
@@ -178,16 +186,14 @@ export default function BrowseListings() {
   // ── View Detail ───────────────────────────────────────────
 
   const viewDetail = useCallback(async (listing: Listing) => {
-    setDetailLoading(true);
-
     // Track view
-    if (clientId) {
+    if (clientId && (listing.zpid || listing.address)) {
       fetch(`${API_BASE}/api/browse/track`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId,
-          zpid: listing.zpid,
+          zpid: listing.zpid || listing.address,
           address: listing.address,
           price: listing.price,
           imageUrl: listing.imageUrl,
@@ -196,6 +202,35 @@ export default function BrowseListings() {
       }).catch(() => {});
     }
 
+    // Rent listings or listings without zpid — use search data directly
+    if (!listing.zpid) {
+      setSelectedDetail({
+        zpid: 0,
+        address: listing.address,
+        price: listing.price,
+        priceFormatted: listing.priceFormatted,
+        beds: listing.beds,
+        baths: listing.baths,
+        sqft: listing.sqft,
+        lotSqft: null,
+        homeType: listing.homeType,
+        yearBuilt: null,
+        status: listing.status,
+        daysOnZillow: listing.daysOnZillow,
+        description: null,
+        zestimate: listing.zestimate,
+        rentZestimate: null,
+        imageUrl: listing.imageUrl,
+        detailUrl: listing.detailUrl,
+        photos: listing.photos.length > 0 ? listing.photos : listing.imageUrl ? [listing.imageUrl] : [],
+        broker: null,
+        mlsId: null,
+        schools: [],
+      });
+      return;
+    }
+
+    setDetailLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/browse/listing/${listing.zpid}`);
       const data = await res.json();
