@@ -100,7 +100,7 @@ function SidebarItem({
   collapsed,
   onClick,
 }: {
-  icon: typeof Home;
+  icon: typeof User;
   label: string;
   active?: boolean;
   collapsed?: boolean;
