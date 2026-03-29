@@ -246,6 +246,9 @@ useEffect(() => {
           )}
         </button>
 
+        {/* 房源浏览记录 */}
+        <BrowseHistory clientId={client.id} />
+
         {/* 预算 */}
         <div className="bg-white p-5 rounded-[24px] shadow-sm border border-gray-100">
           <div className="font-semibold text-gray-900 mb-3">预算：</div>
@@ -442,11 +445,8 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ===== 右侧：浏览记录 + 跟进记录 + 新增 Log（手机在下方） ===== */}
+      {/* ===== 右侧：跟进记录 + 新增 Log（手机在下方） ===== */}
       <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-white rounded-[24px] border border-gray-100 shadow-sm p-3 sm:p-4 flex flex-col">
-        {/* 房源浏览记录（折叠在跟进记录上方） */}
-        <BrowseHistory clientId={client.id} />
-
         <h2 className="text-xl font-bold mb-4 flex items-center">
           <MessageSquare className="h-5 w-5 mr-2 text-gray-700" />
           跟进记录
