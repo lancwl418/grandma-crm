@@ -192,6 +192,9 @@ export default function BrowseListings() {
     const start = (currentPage - 1) * PAGE_SIZE;
     setListings(allListings.slice(start, start + PAGE_SIZE));
     window.scrollTo({ top: 0, behavior: "smooth" });
+    document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [currentPage, allListings, searched]);
 
   // ── View Detail ───────────────────────────────────────────
