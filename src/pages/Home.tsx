@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import MobileTabBar from "@/components/MobileTabBar";
+import FloatingAI from "@/components/FloatingAI";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -44,6 +45,9 @@ export default function Home() {
           <Outlet />
         </main>
       </div>
+
+      {/* Floating AI assistant */}
+      <FloatingAI />
 
       {/* Mobile: bottom tab bar */}
       {isMobile && <MobileTabBar />}
