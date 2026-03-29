@@ -478,7 +478,7 @@ export default function BrowseListings() {
 
           <div className="flex gap-3 text-xs text-gray-500">
             <span>{HOME_TYPE_LABELS[selectedDetail.homeType] || selectedDetail.homeType}</span>
-            {selectedDetail.year建于&& <span>建于{selectedDetail.yearBuilt}</span>}
+            {selectedDetail.yearBuilt && <span>建于 {selectedDetail.yearBuilt}</span>}
             <span>{selectedDetail.daysOnZillow} 天前上市</span>
           </div>
 
