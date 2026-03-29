@@ -215,4 +215,55 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
       },
     },
   },
+  {
+    name: "search_listings",
+    description:
+      "在 Zillow 上搜索房源。可按城市/地址/邮编搜索，支持价格、卧室数、卫浴数、房屋类型筛选。当用户要求找房子、搜房源时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        location: {
+          type: "string",
+          description: "搜索地点（城市名+州缩写，如 'Irvine, CA'；或邮编如 '92602'；或具体地址）",
+        },
+        minPrice: {
+          type: "number",
+          description: "最低价格（美元）",
+        },
+        maxPrice: {
+          type: "number",
+          description: "最高价格（美元）",
+        },
+        bedsMin: {
+          type: "number",
+          description: "最少卧室数",
+        },
+        bathsMin: {
+          type: "number",
+          description: "最少卫浴数",
+        },
+        homeType: {
+          type: "string",
+          description: "房屋类型",
+          enum: ["SINGLE_FAMILY", "CONDO", "TOWNHOUSE", "MULTI_FAMILY", "APARTMENT"],
+        },
+      },
+      required: ["location"],
+    },
+  },
+  {
+    name: "get_listing_detail",
+    description:
+      "获取某个 Zillow 房源的详细信息，包括完整描述、学区、图片、估价等。需要从 search_listings 结果中获取 zpid。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        zpid: {
+          type: "number",
+          description: "Zillow 房源 ID（从搜索结果获取）",
+        },
+      },
+      required: ["zpid"],
+    },
+  },
 ];

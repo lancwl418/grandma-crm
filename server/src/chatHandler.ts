@@ -15,6 +15,7 @@ import {
   getNewClientsCountTool,
   listClientsByFilterTool,
 } from "./tools/implementations.js";
+import { searchListings, getPropertyDetail } from "./lib/zillow.js";
 import type { ToolContext } from "./tools/types.js";
 
 const MAX_TOOL_ROUNDS = 5;
@@ -353,6 +354,33 @@ async function executeToolCall(
         },
         context
       );
+    }
+
+    case "search_listings": {
+      try {
+        const result = await searchListings({
+          location: input.location as string,
+          minPrice: input.minPrice as number | undefined,
+          maxPrice: input.maxPrice as number | undefined,
+          bedsMin: input.bedsMin as number | undefined,
+          bathsMin: input.bathsMin as number | undefined,
+          homeType: input.homeType as string | undefined,
+        });
+        return { ok: true, output: result };
+      } catch (err) {
+        console.error("[searchListings]", { traceId: context.traceId, error: err instanceof Error ? err.message : "unknown" });
+        return { ok: false, error: "Failed to search listings" };
+      }
+    }
+
+    case "get_listing_detail": {
+      try {
+        const detail = await getPropertyDetail(input.zpid as number);
+        return { ok: true, output: detail };
+      } catch (err) {
+        console.error("[getListingDetail]", { traceId: context.traceId, error: err instanceof Error ? err.message : "unknown" });
+        return { ok: false, error: "Failed to get listing detail" };
+      }
     }
 
     default:

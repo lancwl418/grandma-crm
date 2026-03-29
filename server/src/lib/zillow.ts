@@ -1,0 +1,171 @@
+const RAPIDAPI_HOST = "zillow-real-estate-api.p.rapidapi.com";
+const BASE_URL = `https://${RAPIDAPI_HOST}`;
+
+function getApiKey(): string {
+  const key = process.env.RAPIDAPI_KEY;
+  if (!key) throw new Error("RAPIDAPI_KEY not set");
+  return key;
+}
+
+function headers(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "x-rapidapi-host": RAPIDAPI_HOST,
+    "x-rapidapi-key": getApiKey(),
+  };
+}
+
+// ── Types ───────────────────────────────────────────────────
+
+export interface ZillowListingResult {
+  zpid: number;
+  address: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  price: number;
+  priceFormatted: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+  homeType: string;
+  status: string;
+  daysOnZillow: number;
+  imageUrl: string;
+  detailUrl: string;
+  zestimate: number | null;
+}
+
+export interface ZillowPropertyDetail {
+  zpid: number;
+  address: string;
+  price: number;
+  priceFormatted: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+  lotSqft: number | null;
+  homeType: string;
+  yearBuilt: number | null;
+  status: string;
+  daysOnZillow: number;
+  description: string | null;
+  zestimate: number | null;
+  rentZestimate: number | null;
+  imageUrl: string;
+  detailUrl: string;
+  photos: string[];
+  broker: string | null;
+  mlsId: string | null;
+  schools: Array<{ name: string; rating: number; distance: string; type: string }>;
+}
+
+// ── Search Listings ─────────────────────────────────────────
+
+export interface SearchListingsParams {
+  location: string;
+  minPrice?: number;
+  maxPrice?: number;
+  bedsMin?: number;
+  bathsMin?: number;
+  homeType?: string;
+  page?: number;
+}
+
+export async function searchListings(
+  params: SearchListingsParams
+): Promise<{ results: ZillowListingResult[]; totalPages: number }> {
+  const url = new URL(`${BASE_URL}/v1/search`);
+  url.searchParams.set("location", params.location);
+  url.searchParams.set("listing_type", "sale");
+  url.searchParams.set("page", String(params.page ?? 1));
+
+  if (params.minPrice) url.searchParams.set("min_price", String(params.minPrice));
+  if (params.maxPrice) url.searchParams.set("max_price", String(params.maxPrice));
+  if (params.bedsMin) url.searchParams.set("beds_min", String(params.bedsMin));
+  if (params.bathsMin) url.searchParams.set("baths_min", String(params.bathsMin));
+  if (params.homeType) url.searchParams.set("home_type", params.homeType);
+
+  const response = await fetch(url.toString(), { headers: headers() });
+  if (!response.ok) {
+    throw new Error(`Zillow API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error("Zillow API returned unsuccessful response");
+  }
+
+  const results: ZillowListingResult[] = (data.data?.results ?? []).map(
+    (r: any) => ({
+      zpid: r.zpid,
+      address: r.address,
+      city: r.city,
+      state: r.state,
+      zipcode: r.zipcode,
+      price: r.price,
+      priceFormatted: r.price_formatted,
+      beds: r.beds,
+      baths: r.baths,
+      sqft: r.sqft,
+      homeType: r.home_type,
+      status: r.status,
+      daysOnZillow: r.days_on_zillow,
+      imageUrl: r.image_url,
+      detailUrl: r.detail_url,
+      zestimate: r.zestimate,
+    })
+  );
+
+  return {
+    results: results.slice(0, 10), // Limit to 10 for LLM context
+    totalPages: data.data?.total_pages ?? 1,
+  };
+}
+
+// ── Property Detail ─────────────────────────────────────────
+
+export async function getPropertyDetail(
+  zpid: number
+): Promise<ZillowPropertyDetail> {
+  const url = `${BASE_URL}/v1/property/${zpid}`;
+  const response = await fetch(url, { headers: headers() });
+  if (!response.ok) {
+    throw new Error(`Zillow API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error("Zillow API returned unsuccessful response");
+  }
+
+  const d = data.data;
+  return {
+    zpid: d.zpid,
+    address: d.address?.full ?? "",
+    price: d.price,
+    priceFormatted: d.price_formatted,
+    beds: d.facts?.beds,
+    baths: d.facts?.baths,
+    sqft: d.facts?.sqft,
+    lotSqft: d.facts?.lot_sqft ?? null,
+    homeType: d.home_type,
+    yearBuilt: d.year_built ?? null,
+    status: d.status,
+    daysOnZillow: d.days_on_zillow,
+    description: d.description ?? null,
+    zestimate: d.financials?.zestimate ?? null,
+    rentZestimate: d.financials?.rent_zestimate ?? null,
+    imageUrl: d.photos?.[0]?.urls?.large ?? "",
+    detailUrl: `https://www.zillow.com/homedetails/${zpid}_zpid/`,
+    photos: (d.photos ?? []).slice(0, 5).map((p: any) => p.urls?.medium ?? ""),
+    broker: d.listing?.brokerage ?? null,
+    mlsId: d.listing?.mls_id ?? null,
+    schools: (d.schools ?? []).slice(0, 5).map((s: any) => ({
+      name: s.name,
+      rating: s.rating,
+      distance: s.distance,
+      type: s.type,
+    })),
+  };
+}
