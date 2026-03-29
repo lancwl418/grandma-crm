@@ -4,6 +4,8 @@ import RealEstateCRM from "@/pages/RealEstateCRM";
 import Dashboard from "@/pages/Dashboard";
 import AssistantDashboard from "@/pages/AssistantDashboard";
 import ProfilePage from "@/pages/ProfilePage";
+import VisitorsPage from "@/pages/VisitorsPage";
+import AgentSearchPage from "@/pages/AgentSearchPage";
 
 export default function AppRoutes() {
   return (
@@ -11,6 +13,8 @@ export default function AppRoutes() {
       <Route path="/app" element={<Home />}>
         <Route index element={<ProfilePage />} />
         <Route path="clients" element={<RealEstateCRM />} />
+        <Route path="visitors" element={<VisitorsPage />} />
+        <Route path="search" element={<AgentSearchPage />} />
         <Route path="assistant" element={<AssistantDashboard />} />
         <Route path="settings" element={<Dashboard />} />
       </Route>

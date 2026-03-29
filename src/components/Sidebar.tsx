@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, Bot, User, Settings, ChevronsLeft, ChevronsRight, Menu } from "lucide-react";
+import { Users, Bot, User, Settings, ChevronsLeft, ChevronsRight, Menu, Eye, Search } from "lucide-react";
 
 interface Props {
   collapsed: boolean;
@@ -14,6 +14,8 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
 
   const isDashboard = location.pathname === "/app" || location.pathname === "/app/";
   const isClients = location.pathname === "/app/clients";
+  const isVisitors = location.pathname === "/app/visitors";
+  const isSearch = location.pathname === "/app/search";
   const isAssistant = location.pathname === "/app/assistant";
   const isSettings = location.pathname === "/app/settings";
 
@@ -72,6 +74,20 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
           active={isClients}
           collapsed={collapsed && !isMobile}
           onClick={() => handleNav("/app/clients")}
+        />
+        <SidebarItem
+          icon={Eye}
+          label="访客"
+          active={isVisitors}
+          collapsed={collapsed && !isMobile}
+          onClick={() => handleNav("/app/visitors")}
+        />
+        <SidebarItem
+          icon={Search}
+          label="房源搜索"
+          active={isSearch}
+          collapsed={collapsed && !isMobile}
+          onClick={() => handleNav("/app/search")}
         />
         <SidebarItem
           icon={Bot}

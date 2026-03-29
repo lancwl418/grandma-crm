@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, Bot, User, Settings } from "lucide-react";
+import { Eye, Bot, User, Settings } from "lucide-react";
 
 const TABS = [
   { path: "/app", label: "我的", icon: User },
-  { path: "/app/clients", label: "客户", icon: Users },
+  { path: "/app/visitors", label: "访客", icon: Eye },
   { path: "/app/assistant", label: "助理", icon: Bot },
   { path: "/app/settings", label: "设置", icon: Settings },
 ] as const;
