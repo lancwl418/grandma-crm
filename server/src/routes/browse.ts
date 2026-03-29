@@ -60,7 +60,7 @@ browseRouter.get("/listing/:zpid", async (req, res) => {
 // ── Track browsing activity ─────────────────────────────────
 
 browseRouter.post("/track", async (req, res) => {
-  const { clientId, zpid, address, price, action } = req.body;
+  const { clientId, zpid, address, price, action, imageUrl } = req.body;
 
   if (!clientId || !zpid) {
     res.status(400).json({ error: "clientId and zpid are required" });
@@ -77,6 +77,7 @@ browseRouter.post("/track", async (req, res) => {
     zpid: String(zpid),
     address: address || "",
     price: price || 0,
+    image_url: imageUrl || null,
     action: action || "view",
   });
 

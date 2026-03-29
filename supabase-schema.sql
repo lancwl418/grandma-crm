@@ -126,6 +126,7 @@ CREATE TABLE client_listing_views (
   zpid TEXT NOT NULL,
   address TEXT,
   price NUMERIC,
+  image_url TEXT,
   action TEXT NOT NULL DEFAULT 'view'
     CHECK (action IN ('view', 'favorite', 'inquiry')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

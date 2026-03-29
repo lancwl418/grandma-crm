@@ -123,6 +123,7 @@ export default function BrowseListings() {
           zpid: listing.zpid,
           address: listing.address,
           price: listing.price,
+          imageUrl: listing.imageUrl,
           action: "view",
         }),
       }).catch(() => {});
@@ -169,6 +170,7 @@ export default function BrowseListings() {
           zpid: listing.zpid,
           address: listing.address,
           price: listing.price,
+          imageUrl: listing.imageUrl,
           action: "favorite",
         }),
       }).catch(() => {});

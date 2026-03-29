@@ -8,6 +8,7 @@ interface BrowseView {
   address: string;
   price: number;
   action: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -76,8 +77,15 @@ export default function BrowseHistory({ clientId }: { clientId: string }) {
             href={`https://www.zillow.com/homedetails/${v.zpid}_zpid/`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-3 py-2 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 rounded-lg px-1 -mx-1 transition"
+            className="flex items-center gap-3 py-2 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 rounded-lg px-1 -mx-1 transition"
           >
+            {v.image_url ? (
+              <img src={v.image_url} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <Home className="h-5 w-5 text-gray-300" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm text-blue-700 underline-offset-2 hover:underline truncate">{v.address || `Listing #${v.zpid}`}</p>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
