@@ -167,6 +167,38 @@ browseRouter.post("/verify-phone", async (req, res) => {
   });
 });
 
+// ── Client login by phone ────────────────────────────────────
+
+browseRouter.post("/client-login", async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) {
+    res.json({ clientId: null });
+    return;
+  }
+  if (!supabaseAdmin) {
+    res.json({ clientId: null });
+    return;
+  }
+
+  const normalize = (p: string) => p.replace(/\D/g, "").slice(-10);
+  const inputPhone = normalize(phone);
+
+  // Search all clients by phone
+  const { data } = await supabaseAdmin
+    .from("clients")
+    .select("id, phone")
+    .not("phone", "is", null);
+
+  if (!data) {
+    res.json({ clientId: null });
+    return;
+  }
+
+  // Find matching phone
+  const match = data.find((c: any) => c.phone && normalize(c.phone) === inputPhone);
+  res.json({ clientId: match?.id ?? null });
+});
+
 // ── Get client name ──────────────────────────────────────────
 
 browseRouter.get("/client-name/:clientId", async (req, res) => {
