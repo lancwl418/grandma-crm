@@ -216,6 +216,18 @@ export const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
   {
+    name: "get_client_browse_history",
+    description:
+      "查看客户的房源浏览记录。显示客户通过分享链接看了哪些房子、什么时候看的、有没有收藏。当经纪人问「某客户最近看了什么房」、「客户对哪些房子感兴趣」时使用。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        clientId: { type: "string", description: "客户ID（从搜索结果获取）" },
+      },
+      required: ["clientId"],
+    },
+  },
+  {
     name: "search_listings",
     description:
       "在 Zillow 上搜索房源。可按城市/地址/邮编搜索，支持价格、卧室数、卫浴数、房屋类型筛选。当用户要求找房子、搜房源时使用。",

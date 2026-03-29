@@ -12,6 +12,7 @@ import {
 
 import LogItem from "./LogItem";
 import AddLogPanel from "./AddLogPanel";
+import BrowseHistory from "./BrowseHistory";
 
 import type { Client, ClientLog } from "@/crm/types";
 
@@ -439,6 +440,8 @@ useEffect(() => {
             </div>
           )}
         </div>
+        {/* 房源浏览记录 */}
+        <BrowseHistory clientId={client.id} />
       </div>
 
       {/* ===== 右侧：跟进记录 + 新增 Log（手机在下方） ===== */}

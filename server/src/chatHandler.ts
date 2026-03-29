@@ -16,6 +16,7 @@ import {
   listClientsByFilterTool,
 } from "./tools/implementations.js";
 import { searchListings, getPropertyDetail } from "./lib/zillow.js";
+import { supabaseAdmin } from "./lib/supabase.js";
 import type { ToolContext } from "./tools/types.js";
 
 const MAX_TOOL_ROUNDS = 5;
@@ -354,6 +355,32 @@ async function executeToolCall(
         },
         context
       );
+    }
+
+    case "get_client_browse_history": {
+      if (!supabaseAdmin) {
+        return { ok: false, error: "Database not configured" };
+      }
+      const { data, error: dbError } = await supabaseAdmin
+        .from("client_listing_views")
+        .select("zpid, address, price, action, created_at")
+        .eq("client_id", input.clientId as string)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (dbError) {
+        return { ok: false, error: "Failed to get browse history" };
+      }
+
+      const views = (data ?? []).map((v: any) => ({
+        zpid: v.zpid,
+        address: v.address,
+        price: v.price,
+        action: v.action,
+        time: v.created_at,
+      }));
+
+      return { ok: true, output: { views, total: views.length } };
     }
 
     case "search_listings": {
