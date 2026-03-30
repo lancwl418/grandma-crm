@@ -1,6 +1,6 @@
 module.exports = {
   presets: [
-    ["taro", {
+    ["babel-preset-taro", {
       framework: "react",
       ts: true,
     }],
