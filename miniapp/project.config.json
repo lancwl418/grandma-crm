@@ -2,7 +2,7 @@
   "miniprogramRoot": "./dist",
   "projectname": "miniapp",
   "description": "Estate Epic 小程序",
-  "appid": "touristappid",
+  "appid": "wxf8830d3a10eb6b8b",
   "setting": {
     "urlCheck": true,
     "es6": false,
