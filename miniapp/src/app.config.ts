@@ -23,15 +23,21 @@ export default defineAppConfig({
     list: [
       {
         pagePath: 'pages/home/index',
-        text: '首页'
+        text: '首页',
+        iconPath: 'assets/home.png',
+        selectedIconPath: 'assets/home-active.png'
       },
       {
         pagePath: 'pages/search/index',
-        text: '搜索'
+        text: '搜索',
+        iconPath: 'assets/search.png',
+        selectedIconPath: 'assets/search-active.png'
       },
       {
         pagePath: 'pages/profile/index',
-        text: '我的'
+        text: '我的',
+        iconPath: 'assets/user.png',
+        selectedIconPath: 'assets/user-active.png'
       }
     ]
   }

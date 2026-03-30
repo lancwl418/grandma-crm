@@ -29,6 +29,7 @@ export default function Home() {
   const [agentAvatar, setAgentAvatar] = useState('')
   const [searchHistory, setSearchHistory] = useState<string[]>([])
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
+  const [recentViews, setRecentViews] = useState<FavoriteItem[]>([])
 
   useDidShow(() => {
     // Redirect if not logged in
@@ -67,8 +68,20 @@ export default function Home() {
       try {
         const res = await getBrowseHistory(clientId)
         const views = res.views || []
+        // Favorites
         const favs = views.filter((v: any) => v.action === 'favorite')
         setFavorites(favs.slice(0, 10))
+        // Recently viewed (deduplicate by zpid)
+        const seen = new Set<string>()
+        const recent: FavoriteItem[] = []
+        for (const v of views) {
+          if (!seen.has(v.zpid)) {
+            seen.add(v.zpid)
+            recent.push(v)
+          }
+          if (recent.length >= 10) break
+        }
+        setRecentViews(recent)
       } catch {
         // ignore
       }
@@ -168,6 +181,30 @@ export default function Home() {
               </View>
             ))}
           </View>
+        </View>
+      )}
+
+      {/* Recently Viewed */}
+      {recentViews.length > 0 && (
+        <View className='section'>
+          <Text className='section-title'>最近浏览</Text>
+          <ScrollView scrollX className='favorites-scroll' enhanced showScrollbar={false}>
+            {recentViews.map((item, i) => (
+              <View key={i} className='favorite-card' onClick={() => goDetail(item)}>
+                {item.imageUrl ? (
+                  <Image className='favorite-image' src={item.imageUrl} mode='aspectFill' lazyLoad />
+                ) : (
+                  <View className='favorite-image-placeholder'>
+                    <Text className='placeholder-text'>暂无图片</Text>
+                  </View>
+                )}
+                <View className='favorite-info'>
+                  <Text className='favorite-price'>{formatPrice(item.price)}</Text>
+                  <Text className='favorite-address'>{item.address}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
       )}
 
