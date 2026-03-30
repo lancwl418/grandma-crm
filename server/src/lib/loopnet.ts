@@ -35,20 +35,30 @@ export interface CommercialListing {
 // ── Search commercial listings ──────────────────────────────
 
 export async function searchCommercial(params: {
-  city: string;
+  city?: string;
   state?: string;
+  locationId?: string;
+  locationType?: string;
   type: "sale" | "lease";
   page?: number;
 }): Promise<{ results: CommercialListing[] }> {
-  const { city, state, type, page = 1 } = params;
+  const { type, page = 1 } = params;
 
   const endpoint =
     type === "lease"
       ? `${BASE_URL}/loopnet/lease/advanceSearch`
       : `${BASE_URL}/loopnet/sale/advanceSearch`;
 
-  const body: Record<string, unknown> = { city, page };
-  if (state) body.state = state;
+  const body: Record<string, unknown> = { page, size: 20 };
+
+  // Use locationId if available (from autocomplete), otherwise city/state
+  if (params.locationId) {
+    body.locationId = params.locationId;
+    body.locationType = params.locationType || "city";
+  } else if (params.city) {
+    body.city = params.city;
+    if (params.state) body.state = params.state;
+  }
 
   const res = await fetch(endpoint, {
     method: "POST",
@@ -93,7 +103,7 @@ export async function searchCommercial(params: {
 
 export async function autocompleteCommercial(
   keyword: string
-): Promise<Array<{ display: string; type: string }>> {
+): Promise<Array<{ display: string; type: string; locationId: string; locationType: string }>> {
   const res = await fetch(`${BASE_URL}/loopnet/helper/autoComplete`, {
     method: "POST",
     headers: headers(),
@@ -106,7 +116,9 @@ export async function autocompleteCommercial(
   const items: unknown[] = Array.isArray(data) ? data : data.data ?? data.results ?? [];
 
   return items.slice(0, 6).map((item: any) => ({
-    display: typeof item === "string" ? item : item.name || item.display || item.label || String(item),
-    type: typeof item === "string" ? "location" : item.type || "location",
+    display: typeof item === "string" ? item : item.location || item.name || item.display || item.label || String(item),
+    type: typeof item === "string" ? "location" : item.locationType || item.type || "location",
+    locationId: String(item.locationId || ""),
+    locationType: item.locationType || "city",
   }));
 }

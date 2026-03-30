@@ -41,17 +41,19 @@ browseRouter.get("/autocomplete", async (req, res) => {
 // ── Commercial (LoopNet) Search ─────────────────────────────
 
 browseRouter.get("/commercial/search", async (req, res) => {
-  const { city, state, type, page } = req.query;
+  const { city, state, type, page, locationId, locationType } = req.query;
 
-  if (!city || typeof city !== "string") {
-    res.status(400).json({ error: "city is required" });
+  if (!city && !locationId) {
+    res.status(400).json({ error: "city or locationId is required" });
     return;
   }
 
   try {
     const data = await searchCommercial({
-      city,
+      city: typeof city === "string" ? city : undefined,
       state: typeof state === "string" ? state : undefined,
+      locationId: typeof locationId === "string" ? locationId : undefined,
+      locationType: typeof locationType === "string" ? locationType : undefined,
       type: type === "lease" ? "lease" : "sale",
       page: page ? Number(page) : 1,
     });

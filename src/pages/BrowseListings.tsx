@@ -148,8 +148,10 @@ export default function BrowseListings() {
   const [commercialLoading, setCommercialLoading] = useState(false);
   const [commercialSearched, setCommercialSearched] = useState(false);
   const [commercialPage, setCommercialPage] = useState(1);
-  const [commercialSuggestions, setCommercialSuggestions] = useState<Array<{ display: string; type: string }>>([]);
+  const [commercialSuggestions, setCommercialSuggestions] = useState<Array<{ display: string; type: string; locationId: string; locationType: string }>>([]);
   const [showCommercialSuggestions, setShowCommercialSuggestions] = useState(false);
+  const [commercialLocationId, setCommercialLocationId] = useState("");
+  const [commercialLocationType, setCommercialLocationType] = useState("");
   const commercialAcRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchCommercialSuggestions = useCallback((query: string) => {
@@ -165,14 +167,24 @@ export default function BrowseListings() {
     }, 300);
   }, []);
 
-  const searchCommercial = useCallback(async (city?: string) => {
+  const searchCommercial = useCallback(async (city?: string, locId?: string, locType?: string) => {
     const q = city || commercialCity;
-    if (!q.trim()) return;
-    setCommercialCity(q);
+    if (!q.trim() && !locId && !commercialLocationId) return;
+    if (city) setCommercialCity(city);
+    if (locId) setCommercialLocationId(locId);
+    if (locType) setCommercialLocationType(locType);
     setCommercialLoading(true);
     setCommercialSearched(true);
     try {
-      const params = new URLSearchParams({ city: q.trim(), type: commercialType, page: String(commercialPage) });
+      const params = new URLSearchParams({ type: commercialType, page: String(commercialPage) });
+      const lid = locId || commercialLocationId;
+      const lt = locType || commercialLocationType;
+      if (lid) {
+        params.set("locationId", lid);
+        params.set("locationType", lt || "city");
+      } else {
+        params.set("city", q.trim());
+      }
       const res = await fetch(`${API_BASE}/api/browse/commercial/search?${params}`);
       const data = await res.json();
       setCommercialResults(data.results || []);
@@ -181,7 +193,7 @@ export default function BrowseListings() {
     } finally {
       setCommercialLoading(false);
     }
-  }, [commercialCity, commercialType, commercialPage]);
+  }, [commercialCity, commercialType, commercialPage, commercialLocationId, commercialLocationType]);
 
   // Auto re-search commercial when toggling sale/lease
   useEffect(() => {
@@ -856,7 +868,7 @@ export default function BrowseListings() {
                       setCommercialCity(s.display);
                       setShowCommercialSuggestions(false);
                       setCommercialSuggestions([]);
-                      setTimeout(() => searchCommercial(s.display), 0);
+                      setTimeout(() => searchCommercial(s.display, s.locationId, s.locationType), 0);
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 active:bg-gray-100 border-b border-gray-50 last:border-0 flex items-center justify-between"
                   >
