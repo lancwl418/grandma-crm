@@ -1,8 +1,9 @@
 import { View, Text, Image, Swiper, SwiperItem, Button } from '@tarojs/components'
 import Taro, { useLoad, useRouter, useShareAppMessage } from '@tarojs/taro'
 import { useState } from 'react'
+import { Heart, HeartFill, Share } from '@nutui/icons-react-taro'
 import { getListingDetail, trackView, getAgentInfo, sendMessage } from '../../utils/api'
-import { getClientId } from '../../utils/auth'
+import { getClientId, getRole } from '../../utils/auth'
 import './index.scss'
 
 interface SchoolInfo {
@@ -14,6 +15,7 @@ interface SchoolInfo {
 
 export default function Detail() {
   const router = useRouter()
+  const isAgent = getRole() === 'agent'
   const [detail, setDetail] = useState<any>(null)
   const [photos, setPhotos] = useState<string[]>([])
   const [isFavorite, setIsFavorite] = useState(false)
@@ -24,10 +26,10 @@ export default function Detail() {
 
   // Share individual listing as WeChat card
   useShareAppMessage(() => {
-    const address = detail?.address || decodeURIComponent(router.params.address || '')
-    const price = detail?.priceFormatted || `$${Number(router.params.price || 0).toLocaleString()}`
+    const currentDetail = detail || {}
+    const address = currentDetail.address || decodeURIComponent(router.params.address || '')
+    const price = currentDetail.priceFormatted || `$${Number(router.params.price || 0).toLocaleString()}`
     const imageUrl = photos[0] || decodeURIComponent(router.params.imageUrl || '')
-    const clientId = getClientId()
     return {
       title: `${price} | ${address}`,
       path: `/pages/detail/index?zpid=${router.params.zpid}&address=${encodeURIComponent(address)}&price=${router.params.price || 0}&imageUrl=${encodeURIComponent(imageUrl)}`,
@@ -140,9 +142,9 @@ export default function Detail() {
           }
           sendMessage({
             clientId,
-            message: `您好，我对这套房源感兴趣：${detail?.address || ''}`,
-            listingAddress: detail?.address,
-            listingPrice: detail?.price
+            message: `您好，我对这套房源感兴趣：${(detail && detail.address) || ''}`,
+            listingAddress: detail && detail.address ? detail.address : undefined,
+            listingPrice: detail && detail.price ? detail.price : undefined
           }).then(() => {
             Taro.showToast({ title: '留言已发送', icon: 'success' })
           }).catch(() => {
@@ -169,16 +171,18 @@ export default function Detail() {
     )
   }
 
-  const schools: SchoolInfo[] = detail?.schools || []
-  const zestimate = detail?.zestimate || detail?.zestimateFormatted
-  const zillowUrl = detail?.url || (detail?.zpid ? `https://www.zillow.com/homedetails/${detail.zpid}_zpid/` : '')
-  const brokerName = detail?.brokerName || detail?.attributionInfo?.brokerName || detail?.broker || ''
-  const mlsId = detail?.mlsId || ''
-  const description = detail?.description || ''
-  const yearBuilt = detail?.yearBuilt || ''
-  const beds = detail?.beds || detail?.bedrooms || 0
-  const baths = detail?.baths || detail?.bathrooms || 0
-  const sqft = detail?.sqft || detail?.livingArea || 0
+  const currentDetail = detail || {}
+  const schools: SchoolInfo[] = currentDetail.schools || []
+  const zestimate = currentDetail.zestimate || currentDetail.zestimateFormatted
+  const zillowUrl = currentDetail.url || (currentDetail.zpid ? `https://www.zillow.com/homedetails/${currentDetail.zpid}_zpid/` : '')
+  const attributionInfo = currentDetail.attributionInfo || {}
+  const brokerName = currentDetail.brokerName || attributionInfo.brokerName || currentDetail.broker || ''
+  const mlsId = currentDetail.mlsId || ''
+  const description = currentDetail.description || ''
+  const yearBuilt = currentDetail.yearBuilt || ''
+  const beds = currentDetail.beds || currentDetail.bedrooms || 0
+  const baths = currentDetail.baths || currentDetail.bathrooms || 0
+  const sqft = currentDetail.sqft || currentDetail.livingArea || 0
 
   return (
     <View className='detail-page'>
@@ -206,9 +210,9 @@ export default function Detail() {
 
       {/* Price & Address */}
       <View className='price-section'>
-        <Text className='price'>{detail?.priceFormatted || formatPrice(detail?.price || 0)}</Text>
-        <Text className='address'>{detail?.address || ''}</Text>
-        {detail?.city && <Text className='city'>{detail.city}, {detail.state}</Text>}
+        <Text className='price'>{currentDetail.priceFormatted || formatPrice(currentDetail.price || 0)}</Text>
+        <Text className='address'>{currentDetail.address || ''}</Text>
+        {currentDetail.city && <Text className='city'>{currentDetail.city}, {currentDetail.state}</Text>}
       </View>
 
       {/* Stats Row */}
@@ -320,14 +324,22 @@ export default function Detail() {
       {/* Fixed Bottom Bar */}
       <View className='bottom-bar'>
         <View className='favorite-btn' onClick={handleFavorite}>
-          <Text className={`fav-heart ${isFavorite ? 'active' : ''}`}>{isFavorite ? '\u2665' : '\u2661'}</Text>
+          <View className={`fav-heart ${isFavorite ? 'active' : ''}`}>
+            {isFavorite ? <HeartFill size={20} /> : <Heart size={20} />}
+          </View>
           <Text className='fav-label'>收藏</Text>
         </View>
         <Button className='share-btn' openType='share'>
-          <Text className='share-icon'>↗</Text>
+          <View className='share-icon'>
+            <Share size={20} />
+          </View>
           <Text className='share-label'>分享</Text>
         </Button>
-        <Button className='contact-btn' onClick={handleContact}>联系经纪人</Button>
+        {isAgent ? (
+          <Button className='contact-btn' openType='share'>分享房源</Button>
+        ) : (
+          <Button className='contact-btn' onClick={handleContact}>联系经纪人</Button>
+        )}
       </View>
     </View>
   )

@@ -323,8 +323,12 @@
 }
 
 .share-icon {
-  font-size: 36rpx;
+  width: 40rpx;
+  height: 40rpx;
   color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .share-label {
@@ -333,8 +337,12 @@
 }
 
 .fav-heart {
-  font-size: 44rpx;
+  width: 44rpx;
+  height: 44rpx;
   color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &.active {
     color: #ef4444;

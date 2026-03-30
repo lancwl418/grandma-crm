@@ -1,6 +1,7 @@
 import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
+import { Notice, Share, Edit, Search, Category, Star, Service } from '@nutui/icons-react-taro'
 import { getAgentStats, getAgentActivity, getAgentFullProfile } from '../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../utils/auth'
 import AgentTabBar from '../../components/AgentTabBar'
@@ -31,7 +32,6 @@ function timeAgo(dateStr: string): string {
 export default function AgentHome() {
   const [agentName, setAgentName] = useState('')
   const [agentAvatar, setAgentAvatar] = useState('')
-  const [activityIdx, setActivityIdx] = useState(0)
   const [agentUserId, setAgentUserId] = useState('')
   const [stats, setStats] = useState({ totalClients: 0, newThisMonth: 0, visitors: 0, interested: 0 })
   const [activities, setActivities] = useState<Activity[]>([])
@@ -84,15 +84,6 @@ export default function AgentHome() {
     }
   }
 
-  // Auto-scroll activity feed
-  useEffect(() => {
-    if (activities.length <= 1) return
-    const timer = setInterval(() => {
-      setActivityIdx((i) => (i + 1) % activities.length)
-    }, 3000)
-    return () => clearInterval(timer)
-  }, [activities.length])
-
   const goVisitors = () => {
     Taro.navigateTo({ url: '/pages/agent/visitors/index' })
   }
@@ -109,137 +100,162 @@ export default function AgentHome() {
     Taro.navigateTo({ url: '/pages/agent/profile/index' })
   }
 
+  const goMarketing = () => {
+    Taro.redirectTo({ url: '/pages/agent/marketing/index' })
+  }
+
+  const showToastSoon = () => {
+    Taro.showToast({ title: '即将上线', icon: 'none' })
+  }
+
+  const sharePath = `/pages/login/index?agentId=${agentUserId}`
+
   return (
     <View className='agent-page'>
-      {/* Header */}
-      <View className='agent-header'>
-        <View className='header-content'>
+      <ScrollView scrollY className='agent-scroll'>
+        <View className='agent-topbar'>
+          <View className='brand-left'>
+            {agentAvatar ? (
+              <Image className='brand-avatar' src={agentAvatar} mode='aspectFill' />
+            ) : (
+              <View className='brand-avatar brand-avatar-fallback'>
+                <Text className='brand-avatar-text'>{agentName ? agentName[0] : 'A'}</Text>
+              </View>
+            )}
+            <Text className='brand-title'>LUXE AGENT</Text>
+          </View>
+          <View className='brand-notice'>
+            <Notice size={16} />
+          </View>
+        </View>
+
+        <View className='profile-card'>
           {agentAvatar ? (
-            <Image className='avatar-img' src={agentAvatar} mode='aspectFill' />
+            <Image className='profile-avatar' src={agentAvatar} mode='aspectFill' />
           ) : (
-            <View className='avatar-circle'>
-              <Text className='avatar-text'>{agentName ? agentName[0] : 'A'}</Text>
+            <View className='profile-avatar profile-avatar-fallback'>
+              <Text className='profile-avatar-text'>{agentName ? agentName[0] : 'A'}</Text>
             </View>
           )}
-          <View className='header-info'>
-            <Text className='welcome-text'>欢迎回来</Text>
-            <Text className='agent-name-text'>{agentName || '经纪人'}</Text>
-          </View>
-          <View className='header-actions'>
-            <View className='header-edit-btn' onClick={goProfile}>
-              <Text className='header-edit-text'>✏️</Text>
-            </View>
-            <Button className='header-share-btn' openType='share'>
-              <Text className='header-share-text'>分享</Text>
+          <Text className='profile-name'>{agentName || '经纪人'}</Text>
+          <Text className='profile-subtitle'>SENIOR CURATING CONSULTANT</Text>
+
+          <View className='profile-actions'>
+            <Button className='profile-btn' openType='share'>
+              <View className='profile-btn-inner'>
+                <Share size={14} />
+                <Text className='profile-btn-text'>Share</Text>
+              </View>
             </Button>
-          </View>
-        </View>
-
-        {/* Stats Cards — inside header */}
-        <View className='stats-row'>
-          <View className='stat-card' onClick={goClients}>
-            <Text className='stat-number'>{stats.totalClients}</Text>
-            <Text className='stat-label'>客户总数</Text>
-          </View>
-          <View className='stat-card'>
-            <Text className='stat-number stat-green'>{stats.newThisMonth}</Text>
-            <Text className='stat-label'>本月新增</Text>
-          </View>
-          <View className='stat-card' onClick={goVisitors}>
-            <Text className='stat-number stat-orange'>{stats.visitors}</Text>
-            <Text className='stat-label'>访客</Text>
-          </View>
-          <View className='stat-card'>
-            <Text className='stat-number stat-red'>{stats.interested}</Text>
-            <Text className='stat-label'>感兴趣</Text>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView scrollY className='agent-scroll'>
-        {/* Quick Actions Grid */}
-        <View className='actions-section'>
-          <Text className='section-title'>快捷操作</Text>
-          <View className='action-grid'>
-            <View className='grid-item' onClick={goClients}>
-              <View className='grid-icon blue-bg'>
-                <Text className='grid-icon-emoji'>👥</Text>
+            <View className='profile-btn' onClick={goProfile}>
+              <View className='profile-btn-inner'>
+                <Edit size={14} />
+                <Text className='profile-btn-text'>Edit</Text>
               </View>
-              <Text className='grid-label'>客户管理</Text>
-            </View>
-            <View className='grid-item' onClick={goVisitors}>
-              <View className='grid-icon green-bg'>
-                <Text className='grid-icon-emoji'>📊</Text>
-              </View>
-              <Text className='grid-label'>访客记录</Text>
-            </View>
-            <View className='grid-item' onClick={goSearch}>
-              <View className='grid-icon orange-bg'>
-                <Text className='grid-icon-emoji'>🏠</Text>
-              </View>
-              <Text className='grid-label'>房源搜索</Text>
-            </View>
-            <View className='grid-item' onClick={() => Taro.redirectTo({ url: '/pages/agent/marketing/index' })}>
-              <View className='grid-icon purple-bg'>
-                <Text className='grid-icon-emoji'>📢</Text>
-              </View>
-              <Text className='grid-label'>营销中心</Text>
             </View>
           </View>
         </View>
 
-        {/* Share Section */}
-        <View className='share-section'>
-          <Button className='share-btn' openType='share'>
-            <Text className='share-btn-text'>生成推广链接</Text>
+        <View className='stats-grid'>
+          <View className='stats-card' onClick={goClients}>
+            <Text className='stats-label'>TOTAL CLIENTS</Text>
+            <Text className='stats-value'>{stats.totalClients.toLocaleString()}</Text>
+          </View>
+          <View className='stats-card'>
+            <Text className='stats-label'>NEW LEADS</Text>
+            <View className='stats-inline'>
+              <Text className='stats-value'>{stats.newThisMonth}</Text>
+              <Text className='stats-trend'>+12%</Text>
+            </View>
+          </View>
+          <View className='stats-card' onClick={goVisitors}>
+            <Text className='stats-label'>VISITORS</Text>
+            <Text className='stats-value'>{stats.visitors.toLocaleString()}</Text>
+          </View>
+          <View className='stats-card'>
+            <Text className='stats-label'>HIGH INTENT</Text>
+            <Text className='stats-value'>{stats.interested.toLocaleString()}</Text>
+          </View>
+        </View>
+
+        <View className='toolkit-section'>
+          <Text className='section-kicker'>AGENT TOOLKIT</Text>
+          <View className='toolkit-grid'>
+            <View className='toolkit-card' onClick={goSearch}>
+              <View className='toolkit-icon'><Search size={18} /></View>
+              <Text className='toolkit-title'>Property Search</Text>
+              <Text className='toolkit-subtitle'>房源搜索</Text>
+            </View>
+            <View className='toolkit-card' onClick={goVisitors}>
+              <View className='toolkit-icon'><Category size={18} /></View>
+              <Text className='toolkit-title'>Task Kanban</Text>
+              <Text className='toolkit-subtitle'>任务看板</Text>
+            </View>
+            <View className='toolkit-card' onClick={goMarketing}>
+              <View className='toolkit-icon'><Service size={18} /></View>
+              <Text className='toolkit-title'>Marketing Center</Text>
+              <Text className='toolkit-subtitle'>营销中心</Text>
+            </View>
+            <View className='toolkit-card highlight' onClick={showToastSoon}>
+              <View className='toolkit-icon'><Star size={18} /></View>
+              <Text className='toolkit-title'>AI Assistant</Text>
+              <Text className='toolkit-subtitle'>AI 助手</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className='growth-card'>
+          <Text className='growth-title'>Expand your network with curated portfolios</Text>
+          <Text className='growth-desc'>客户拉新：分享小程序给客户，登录后自动关联到你的账号</Text>
+          <Button className='growth-share-btn' openType='share'>
+            <Text className='growth-share-text'>分享推广入口</Text>
           </Button>
-          <Text className='share-hint'>分享小程序给客户，自动关联到您的账号</Text>
+          <Text className='growth-path'>{sharePath}</Text>
         </View>
 
-        {/* Activity Feed — sliding */}
-        {activities.length > 0 && (
-          <View className='activity-section'>
-            <Text className='section-title'>最近动态</Text>
-            <View
-              className='activity-slider'
-              onClick={() => {
-                const a = activities[activityIdx]
-                if (a) Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })
-              }}
-            >
-              {activities.map((a, i) => (
+        <View className='insights-section'>
+          <View className='insights-head'>
+            <Text className='section-kicker'>INSIGHTS FEED</Text>
+            <Text className='view-all' onClick={goVisitors}>VIEW ALL</Text>
+          </View>
+          {activities.length > 0 ? (
+            <View className='insights-list'>
+              {activities.slice(0, 3).map((a, i) => (
                 <View
-                  key={i}
-                  className='activity-slide'
-                  style={{
-                    transform: `translateY(${(i - activityIdx) * 100}%)`,
-                    opacity: i === activityIdx ? 1 : 0,
-                    transition: 'all 0.5s ease',
-                    position: i === 0 ? 'relative' : 'absolute',
-                    top: 0, left: 0, right: 0,
-                  }}
+                  key={`${a.clientId}-${i}`}
+                  className='insight-item'
+                  onClick={() => Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })}
                 >
                   {a.imageUrl ? (
-                    <Image className='activity-thumb' src={a.imageUrl} mode='aspectFill' />
+                    <Image className='insight-avatar' src={a.imageUrl} mode='aspectFill' />
                   ) : (
-                    <View className='activity-dot' />
+                    <View className='insight-avatar insight-avatar-fallback'>
+                      <Text className='insight-avatar-text'>{a.clientName ? a.clientName[0] : '客'}</Text>
+                    </View>
                   )}
-                  <View className='activity-content'>
-                    <Text className='activity-text'>
-                      <Text className='activity-name'>{a.clientName}</Text>
-                      {' '}{a.action}{' '}
+                  <View className='insight-main'>
+                    <Text className='insight-line'>
+                      <Text className='insight-name'>{a.clientName}</Text>
+                      {' '}
+                      {a.action}
+                      {' '}
+                      <Text className='insight-address'>{a.address}</Text>
                     </Text>
-                    <Text className='activity-address-text'>{a.address}</Text>
-                    <Text className='activity-time'>{timeAgo(a.createdAt)}</Text>
+                    <Text className='insight-time'>{timeAgo(a.createdAt)}</Text>
                   </View>
                 </View>
               ))}
             </View>
-          </View>
-        )}
+          ) : (
+            <View className='insight-empty'>
+              <Text className='insight-empty-text'>暂无动态，分享给客户后这里会显示访问记录</Text>
+            </View>
+          )}
+        </View>
 
         <View className='bottom-spacer' />
       </ScrollView>
+
       <AgentTabBar current={0} />
     </View>
   )

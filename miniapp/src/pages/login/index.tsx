@@ -39,14 +39,14 @@ export default function Login() {
     }
 
     const launchOptions = Taro.getLaunchOptionsSync()
-    const query = launchOptions?.query
-    if (query?.agentId) {
+    const query = launchOptions && launchOptions.query ? launchOptions.query : null
+    if (query && query.agentId) {
       setAgentId(query.agentId)
     }
 
     const instance = Taro.getCurrentInstance()
-    const params = instance?.router?.params
-    if (params?.agentId) {
+    const params = instance && instance.router ? instance.router.params : null
+    if (params && params.agentId) {
       setAgentId(params.agentId)
     }
   }, [])
@@ -186,7 +186,8 @@ export default function Login() {
       })
       redirectAgent(result.userId, result.displayName)
     } catch (err: any) {
-      Taro.showToast({ title: err?.message || '关联失败', icon: 'none' })
+      const errorMessage = err && err.message ? err.message : '关联失败'
+      Taro.showToast({ title: errorMessage, icon: 'none' })
     } finally {
       setLoading(false)
     }
@@ -212,7 +213,8 @@ export default function Login() {
       })
       redirectAgent(result.userId, result.displayName)
     } catch (err: any) {
-      Taro.showToast({ title: err?.message || '注册失败', icon: 'none' })
+      const errorMessage = err && err.message ? err.message : '注册失败'
+      Taro.showToast({ title: errorMessage, icon: 'none' })
     } finally {
       setLoading(false)
     }

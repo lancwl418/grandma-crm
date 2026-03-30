@@ -15,7 +15,8 @@ function request<T>(url: string, options: { method?: 'GET' | 'POST'; data?: any 
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data as T)
         } else {
-          const errMsg = (res.data as any)?.error || `Request failed: ${res.statusCode}`
+          const errData = res.data as any
+          const errMsg = (errData && errData.error) || `Request failed: ${res.statusCode}`
           reject(new Error(errMsg))
         }
       },

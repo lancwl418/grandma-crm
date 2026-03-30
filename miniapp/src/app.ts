@@ -2,6 +2,7 @@ import { PropsWithChildren } from 'react'
 import Taro, { useLaunch } from '@tarojs/taro'
 import { isLoggedIn, getRole, setStoredAgentId } from './utils/auth'
 
+import '@nutui/nutui-react-taro/dist/style.css'
 import './app.scss'
 
 function App({ children }: PropsWithChildren<any>) {
@@ -10,8 +11,8 @@ function App({ children }: PropsWithChildren<any>) {
 
     // Capture agentId from launch params (e.g. from share link)
     const launchOptions = Taro.getLaunchOptionsSync()
-    const query = launchOptions?.query
-    if (query?.agentId) {
+    const query = launchOptions && launchOptions.query ? launchOptions.query : null
+    if (query && query.agentId) {
       setStoredAgentId(query.agentId)
     }
 
