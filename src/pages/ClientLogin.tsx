@@ -37,9 +37,7 @@ export default function ClientLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center px-6">
-      <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg">
-        <Home className="h-7 w-7 text-white" />
-      </div>
+      <img src="/logo.png" alt="Estate Epic" className="w-16 h-16 rounded-xl mb-4 shadow-lg" />
       <h1 className="text-xl font-bold text-gray-900 mb-1">Estate Epic 找房</h1>
       <p className="text-sm text-gray-400 mb-8">输入手机号进入您的专属页面</p>
 

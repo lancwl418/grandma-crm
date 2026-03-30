@@ -29,12 +29,8 @@ export default function Header({ isMobile }: Props) {
   return (
     <header className={`border-b border-slate-200 bg-white flex items-center justify-between px-4 ${isMobile ? "h-11" : "h-12"}`}>
       <div className="flex items-center gap-3">
-        {isMobile && (
-          <span className="text-sm font-bold text-slate-900">Estate Epic</span>
-        )}
-        {!isMobile && (
-          <span className="text-sm font-medium">欢迎回来！</span>
-        )}
+        <img src="/logo.png" alt="Estate Epic" className="h-7 w-7 rounded" />
+        <span className="text-sm font-bold text-slate-900">Estate Epic</span>
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <div className="h-7 w-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">

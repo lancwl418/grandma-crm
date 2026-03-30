@@ -120,9 +120,7 @@ export default function BrowseRegister() {
             </div>
           ) : (
             <>
-              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-                <Home className="h-6 w-6" />
-              </div>
+              <img src="/logo.png" alt="" className="w-16 h-16 rounded-xl mb-3 shadow-lg" />
               <h1 className="text-2xl font-bold tracking-tight">Estate Epic</h1>
               <p className="text-white/80 text-sm mt-1">找到你的理想家园</p>
             </>

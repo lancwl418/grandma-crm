@@ -73,9 +73,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-sm border border-gray-100">
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mx-auto mb-3">
-            <Home className="h-6 w-6 text-white" />
-          </div>
+          <img src="/logo.png" alt="Estate Epic" className="w-16 h-16 rounded-xl mx-auto mb-3" />
           <h2 className="text-xl font-bold text-gray-900">Estate Epic</h2>
           <p className="text-xs text-gray-400 mt-1">{mode === "login" ? "欢迎回来" : "创建新账号"}</p>
         </div>

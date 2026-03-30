@@ -594,7 +594,7 @@ export default function BrowseListings() {
       <div className="bg-white border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-blue-600" />
+            <img src="/logo.png" alt="" className="h-7 w-7 rounded" />
             <h1 className="text-base font-bold text-gray-900">Estate Epic 找房</h1>
           </div>
           {verified && (

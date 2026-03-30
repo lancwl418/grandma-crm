@@ -48,7 +48,10 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
           </button>
         ) : (
           <>
-            <div className="text-lg font-bold text-slate-900 truncate">Estate Epic</div>
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="" className="h-7 w-7 rounded" />
+              <span className="text-lg font-bold text-slate-900 truncate">Estate Epic</span>
+            </div>
             <button
               type="button"
               onClick={onToggle}
