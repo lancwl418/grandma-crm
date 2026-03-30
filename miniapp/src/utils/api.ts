@@ -9,6 +9,7 @@ function request<T>(url: string, options: { method?: 'GET' | 'POST'; data?: any 
       url: `${BASE_URL}${url}`,
       method,
       data,
+      timeout: 30000,
       header: { 'Content-Type': 'application/json' },
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) {

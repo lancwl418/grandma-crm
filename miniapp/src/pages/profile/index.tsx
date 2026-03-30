@@ -1,32 +1,47 @@
-import { View, Text, Image, Input, Button } from '@tarojs/components'
-import Taro, { useLoad } from '@tarojs/taro'
+import { View, Text, Image, Button } from '@tarojs/components'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
-import { clientLoginByPhone, registerClient, getBrowseHistory, getAgentInfo, AgentInfo } from '../../utils/api'
-import { getClientId, setClientId, getUserInfo, setUserInfo, clearAuth, isLoggedIn, StoredUserInfo } from '../../utils/auth'
+import { clientLoginByPhone, getBrowseHistory, getAgentInfo } from '../../utils/api'
+import { getClientId, setClientId, getUserInfo, setUserInfo, clearAuth, isLoggedIn, type StoredUserInfo } from '../../utils/auth'
 import './index.scss'
 
 export default function Profile() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [userInfo, setLocalUserInfo] = useState<StoredUserInfo | null>(null)
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
   const [viewCount, setViewCount] = useState(0)
-  const [agent, setAgent] = useState<AgentInfo | null>(null)
-  const [showLogin, setShowLogin] = useState(false)
+  const [favCount, setFavCount] = useState(0)
+  const [agentName, setAgentName] = useState('')
+  const [agentTitle, setAgentTitle] = useState('')
+  const [agentAvatar, setAgentAvatar] = useState('')
+  const [agentPhone, setAgentPhone] = useState('')
 
-  useLoad(() => {
+  useDidShow(() => {
     const stored = getUserInfo()
     if (stored && isLoggedIn()) {
       setLoggedIn(true)
       setLocalUserInfo(stored)
-      loadStats(stored.id)
+      loadData(stored.id)
     }
   })
 
-  const loadStats = async (clientId: string) => {
+  const loadData = async (clientId: string) => {
+    // Load browse history stats
     try {
       const res = await getBrowseHistory(clientId)
-      setViewCount(res.history?.length || 0)
+      const views = res.views || []
+      setViewCount(views.filter((v: any) => v.action === 'view').length)
+      setFavCount(views.filter((v: any) => v.action === 'favorite').length)
+    } catch {
+      // ignore
+    }
+
+    // Load agent info
+    try {
+      const agent = await getAgentInfo(clientId)
+      setAgentName(agent.agentName || '')
+      setAgentTitle(agent.agentTitle || '')
+      setAgentAvatar(agent.agentAvatar || '')
+      setAgentPhone(agent.agentPhone || '')
     } catch {
       // ignore
     }
@@ -35,27 +50,18 @@ export default function Profile() {
   const handleWechatLogin = () => {
     Taro.getUserProfile({
       desc: '用于完善用户资料',
-      success: async (res) => {
-        try {
-          const result = await registerClient({
-            name: res.userInfo.nickName,
-            avatar: res.userInfo.avatarUrl
-          })
-          const info: StoredUserInfo = {
-            id: result.id,
-            phone: result.phone || '',
-            name: res.userInfo.nickName,
-            avatar: res.userInfo.avatarUrl
-          }
-          setClientId(result.id)
-          setUserInfo(info)
-          setLocalUserInfo(info)
-          setLoggedIn(true)
-          loadStats(result.id)
-          Taro.showToast({ title: '登录成功', icon: 'success' })
-        } catch {
-          Taro.showToast({ title: '登录失败', icon: 'none' })
+      success: (res) => {
+        const info: StoredUserInfo = {
+          id: 'wx_' + Date.now(),
+          phone: '',
+          name: res.userInfo.nickName,
+          avatar: res.userInfo.avatarUrl
         }
+        setClientId(info.id)
+        setUserInfo(info)
+        setLocalUserInfo(info)
+        setLoggedIn(true)
+        Taro.showToast({ title: '登录成功', icon: 'success' })
       },
       fail: () => {
         Taro.showToast({ title: '授权已取消', icon: 'none' })
@@ -63,144 +69,178 @@ export default function Profile() {
     })
   }
 
-  const handlePhoneLogin = async () => {
-    if (!phone) {
-      Taro.showToast({ title: '请输入手机号', icon: 'none' })
-      return
-    }
-    if (!code) {
-      Taro.showToast({ title: '请输入验证码', icon: 'none' })
-      return
-    }
-    try {
-      const result = await clientLoginByPhone(phone, code)
-      const info: StoredUserInfo = {
-        id: result.id,
-        phone: result.phone,
-        name: result.name,
-        avatar: result.avatar
+  const handlePhoneLogin = () => {
+    Taro.showModal({
+      title: '手机号登录',
+      editable: true,
+      placeholderText: '请输入手机号',
+      success: async (res) => {
+        if (res.confirm && res.content) {
+          const phone = res.content.trim()
+          if (!phone) return
+          try {
+            const result = await clientLoginByPhone(phone)
+            if (result.clientId) {
+              const info: StoredUserInfo = {
+                id: result.clientId,
+                phone,
+                name: phone
+              }
+              setClientId(result.clientId)
+              setUserInfo(info)
+              setLocalUserInfo(info)
+              setLoggedIn(true)
+              loadData(result.clientId)
+              Taro.showToast({ title: '登录成功', icon: 'success' })
+            } else {
+              Taro.showToast({ title: '未找到关联账号', icon: 'none' })
+            }
+          } catch {
+            Taro.showToast({ title: '登录失败', icon: 'none' })
+          }
+        }
       }
-      setClientId(result.id)
-      setUserInfo(info)
-      setLocalUserInfo(info)
-      setLoggedIn(true)
-      setShowLogin(false)
-      loadStats(result.id)
-      Taro.showToast({ title: '登录成功', icon: 'success' })
-    } catch {
-      Taro.showToast({ title: '登录失败', icon: 'none' })
-    }
+    })
   }
 
   const handleLogout = () => {
-    clearAuth()
-    setLoggedIn(false)
-    setLocalUserInfo(null)
-    setViewCount(0)
-    setAgent(null)
-    Taro.showToast({ title: '已退出登录', icon: 'none' })
+    Taro.showModal({
+      title: '确认退出',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          clearAuth()
+          setLoggedIn(false)
+          setLocalUserInfo(null)
+          setViewCount(0)
+          setFavCount(0)
+          setAgentName('')
+          Taro.showToast({ title: '已退出登录', icon: 'none' })
+        }
+      }
+    })
+  }
+
+  const goSearch = () => {
+    Taro.switchTab({ url: '/pages/search/index' })
+  }
+
+  const contactAgent = () => {
+    if (agentPhone) {
+      Taro.makePhoneCall({ phoneNumber: agentPhone }).catch(() => {})
+    } else {
+      Taro.showToast({ title: '暂无经纪人电话', icon: 'none' })
+    }
   }
 
   return (
     <View className='profile-page'>
-      {loggedIn && userInfo ? (
-        <View className='profile-content'>
-          {/* User Card */}
-          <View className='user-card'>
-            <View className='user-header'>
-              {userInfo.avatar ? (
-                <Image className='user-avatar' src={userInfo.avatar} />
-              ) : (
-                <View className='user-avatar-placeholder'>
-                  <Text>{(userInfo.name || '用户')[0]}</Text>
-                </View>
-              )}
-              <View className='user-text'>
-                <Text className='user-name'>{userInfo.name || '用户'}</Text>
-                {userInfo.phone && <Text className='user-phone'>{userInfo.phone}</Text>}
+      {/* Header */}
+      <View className='profile-header'>
+        {loggedIn && userInfo ? (
+          <View className='header-user'>
+            {userInfo.avatar ? (
+              <Image className='header-avatar' src={userInfo.avatar} mode='aspectFill' />
+            ) : (
+              <View className='header-avatar-placeholder'>
+                <Text className='avatar-letter'>{(userInfo.name || '用')[0]}</Text>
               </View>
-            </View>
+            )}
+            <Text className='header-name'>{userInfo.name || '用户'}</Text>
+            {userInfo.phone && <Text className='header-phone'>{userInfo.phone}</Text>}
           </View>
-
-          {/* Stats */}
-          <View className='stats-card'>
-            <Text className='stats-title'>浏览统计</Text>
-            <View className='stats-grid'>
-              <View className='stat-item'>
-                <Text className='stat-value'>{viewCount}</Text>
-                <Text className='stat-label'>浏览房源</Text>
-              </View>
-              <View className='stat-item'>
-                <Text className='stat-value'>0</Text>
-                <Text className='stat-label'>收藏</Text>
-              </View>
-              <View className='stat-item'>
-                <Text className='stat-value'>0</Text>
-                <Text className='stat-label'>咨询</Text>
-              </View>
+        ) : (
+          <View className='header-guest'>
+            <View className='header-avatar-placeholder'>
+              <Text className='avatar-letter'>?</Text>
             </View>
+            <Text className='header-name'>未登录</Text>
+            <Text className='header-subtitle'>登录后享受更多服务</Text>
           </View>
+        )}
+      </View>
 
-          {/* Agent Card */}
-          {agent && (
-            <View className='agent-section'>
-              <Text className='section-title'>我的经纪人</Text>
-              <View className='agent-card'>
-                {agent.avatar && <Image className='agent-avatar' src={agent.avatar} />}
-                <View className='agent-text'>
-                  <Text className='agent-name'>{agent.name}</Text>
-                  {agent.title && <Text className='agent-title'>{agent.title}</Text>}
-                  {agent.phone && <Text className='agent-phone'>{agent.phone}</Text>}
-                </View>
-              </View>
-            </View>
-          )}
-
-          <Button className='logout-btn' onClick={handleLogout}>退出登录</Button>
-        </View>
-      ) : (
-        <View className='login-content'>
-          <View className='login-header'>
-            <Text className='login-title'>Estate Epic</Text>
-            <Text className='login-subtitle'>登录后享受更多服务</Text>
-          </View>
-
-          <Button className='wechat-login-btn' onClick={handleWechatLogin}>
-            微信快捷登录
+      {/* Login buttons - show when not logged in */}
+      {!loggedIn && (
+        <View className='login-section'>
+          <Button className='wechat-btn' onClick={handleWechatLogin}>
+            <Text className='btn-text-white'>微信快捷登录</Text>
           </Button>
-
-          <View className='divider'>
-            <View className='divider-line' />
-            <Text className='divider-text'>或</Text>
-            <View className='divider-line' />
+          <View className='phone-login-link' onClick={handlePhoneLogin}>
+            <Text className='phone-link-text'>手机号登录</Text>
           </View>
+        </View>
+      )}
 
-          {showLogin ? (
-            <View className='phone-login-form'>
-              <Input
-                className='form-input'
-                placeholder='手机号'
-                type='number'
-                value={phone}
-                onInput={(e) => setPhone(e.detail.value)}
-              />
-              <Input
-                className='form-input'
-                placeholder='验证码'
-                type='number'
-                value={code}
-                onInput={(e) => setCode(e.detail.value)}
-              />
-              <Button className='phone-login-btn' onClick={handlePhoneLogin}>登录</Button>
-              <View className='cancel-link' onClick={() => setShowLogin(false)}>
-                <Text>取消</Text>
+      {/* Stats Cards */}
+      {loggedIn && (
+        <View className='stats-section'>
+          <View className='stats-card'>
+            <View className='stat-item'>
+              <Text className='stat-num'>{viewCount}</Text>
+              <Text className='stat-label'>浏览记录</Text>
+            </View>
+            <View className='stat-divider' />
+            <View className='stat-item'>
+              <Text className='stat-num'>{favCount}</Text>
+              <Text className='stat-label'>收藏</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Agent Card */}
+      {loggedIn && agentName ? (
+        <View className='section'>
+          <Text className='section-label'>我的经纪人</Text>
+          <View className='agent-card'>
+            {agentAvatar ? (
+              <Image className='agent-img' src={agentAvatar} mode='aspectFill' />
+            ) : (
+              <View className='agent-img-placeholder'>
+                <Text className='agent-img-letter'>{agentName[0]}</Text>
               </View>
+            )}
+            <View className='agent-detail'>
+              <Text className='agent-name-text'>{agentName}</Text>
+              {agentTitle && <Text className='agent-title-text'>{agentTitle}</Text>}
             </View>
-          ) : (
-            <View className='phone-login-link' onClick={() => setShowLogin(true)}>
-              <Text>手机号登录</Text>
-            </View>
-          )}
+            {agentPhone && (
+              <View className='agent-call-btn' onClick={contactAgent}>
+                <Text className='call-btn-text'>拨打</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      ) : null}
+
+      {/* Menu Items */}
+      <View className='menu-section'>
+        <View className='menu-item' onClick={goSearch}>
+          <Text className='menu-icon'>&#x1F50D;</Text>
+          <Text className='menu-text'>搜索房源</Text>
+          <Text className='menu-arrow'>{'>'}</Text>
+        </View>
+        {loggedIn && (
+          <View className='menu-item'>
+            <Text className='menu-icon'>&#x1F4C3;</Text>
+            <Text className='menu-text'>浏览记录</Text>
+            <Text className='menu-arrow'>{'>'}</Text>
+          </View>
+        )}
+        <View className='menu-item' onClick={contactAgent}>
+          <Text className='menu-icon'>&#x1F4DE;</Text>
+          <Text className='menu-text'>联系经纪人</Text>
+          <Text className='menu-arrow'>{'>'}</Text>
+        </View>
+      </View>
+
+      {/* Logout */}
+      {loggedIn && (
+        <View className='logout-section'>
+          <View className='logout-btn' onClick={handleLogout}>
+            <Text className='logout-text'>退出登录</Text>
+          </View>
         </View>
       )}
     </View>

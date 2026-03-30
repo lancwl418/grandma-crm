@@ -1,0 +1,335 @@
+.search-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+// Toggle
+.type-toggle {
+  display: flex;
+  padding: 20rpx 24rpx 0;
+  gap: 0;
+  background: #fff;
+}
+
+.toggle-btn {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  transition: all 0.2s;
+
+  &:first-child {
+    border-radius: 24rpx 0 0 24rpx;
+  }
+
+  &:last-child {
+    border-radius: 0 24rpx 24rpx 0;
+  }
+
+  &.active {
+    background: #2563eb;
+    color: #fff;
+  }
+}
+
+// Search Bar
+.search-bar {
+  padding: 20rpx 24rpx;
+  background: #fff;
+  padding-bottom: 20rpx;
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 24rpx;
+  height: 80rpx;
+  padding: 0 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1e293b;
+}
+
+// Suggestions
+.suggestions {
+  margin: 0 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+
+  .suggestion-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24rpx;
+    border-bottom: 1rpx solid #f1f5f9;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .suggestion-text {
+    font-size: 28rpx;
+    color: #1e293b;
+    flex: 1;
+  }
+
+  .suggestion-type {
+    font-size: 22rpx;
+    color: #94a3b8;
+    margin-left: 16rpx;
+  }
+}
+
+// Filter Row
+.filter-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-top: 1rpx solid #f1f5f9;
+  gap: 12rpx;
+}
+
+.filter-input {
+  flex: 1;
+  height: 60rpx;
+  background: #f1f5f9;
+  border-radius: 12rpx;
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.filter-dash {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.filter-select {
+  height: 60rpx;
+  line-height: 60rpx;
+  background: #f1f5f9;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 24rpx;
+  color: #334155;
+  white-space: nowrap;
+}
+
+// Results Scroll
+.results-scroll {
+  flex: 1;
+  height: calc(100vh - 340rpx);
+}
+
+// Section (for hot areas)
+.section {
+  padding: 32rpx 24rpx 0;
+
+  .section-title {
+    display: block;
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 20rpx;
+  }
+}
+
+.area-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.area-item {
+  width: calc(25% - 12rpx);
+  text-align: center;
+  padding: 24rpx 0 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.area-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.area-state {
+  display: block;
+  font-size: 20rpx;
+  color: #94a3b8;
+  margin-top: 4rpx;
+}
+
+// Empty State
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 72rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+// Results Count
+.results-count {
+  padding: 20rpx 24rpx 8rpx;
+}
+
+.results-count-text {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+// Results List
+.results-list {
+  padding: 0 24rpx;
+}
+
+// Listing Card
+.listing-card {
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.listing-image {
+  width: 100%;
+  height: 360rpx;
+}
+
+.listing-image-placeholder {
+  width: 100%;
+  height: 360rpx;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+.listing-info {
+  padding: 20rpx 24rpx 24rpx;
+}
+
+.listing-price {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 8rpx;
+}
+
+.listing-building {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4rpx;
+}
+
+.listing-rent-range {
+  display: block;
+  font-size: 28rpx;
+  color: #2563eb;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.listing-specs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.spec-item {
+  font-size: 26rpx;
+  color: #334155;
+  margin-right: 16rpx;
+}
+
+.spec-type {
+  font-size: 22rpx;
+  color: #fff;
+  background: #2563eb;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.listing-address {
+  display: block;
+  font-size: 26rpx;
+  color: #1e293b;
+  margin-bottom: 4rpx;
+}
+
+.listing-city {
+  display: block;
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+// Load More
+.load-more {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.load-more-text {
+  font-size: 28rpx;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.list-end {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.list-end-text {
+  font-size: 24rpx;
+  color: #cbd5e1;
+}
+
+.bottom-spacer {
+  height: 40rpx;
+}

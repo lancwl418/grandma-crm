@@ -1,152 +1,280 @@
 .detail-page {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 120rpx;
+  background: #f8fafc;
+  padding-bottom: 140rpx;
 }
 
-.loading {
+// Loading
+.loading-state {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 400rpx;
-  color: #999;
-  font-size: 28rpx;
 }
 
+.loading-text {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+// Carousel
 .carousel-wrapper {
   position: relative;
-
-  .photo-swiper {
-    width: 100%;
-    height: 500rpx;
-  }
-
-  .swiper-image {
-    width: 100%;
-    height: 500rpx;
-  }
-
-  .slide-counter {
-    position: absolute;
-    bottom: 20rpx;
-    right: 24rpx;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    padding: 8rpx 20rpx;
-    border-radius: 20rpx;
-    font-size: 24rpx;
-  }
 }
 
-.info-section {
+.photo-swiper {
+  width: 100%;
+  height: 480rpx;
+}
+
+.swiper-image {
+  width: 100%;
+  height: 480rpx;
+}
+
+.slide-counter {
+  position: absolute;
+  bottom: 20rpx;
+  right: 24rpx;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+.counter-text {
+  font-size: 24rpx;
+  color: #fff;
+}
+
+// Price Section
+.price-section {
   background: #fff;
   padding: 28rpx 24rpx;
-  margin-bottom: 16rpx;
-
-  .price {
-    display: block;
-    font-size: 44rpx;
-    font-weight: 700;
-    color: #e74c3c;
-    margin-bottom: 12rpx;
-  }
-
-  .specs {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12rpx;
-
-    .spec-item {
-      font-size: 28rpx;
-      color: #333;
-    }
-
-    .spec-divider {
-      margin: 0 16rpx;
-      color: #ddd;
-    }
-  }
-
-  .address {
-    display: block;
-    font-size: 28rpx;
-    color: #333;
-    margin-bottom: 4rpx;
-  }
-
-  .city {
-    display: block;
-    font-size: 26rpx;
-    color: #999;
-  }
 }
 
-.detail-section {
+.price {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 8rpx;
+}
+
+.address {
+  display: block;
+  font-size: 28rpx;
+  color: #1e293b;
+  margin-bottom: 4rpx;
+}
+
+.city {
+  display: block;
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+// Stats Row
+.stats-row {
+  display: flex;
   background: #fff;
+  padding: 0 24rpx 24rpx;
+  gap: 16rpx;
+}
+
+.stat-box {
+  flex: 1;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 12rpx;
+  padding: 16rpx 0;
+}
+
+.stat-value {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-label {
+  display: block;
+  font-size: 22rpx;
+  color: #64748b;
+  margin-top: 4rpx;
+}
+
+// Zestimate
+.zestimate-box {
+  margin: 16rpx 24rpx 0;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.zestimate-label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.zestimate-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+// Zillow Link
+.zillow-link {
+  padding: 16rpx 24rpx;
+  text-align: center;
+}
+
+.zillow-text {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+// Content Section
+.content-section {
+  background: #fff;
+  margin-top: 16rpx;
   padding: 28rpx 24rpx;
+}
+
+.content-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1e293b;
   margin-bottom: 16rpx;
+}
 
-  .detail-title {
-    display: block;
-    font-size: 30rpx;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 16rpx;
-  }
+.content-text {
+  display: block;
+  font-size: 28rpx;
+  color: #475569;
+  line-height: 1.7;
+}
 
-  .detail-text {
-    display: block;
-    font-size: 28rpx;
-    color: #666;
-    line-height: 1.6;
-  }
+// Schools
+.school-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
 
-  .school-item {
-    padding: 12rpx 0;
-    font-size: 28rpx;
-    color: #666;
-    border-bottom: 1rpx solid #f5f5f5;
-
-    &:last-child {
-      border-bottom: none;
-    }
+  &:last-child {
+    border-bottom: none;
   }
 }
 
-.agent-card {
-  .agent-info {
-    display: flex;
-    align-items: center;
+.school-info {
+  flex: 1;
+}
+
+.school-name {
+  display: block;
+  font-size: 28rpx;
+  color: #1e293b;
+}
+
+.school-level {
+  display: inline;
+  font-size: 22rpx;
+  color: #64748b;
+  margin-right: 16rpx;
+}
+
+.school-distance {
+  display: inline;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.school-rating {
+  display: flex;
+  align-items: baseline;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+  margin-left: 16rpx;
+
+  &.rating-green {
+    background: #dcfce7;
   }
 
-  .agent-avatar {
-    width: 88rpx;
-    height: 88rpx;
-    border-radius: 50%;
-    margin-right: 20rpx;
+  &.rating-yellow {
+    background: #fef9c3;
   }
 
-  .agent-text {
-    flex: 1;
-  }
-
-  .agent-name {
-    display: block;
-    font-size: 30rpx;
-    font-weight: 500;
-    color: #333;
-  }
-
-  .agent-title {
-    display: block;
-    font-size: 24rpx;
-    color: #999;
-    margin-top: 4rpx;
+  &.rating-red {
+    background: #fee2e2;
   }
 }
 
+.rating-num {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rating-max {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+// Broker
+.broker-text {
+  font-size: 28rpx;
+  color: #64748b;
+}
+
+// Agent
+.agent-row {
+  display: flex;
+  align-items: center;
+}
+
+.agent-avatar-placeholder {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+
+.agent-initial {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.agent-info-col {
+  flex: 1;
+}
+
+.agent-name-text {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.agent-phone-text {
+  display: block;
+  font-size: 24rpx;
+  color: #2563eb;
+  margin-top: 4rpx;
+}
+
+// Bottom
 .bottom-spacer {
-  height: 120rpx;
+  height: 140rpx;
 }
 
 .bottom-bar {
@@ -154,44 +282,48 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 110rpx;
+  height: 120rpx;
   background: #fff;
   display: flex;
   align-items: center;
   padding: 0 24rpx;
-  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
   z-index: 100;
+}
 
-  .favorite-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-right: 32rpx;
+.favorite-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  margin-right: 24rpx;
+}
 
-    .fav-icon {
-      font-size: 40rpx;
-      color: #ccc;
+.fav-heart {
+  font-size: 44rpx;
+  color: #cbd5e1;
 
-      &.active {
-        color: #e74c3c;
-      }
-    }
-
-    .fav-text {
-      font-size: 22rpx;
-      color: #666;
-    }
+  &.active {
+    color: #ef4444;
   }
+}
 
-  .contact-btn {
-    flex: 1;
-    height: 80rpx;
-    line-height: 80rpx;
-    background: #1890ff;
-    color: #fff;
-    border: none;
-    border-radius: 16rpx;
-    font-size: 30rpx;
-    text-align: center;
-  }
+.fav-label {
+  font-size: 20rpx;
+  color: #64748b;
+  margin-top: 2rpx;
+}
+
+.contact-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  background: #16a34a !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
 }
