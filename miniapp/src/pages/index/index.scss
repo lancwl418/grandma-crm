@@ -1,0 +1,173 @@
+.index-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.search-bar {
+  background: #fff;
+  padding: 24px 24px 16px;
+  position: relative;
+}
+
+.toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.toggle-item {
+  padding: 8px 24px;
+  font-size: 28px;
+  border-radius: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  &.active {
+    background: #fff;
+    color: #1e293b;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+}
+
+.search-input-wrap {
+  display: flex;
+  gap: 12px;
+}
+
+.search-input {
+  flex: 1;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  font-size: 28px;
+}
+
+.search-btn {
+  background: #2563eb;
+  color: #fff;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.suggestions {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 100%;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  &:last-child { border-bottom: none; }
+}
+
+.suggestion-text { font-size: 28px; color: #1e293b; }
+.suggestion-type { font-size: 20px; color: #94a3b8; }
+
+.content {
+  height: calc(100vh - 240px);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 120px 0;
+  color: #94a3b8;
+  font-size: 28px;
+}
+
+.home-content {
+  padding: 24px;
+}
+
+.section-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.hot-areas {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.area-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  padding: 20px 16px;
+}
+
+.area-emoji { font-size: 32px; }
+.area-name { font-size: 28px; color: #1e293b; }
+
+.listing-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  margin: 12px 24px;
+  overflow: hidden;
+}
+
+.listing-img {
+  width: 100%;
+  height: 320px;
+}
+
+.listing-info {
+  padding: 16px;
+}
+
+.listing-price {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.listing-name {
+  font-size: 30px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.listing-rent {
+  font-size: 26px;
+  color: #15803d;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.listing-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 24px;
+  color: #64748b;
+}
+
+.listing-address {
+  font-size: 24px;
+  color: #94a3b8;
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
