@@ -87,6 +87,39 @@ interface CommercialListing {
   loopnetUrl: string;
 }
 
+interface CommercialDetail {
+  listingId: string;
+  address: string;
+  subtitle: string;
+  location: string;
+  listingType: string;
+  carousel: string[];
+  description: string;
+  propertyFacts: Array<{ label: string; value: string }>;
+  highlights: string[];
+  broker: { name: string; company: string; photo: string } | null;
+  loopnetUrl: string;
+}
+
+const COMMERCIAL_PROPERTY_TYPES: Record<string, string> = {
+  office: "写字楼",
+  industrial: "工业",
+  retail: "零售",
+  restaurant: "餐饮",
+  multifamily: "多户住宅",
+  land: "土地",
+  hospitality: "酒店",
+  shopping_center: "商场",
+};
+
+const COMMERCIAL_SORT_OPTIONS: Record<string, string> = {
+  default: "默认",
+  date_newest: "最新",
+  price_asc: "价格低到高",
+  price_desc: "价格高到低",
+  building_size_desc: "面积大到小",
+};
+
 // ── Component ──────────────────────────────────────────────
 
 export default function AgentSearchPage() {
@@ -148,9 +181,21 @@ export default function AgentSearchPage() {
   const [commercialLoading, setCommercialLoading] = useState(false);
   const [commercialSearched, setCommercialSearched] = useState(false);
   const [commercialPage, setCommercialPage] = useState(1);
-  const [commercialSuggestions, setCommercialSuggestions] = useState<Array<{ display: string; type: string }>>([]);
+  const [commercialSuggestions, setCommercialSuggestions] = useState<Array<{ display: string; type: string; locationId?: string; locationType?: string }>>([]);
   const [showCommercialSuggestions, setShowCommercialSuggestions] = useState(false);
   const commercialAcRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [commercialLocationId, setCommercialLocationId] = useState("");
+  const [commercialLocationType, setCommercialLocationType] = useState("");
+
+  // Commercial filters
+  const [commercialPropertyType, setCommercialPropertyType] = useState("");
+  const [commercialSort, setCommercialSort] = useState("");
+  const [commercialPriceMin, setCommercialPriceMin] = useState("");
+  const [commercialPriceMax, setCommercialPriceMax] = useState("");
+
+  // Commercial detail
+  const [commercialDetail, setCommercialDetail] = useState<CommercialDetail | null>(null);
+  const [commercialDetailLoading, setCommercialDetailLoading] = useState(false);
 
   const fetchCommercialSuggestions = useCallback((query: string) => {
     if (commercialAcRef.current) clearTimeout(commercialAcRef.current);
@@ -165,14 +210,29 @@ export default function AgentSearchPage() {
     }, 300);
   }, []);
 
-  const searchCommercial = useCallback(async (city?: string) => {
+  const searchCommercial = useCallback(async (city?: string, locId?: string, locType?: string) => {
     const q = city || commercialCity;
-    if (!q.trim()) return;
-    setCommercialCity(q);
+    if (!q.trim() && !locId && !commercialLocationId) return;
+    if (city) setCommercialCity(city);
+    if (locId) setCommercialLocationId(locId);
+    if (locType) setCommercialLocationType(locType);
     setCommercialLoading(true);
     setCommercialSearched(true);
+    setCommercialDetail(null);
     try {
-      const params = new URLSearchParams({ city: q.trim(), type: commercialType, page: String(commercialPage) });
+      const params = new URLSearchParams({ type: commercialType, page: String(commercialPage) });
+      const lid = locId || commercialLocationId;
+      const lt = locType || commercialLocationType;
+      if (lid) {
+        params.set("locationId", lid);
+        params.set("locationType", lt || "city");
+      } else {
+        params.set("city", q.trim());
+      }
+      if (commercialPropertyType) params.set("propertyType", commercialPropertyType);
+      if (commercialSort) params.set("sort", commercialSort);
+      if (commercialPriceMin) params.set("priceMin", commercialPriceMin);
+      if (commercialPriceMax) params.set("priceMax", commercialPriceMax);
       const res = await fetch(`${API_BASE}/api/browse/commercial/search?${params}`);
       const data = await res.json();
       setCommercialResults(data.results || []);
@@ -181,7 +241,36 @@ export default function AgentSearchPage() {
     } finally {
       setCommercialLoading(false);
     }
-  }, [commercialCity, commercialType, commercialPage]);
+  }, [commercialCity, commercialType, commercialPage, commercialLocationId, commercialLocationType, commercialPropertyType, commercialSort, commercialPriceMin, commercialPriceMax]);
+
+  const viewCommercialDetail = useCallback(async (listing: CommercialListing) => {
+    if (!listing.listingId) return;
+    setCommercialDetailLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/browse/commercial/detail/${listing.listingId}`);
+      const data: CommercialDetail = await res.json();
+      if (data.carousel.length === 0 && listing.photo) {
+        data.carousel = [listing.photo];
+      }
+      setCommercialDetail(data);
+    } catch {
+      setCommercialDetail({
+        listingId: listing.listingId,
+        address: listing.address,
+        subtitle: [listing.availableSpace, listing.listingType, listing.price].filter(Boolean).join(" | "),
+        location: `${listing.cityState} ${listing.postalCode}`,
+        listingType: listing.listingType,
+        carousel: listing.photo ? [listing.photo] : [],
+        description: "",
+        propertyFacts: [],
+        highlights: [],
+        broker: listing.brokerName ? { name: listing.brokerName, company: listing.companyName, photo: "" } : null,
+        loopnetUrl: listing.loopnetUrl,
+      });
+    } finally {
+      setCommercialDetailLoading(false);
+    }
+  }, []);
 
   // Auto re-search commercial when toggling sale/lease
   useEffect(() => {
@@ -651,7 +740,7 @@ export default function AgentSearchPage() {
                       setCommercialCity(s.display);
                       setShowCommercialSuggestions(false);
                       setCommercialSuggestions([]);
-                      setTimeout(() => searchCommercial(s.display), 0);
+                      setTimeout(() => searchCommercial(s.display, s.locationId, s.locationType), 0);
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 active:bg-gray-100 border-b border-gray-50 last:border-0 flex items-center justify-between"
                   >
@@ -671,6 +760,46 @@ export default function AgentSearchPage() {
           </button>
         </div>
         {showCommercialSuggestions && <div className="fixed inset-0 z-10" onClick={() => setShowCommercialSuggestions(false)} />}
+
+        {/* Commercial Filters */}
+        <div className="flex gap-2 overflow-x-auto">
+          <select
+            value={commercialPropertyType}
+            onChange={(e) => setCommercialPropertyType(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-xs text-gray-700 bg-white shrink-0"
+          >
+            <option value="">全部类型</option>
+            {Object.entries(COMMERCIAL_PROPERTY_TYPES).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+          <div className="flex items-center border rounded-lg overflow-hidden shrink-0">
+            <input
+              type="number"
+              value={commercialPriceMin}
+              onChange={(e) => setCommercialPriceMin(e.target.value)}
+              placeholder="最低价"
+              className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
+            />
+            <span className="text-gray-300 text-xs">-</span>
+            <input
+              type="number"
+              value={commercialPriceMax}
+              onChange={(e) => setCommercialPriceMax(e.target.value)}
+              placeholder="最高价"
+              className="w-20 px-2 py-1.5 text-xs text-gray-700 outline-none"
+            />
+          </div>
+          <select
+            value={commercialSort}
+            onChange={(e) => setCommercialSort(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-xs text-gray-700 bg-white shrink-0"
+          >
+            {Object.entries(COMMERCIAL_SORT_OPTIONS).map(([val, label]) => (
+              <option key={val} value={val === "default" ? "" : val}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
       )}
 
@@ -822,6 +951,117 @@ export default function AgentSearchPage() {
       </div>
       ) : (
       <div className="p-4 space-y-3">
+        {/* Commercial Detail View */}
+        {commercialDetail ? (
+          <div className="space-y-4">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={() => setCommercialDetail(null)}
+              className="flex items-center gap-1 text-sm text-indigo-600 active:text-indigo-800"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              返回搜索结果
+            </button>
+
+            {/* Photo carousel */}
+            {commercialDetail.carousel.length > 0 ? (
+              <div className="overflow-x-auto flex gap-1 rounded-xl overflow-hidden bg-gray-200">
+                {commercialDetail.carousel.map((url, i) => (
+                  <img key={i} src={url} alt={`Photo ${i + 1}`} className="h-56 sm:h-72 w-auto object-cover shrink-0" />
+                ))}
+              </div>
+            ) : (
+              <div className="h-56 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                <Building2 className="h-8 w-8" />
+              </div>
+            )}
+
+            {/* Subtitle */}
+            {commercialDetail.subtitle && (
+              <div className="text-lg font-bold text-gray-900">{commercialDetail.subtitle}</div>
+            )}
+
+            {/* Address + location */}
+            <div>
+              <div className="text-base font-semibold text-gray-900">{commercialDetail.address}</div>
+              {commercialDetail.location && (
+                <p className="text-sm text-gray-500 mt-0.5">{commercialDetail.location}</p>
+              )}
+              {commercialDetail.listingType && (
+                <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full">{commercialDetail.listingType}</span>
+              )}
+            </div>
+
+            {/* Property facts */}
+            {commercialDetail.propertyFacts.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">物业信息</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {commercialDetail.propertyFacts.map((fact, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-2.5">
+                      <div className="text-[10px] text-gray-400">{fact.label}</div>
+                      <div className="text-sm font-medium text-gray-900">{fact.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            {commercialDetail.description && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">描述</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{commercialDetail.description}</p>
+              </div>
+            )}
+
+            {/* Highlights */}
+            {commercialDetail.highlights.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">亮点</h3>
+                <ul className="space-y-1">
+                  {commercialDetail.highlights.map((h, i) => (
+                    <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                      <span className="text-indigo-500 mt-1">&#8226;</span>
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Broker info */}
+            {commercialDetail.broker && commercialDetail.broker.name && (
+              <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                {commercialDetail.broker.photo ? (
+                  <img src={commercialDetail.broker.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                    {commercialDetail.broker.name[0]}
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{commercialDetail.broker.name}</div>
+                  {commercialDetail.broker.company && (
+                    <div className="text-xs text-gray-400">{commercialDetail.broker.company}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* LoopNet link */}
+            <a
+              href={commercialDetail.loopnetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium text-center active:bg-indigo-700 transition"
+            >
+              在 LoopNet 上查看
+            </a>
+          </div>
+        ) : (
+        <>
         {commercialLoading && (
           <div className="text-center py-12 text-gray-400 text-sm">搜索中...</div>
         )}
@@ -866,12 +1106,11 @@ export default function AgentSearchPage() {
         )}
 
         {commercialResults.map((listing) => (
-          <a
+          <button
             key={listing.listingId}
-            href={listing.loopnetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block bg-white rounded-xl border border-gray-100 overflow-hidden"
+            type="button"
+            onClick={() => viewCommercialDetail(listing)}
+            className="block w-full text-left bg-white rounded-xl border border-gray-100 overflow-hidden"
           >
             {listing.photo ? (
               <img src={listing.photo} alt={listing.title} className="w-full h-48 object-cover" />
@@ -898,7 +1137,7 @@ export default function AgentSearchPage() {
                 </div>
               )}
             </div>
-          </a>
+          </button>
         ))}
 
         {/* Commercial pagination */}
@@ -923,6 +1162,8 @@ export default function AgentSearchPage() {
             </button>
           </div>
         )}
+        </>
+        )}
       </div>
       )}
 
@@ -930,7 +1171,7 @@ export default function AgentSearchPage() {
       {shareTarget && <ShareModal clients={clients} clientsLoading={clientsLoading} copied={copied} onSelect={handleShareToClient} onClose={() => setShareTarget(null)} />}
 
       {/* Detail loading overlay */}
-      {detailLoading && (
+      {(detailLoading || commercialDetailLoading) && (
         <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
           <div className="text-gray-500 text-sm">加载中...</div>
         </div>

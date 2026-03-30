@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { searchListings, getPropertyDetail, getPropertyImage } from "../lib/zillow.js";
-import { searchCommercial, autocompleteCommercial } from "../lib/loopnet.js";
+import { searchCommercial, autocompleteCommercial, getCommercialDetail } from "../lib/loopnet.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
@@ -41,7 +41,7 @@ browseRouter.get("/autocomplete", async (req, res) => {
 // ── Commercial (LoopNet) Search ─────────────────────────────
 
 browseRouter.get("/commercial/search", async (req, res) => {
-  const { city, state, type, page, locationId, locationType } = req.query;
+  const { city, state, type, page, locationId, locationType, propertyType, sort, priceMin, priceMax, buildingSizeMin, buildingSizeMax } = req.query;
 
   if (!city && !locationId) {
     res.status(400).json({ error: "city or locationId is required" });
@@ -56,11 +56,34 @@ browseRouter.get("/commercial/search", async (req, res) => {
       locationType: typeof locationType === "string" ? locationType : undefined,
       type: type === "lease" ? "lease" : "sale",
       page: page ? Number(page) : 1,
+      propertyType: typeof propertyType === "string" && propertyType ? propertyType : null,
+      sort: typeof sort === "string" && sort ? sort : null,
+      priceMin: priceMin ? Number(priceMin) : null,
+      priceMax: priceMax ? Number(priceMax) : null,
+      buildingSizeMin: buildingSizeMin ? Number(buildingSizeMin) : null,
+      buildingSizeMax: buildingSizeMax ? Number(buildingSizeMax) : null,
     });
     res.json(data);
   } catch (err) {
     console.error("[browse/commercial/search]", err);
     res.status(502).json({ error: "Failed to search commercial listings" });
+  }
+});
+
+browseRouter.get("/commercial/detail/:listingId", async (req, res) => {
+  const { listingId } = req.params;
+
+  if (!listingId) {
+    res.status(400).json({ error: "listingId is required" });
+    return;
+  }
+
+  try {
+    const detail = await getCommercialDetail(listingId);
+    res.json(detail);
+  } catch (err) {
+    console.error("[browse/commercial/detail]", err);
+    res.status(502).json({ error: "Failed to get commercial listing detail" });
   }
 });
 
