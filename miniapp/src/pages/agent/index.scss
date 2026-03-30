@@ -8,9 +8,7 @@
 // Header
 .agent-header {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  padding: 48rpx 32rpx 140rpx;
-  position: relative;
-  z-index: 0;
+  padding: 48rpx 32rpx 32rpx;
 }
 
 .header-content {
@@ -83,11 +81,8 @@
 // Stats
 .stats-row {
   display: flex;
-  padding: 0 24rpx;
-  margin-top: -100rpx;
+  padding: 24rpx 24rpx 0;
   gap: 12rpx;
-  position: relative;
-  z-index: 1;
 }
 
 .stat-card {

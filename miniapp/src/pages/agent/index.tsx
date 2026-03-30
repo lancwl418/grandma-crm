@@ -110,10 +110,8 @@ export default function AgentHome() {
             </Button>
           </View>
         </View>
-      </View>
 
-      <ScrollView scrollY className='agent-scroll'>
-        {/* Stats Cards */}
+        {/* Stats Cards — inside header */}
         <View className='stats-row'>
           <View className='stat-card' onClick={goClients}>
             <Text className='stat-number'>{stats.totalClients}</Text>
@@ -132,7 +130,9 @@ export default function AgentHome() {
             <Text className='stat-label'>感兴趣</Text>
           </View>
         </View>
+      </View>
 
+      <ScrollView scrollY className='agent-scroll'>
         {/* Quick Actions Grid */}
         <View className='actions-section'>
           <Text className='section-title'>快捷操作</Text>
