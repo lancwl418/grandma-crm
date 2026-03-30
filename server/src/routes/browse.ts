@@ -869,7 +869,7 @@ browseRouter.get("/client-detail/:clientId", async (req, res) => {
     // Get client info
     const { data: client, error } = await supabaseAdmin
       .from("clients")
-      .select("id, remark_name, name, phone, wechat, status, urgency, tags, budget, needs")
+      .select("id, remark_name, name, phone, wechat, status, urgency, tags, budget_min, budget_max, requirement_notes")
       .eq("id", clientId)
       .single();
 
@@ -908,8 +908,8 @@ browseRouter.get("/client-detail/:clientId", async (req, res) => {
         status: client.status || "新客户",
         urgency: client.urgency || "medium",
         tags: client.tags || [],
-        budget: client.budget || "",
-        needs: client.needs || "",
+        budget: [client.budget_min, client.budget_max].filter(Boolean).join(" - ") || "",
+        needs: client.requirement_notes || "",
       },
       logs: (logs || []).map((l: any) => ({
         id: l.id,
