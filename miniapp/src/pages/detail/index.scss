@@ -305,7 +305,31 @@
   align-items: center;
   justify-content: center;
   width: 100rpx;
-  margin-right: 24rpx;
+  margin-right: 16rpx;
+}
+
+.share-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100rpx !important;
+  margin-right: 16rpx !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  font-size: inherit !important;
+}
+
+.share-icon {
+  font-size: 36rpx;
+  color: #2563eb;
+}
+
+.share-label {
+  font-size: 20rpx;
+  color: #64748b;
 }
 
 .fav-heart {

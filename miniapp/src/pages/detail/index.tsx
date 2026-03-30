@@ -1,5 +1,5 @@
 import { View, Text, Image, Swiper, SwiperItem, Button } from '@tarojs/components'
-import Taro, { useLoad, useRouter } from '@tarojs/taro'
+import Taro, { useLoad, useRouter, useShareAppMessage } from '@tarojs/taro'
 import { useState } from 'react'
 import { getListingDetail, trackView, getAgentInfo, sendMessage } from '../../utils/api'
 import { getClientId } from '../../utils/auth'
@@ -21,6 +21,19 @@ export default function Detail() {
   const [agentName, setAgentName] = useState('')
   const [agentPhone, setAgentPhone] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Share individual listing as WeChat card
+  useShareAppMessage(() => {
+    const address = detail?.address || decodeURIComponent(router.params.address || '')
+    const price = detail?.priceFormatted || `$${Number(router.params.price || 0).toLocaleString()}`
+    const imageUrl = photos[0] || decodeURIComponent(router.params.imageUrl || '')
+    const clientId = getClientId()
+    return {
+      title: `${price} | ${address}`,
+      path: `/pages/detail/index?zpid=${router.params.zpid}&address=${encodeURIComponent(address)}&price=${router.params.price || 0}&imageUrl=${encodeURIComponent(imageUrl)}`,
+      imageUrl: imageUrl,
+    }
+  })
 
   useLoad(async () => {
     const zpid = router.params.zpid
@@ -310,6 +323,10 @@ export default function Detail() {
           <Text className={`fav-heart ${isFavorite ? 'active' : ''}`}>{isFavorite ? '\u2665' : '\u2661'}</Text>
           <Text className='fav-label'>收藏</Text>
         </View>
+        <Button className='share-btn' openType='share'>
+          <Text className='share-icon'>↗</Text>
+          <Text className='share-label'>分享</Text>
+        </Button>
         <Button className='contact-btn' onClick={handleContact}>联系经纪人</Button>
       </View>
     </View>
