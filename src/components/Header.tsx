@@ -29,7 +29,7 @@ export default function Header({ isMobile }: Props) {
   return (
     <header className={`border-b border-slate-200 bg-white flex items-center justify-between px-4 ${isMobile ? "h-11" : "h-12"}`}>
       <div className="flex items-center gap-3">
-        <img src="/logo-wide.png" alt="Estate Epic" className="h-8" />
+        <img src="/logo-wide.png" alt="Estate Epic" className="h-10" />
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <div className="h-7 w-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">

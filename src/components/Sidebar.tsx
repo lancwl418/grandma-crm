@@ -48,7 +48,7 @@ export default function Sidebar({ collapsed, isMobile, onNavigate, onToggle }: P
           </button>
         ) : (
           <>
-            <img src="/logo-wide.png" alt="Estate Epic" className="h-8" />
+            <img src="/logo-wide.png" alt="Estate Epic" className="h-10" />
             <button
               type="button"
               onClick={onToggle}
