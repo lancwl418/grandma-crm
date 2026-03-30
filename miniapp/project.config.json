@@ -1,16 +1,15 @@
 {
-  "miniprogramRoot": "dist/",
-  "projectname": "estate-epic",
-  "description": "Estate Epic 找房小程序",
-  "appid": "wxf8830d3a10eb6b8b",
+  "miniprogramRoot": "./dist",
+  "projectname": "miniapp",
+  "description": "Estate Epic 小程序",
+  "appid": "touristappid",
   "setting": {
     "urlCheck": true,
     "es6": false,
     "enhance": false,
     "compileHotReLoad": false,
     "postcss": false,
-    "minified": false,
-    "bundle": false
+    "minified": false
   },
   "compileType": "miniprogram"
 }

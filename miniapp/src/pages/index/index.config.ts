@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "Estate Epic 找房",
-});
+  navigationBarTitleText: '首页'
+})
