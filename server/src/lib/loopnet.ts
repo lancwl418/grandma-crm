@@ -73,24 +73,45 @@ export async function searchCommercial(params: {
       ? `${BASE_URL}/loopnet/lease/advanceSearch`
       : `${BASE_URL}/loopnet/sale/advanceSearch`;
 
-  const body: Record<string, unknown> = { page, size: 20 };
+  // API requires ALL params including nulls
+  const body: Record<string, unknown> = {
+    page,
+    size: 20,
+    locationId: params.locationId || null,
+    locationType: params.locationType || null,
+    propertyType: params.propertyType || null,
+    sort: params.sort || null,
+    priceMin: params.priceMin ?? null,
+    priceMax: params.priceMax ?? null,
+    buildingSizeMin: params.buildingSizeMin ?? null,
+    buildingSizeMax: params.buildingSizeMax ?? null,
+    propertyUseVacantOwnerOnly: null,
+    propertyUseInvestmentOnly: null,
+    condos: null,
+    portfolios: null,
+    businessForSale: null,
+    lotSizeMin: null,
+    lotSizeMax: null,
+    roomsMin: null,
+    roomsMax: null,
+    capRateMin: null,
+    capRateMax: null,
+    yearBuiltMin: null,
+    yearBuiltMax: null,
+    dateEntered: null,
+    auctions: false,
+    excludePendingSales: null,
+    tripleNetNNN: null,
+    distressed: null,
+    tenancySingle: null,
+    tenancyMultiple: null,
+  };
 
-  // Use locationId if available (from autocomplete), otherwise city/state
-  if (params.locationId) {
-    body.locationId = params.locationId;
-    body.locationType = params.locationType || "city";
-  } else if (params.city) {
+  // Fallback to city/state if no locationId
+  if (!params.locationId && params.city) {
     body.city = params.city;
     if (params.state) body.state = params.state;
   }
-
-  // Filters
-  if (params.propertyType) body.propertyType = params.propertyType;
-  if (params.sort) body.sort = params.sort;
-  if (params.priceMin != null) body.priceMin = params.priceMin;
-  if (params.priceMax != null) body.priceMax = params.priceMax;
-  if (params.buildingSizeMin != null) body.buildingSizeMin = params.buildingSizeMin;
-  if (params.buildingSizeMax != null) body.buildingSizeMax = params.buildingSizeMax;
 
   const res = await fetch(endpoint, {
     method: "POST",
