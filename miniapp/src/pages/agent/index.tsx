@@ -3,6 +3,7 @@ import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
 import { useState, useEffect, useRef } from 'react'
 import { getAgentStats, getAgentActivity, getAgentFullProfile } from '../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../utils/auth'
+import AgentTabBar from '../../components/AgentTabBar'
 import './index.scss'
 
 interface Activity {
@@ -10,6 +11,7 @@ interface Activity {
   clientName: string
   action: string
   address: string
+  imageUrl?: string
   createdAt: string
 }
 
@@ -214,7 +216,11 @@ export default function AgentHome() {
                     top: 0, left: 0, right: 0,
                   }}
                 >
-                  <View className='activity-dot' />
+                  {a.imageUrl ? (
+                    <Image className='activity-thumb' src={a.imageUrl} mode='aspectFill' />
+                  ) : (
+                    <View className='activity-dot' />
+                  )}
                   <View className='activity-content'>
                     <Text className='activity-text'>
                       <Text className='activity-name'>{a.clientName}</Text>
@@ -231,6 +237,7 @@ export default function AgentHome() {
 
         <View className='bottom-spacer' />
       </ScrollView>
+      <AgentTabBar current={0} />
     </View>
   )
 }

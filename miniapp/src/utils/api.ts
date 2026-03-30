@@ -255,6 +255,7 @@ export function getAgentActivity(userId: string) {
     clientName: string
     action: string
     address: string
+    imageUrl?: string
     createdAt: string
   }> }>(`/api/browse/agent-activity/${userId}`)
 }

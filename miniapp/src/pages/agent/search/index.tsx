@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { searchListings, autocomplete, getAgentClients, type Listing } from '../../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../../utils/auth'
+import AgentTabBar from '../../../components/AgentTabBar'
 import './index.scss'
 
 const HOME_TYPE_LABELS: Record<string, string> = {
@@ -366,6 +367,8 @@ export default function AgentSearch() {
 
         <View className='bottom-spacer' />
       </ScrollView>
+
+      <AgentTabBar current={3} />
 
       {/* Client Picker Modal */}
       {showClientPicker && (

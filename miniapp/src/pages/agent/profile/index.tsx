@@ -3,6 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 import { getAgentFullProfile, updateAgentProfile } from '../../../utils/api'
 import { getAgentSession, isLoggedIn, getRole, logout } from '../../../utils/auth'
+import AgentTabBar from '../../../components/AgentTabBar'
 import './index.scss'
 
 export default function AgentProfile() {
@@ -193,6 +194,7 @@ export default function AgentProfile() {
 
         <View className='bottom-spacer' />
       </ScrollView>
+      <AgentTabBar current={4} />
     </View>
   )
 }

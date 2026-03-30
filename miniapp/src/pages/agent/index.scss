@@ -328,5 +328,13 @@
 }
 
 .bottom-spacer {
-  height: 48rpx;
+  height: 120rpx;
+}
+
+.activity-thumb {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+  margin-right: 16rpx;
 }

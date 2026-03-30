@@ -3,6 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { useState, useMemo } from 'react'
 import { getAgentVisitors } from '../../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../../utils/auth'
+import AgentTabBar from '../../../components/AgentTabBar'
 import './index.scss'
 
 interface Visitor {
@@ -132,6 +133,7 @@ export default function Visitors() {
           <View className='bottom-spacer' />
         </ScrollView>
       )}
+      <AgentTabBar current={1} />
     </View>
   )
 }
