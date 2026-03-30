@@ -143,7 +143,7 @@ export default function Detail() {
   const getRatingColor = (rating: number) => {
     if (rating >= 8) return 'rating-green'
     if (rating >= 5) return 'rating-yellow'
-    return 'rating-red'
+    return 'rating-gray'
   }
 
   if (loading && !detail) {
@@ -159,7 +159,8 @@ export default function Detail() {
   const schools: SchoolInfo[] = detail?.schools || []
   const zestimate = detail?.zestimate || detail?.zestimateFormatted
   const zillowUrl = detail?.url || (detail?.zpid ? `https://www.zillow.com/homedetails/${detail.zpid}_zpid/` : '')
-  const brokerName = detail?.brokerName || detail?.attributionInfo?.brokerName || ''
+  const brokerName = detail?.brokerName || detail?.attributionInfo?.brokerName || detail?.broker || ''
+  const mlsId = detail?.mlsId || ''
   const description = detail?.description || ''
   const yearBuilt = detail?.yearBuilt || ''
   const beds = detail?.beds || detail?.bedrooms || 0
@@ -276,10 +277,11 @@ export default function Detail() {
       )}
 
       {/* Broker */}
-      {brokerName ? (
+      {(brokerName || mlsId) ? (
         <View className='content-section'>
           <Text className='content-title'>经纪公司</Text>
-          <Text className='broker-text'>{brokerName}</Text>
+          {brokerName ? <Text className='broker-text'>{brokerName}</Text> : null}
+          {mlsId ? <Text className='mls-text'>MLS# {mlsId}</Text> : null}
         </View>
       ) : null}
 

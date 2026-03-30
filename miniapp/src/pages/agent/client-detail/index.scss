@@ -305,6 +305,22 @@
   margin-top: 8rpx;
 }
 
+// Share Button
+.share-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 16rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
 .bottom-spacer {
   height: 48rpx;
 }

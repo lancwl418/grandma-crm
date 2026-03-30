@@ -83,10 +83,7 @@
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 16rpx;
   padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .visitor-avatar {
@@ -164,8 +161,115 @@
   font-weight: 500;
 }
 
-.detail-link {
+.expand-arrow {
   font-size: 22rpx;
+  color: #2563eb;
+}
+
+// Expanded section
+.visitor-card-wrap {
+  margin-bottom: 16rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.visitor-expanded {
+  padding: 0 24rpx 24rpx;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.expanded-actions {
+  display: flex;
+  padding: 16rpx 0;
+  gap: 16rpx;
+}
+
+.expanded-action-btn {
+  background: #2563eb;
+  border-radius: 12rpx;
+  padding: 12rpx 24rpx;
+}
+
+.action-btn-text {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.browse-section {
+  margin-top: 8rpx;
+}
+
+.browse-title {
+  display: block;
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.browse-scroll {
+  white-space: nowrap;
+}
+
+.browse-card {
+  display: inline-block;
+  width: 260rpx;
+  background: #f8fafc;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-right: 16rpx;
+  vertical-align: top;
+}
+
+.browse-image {
+  width: 260rpx;
+  height: 160rpx;
+}
+
+.browse-placeholder {
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.browse-placeholder-text {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.browse-info {
+  padding: 10rpx 12rpx;
+  white-space: normal;
+}
+
+.browse-price {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.browse-addr {
+  display: block;
+  font-size: 20rpx;
+  color: #64748b;
+  margin-top: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse-empty {
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.browse-empty-text {
+  font-size: 24rpx;
   color: #94a3b8;
 }
 

@@ -46,8 +46,9 @@ export default function Search() {
   const [maxPrice, setMaxPrice] = useState('')
   const [bedIndex, setBedIndex] = useState(0)
   const [typeIndex, setTypeIndex] = useState(0)
-  const [displayCount, setDisplayCount] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
   const timerRef = useRef<any>(null)
+  const PAGE_SIZE = 20
 
   useDidShow(() => {
     // Check for pre-filled location
@@ -99,7 +100,7 @@ export default function Search() {
     setLoading(true)
     setSearched(true)
     setShowSuggestions(false)
-    setDisplayCount(10)
+    setCurrentPage(1)
 
     // Save to search history
     try {
@@ -146,7 +147,7 @@ export default function Search() {
   const handleFilterChange = (min: string, max: string, beds: number, typeIdx: number) => {
     const filtered = applyFilters(allListings, min, max, beds, typeIdx)
     setListings(filtered)
-    setDisplayCount(10)
+    setCurrentPage(1)
   }
 
   const goDetail = (listing: Listing) => {
@@ -156,13 +157,14 @@ export default function Search() {
     })
   }
 
-  const loadMore = () => {
-    if (displayCount < listings.length) {
-      setDisplayCount(prev => prev + 10)
-    }
+  const totalPages = Math.max(1, Math.ceil(listings.length / PAGE_SIZE))
+
+  const goPage = (page: number) => {
+    if (page < 1 || page > totalPages) return
+    setCurrentPage(page)
   }
 
-  const displayedListings = listings.slice(0, displayCount)
+  const displayedListings = listings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <View className='search-page'>
@@ -267,8 +269,6 @@ export default function Search() {
       <ScrollView
         scrollY
         className='results-scroll'
-        onScrollToLower={loadMore}
-        lowerThreshold={200}
       >
         {/* Hot Areas - show when not searched */}
         {!searched && (
@@ -342,14 +342,28 @@ export default function Search() {
           ))}
         </View>
 
-        {/* Load More */}
-        {displayCount < listings.length && (
-          <View className='load-more' onClick={loadMore}>
-            <Text className='load-more-text'>加载更多 ({listings.length - displayCount} 套)</Text>
+        {/* Pagination */}
+        {searched && listings.length > 0 && totalPages > 1 && (
+          <View className='pagination'>
+            <View
+              className={`page-btn ${currentPage <= 1 ? 'disabled' : ''}`}
+              onClick={() => goPage(currentPage - 1)}
+            >
+              <Text className='page-btn-text'>上一页</Text>
+            </View>
+            <View className='page-info'>
+              <Text className='page-info-text'>第{currentPage}页 / 共{totalPages}页</Text>
+            </View>
+            <View
+              className={`page-btn ${currentPage >= totalPages ? 'disabled' : ''}`}
+              onClick={() => goPage(currentPage + 1)}
+            >
+              <Text className='page-btn-text'>下一页</Text>
+            </View>
           </View>
         )}
 
-        {displayCount >= listings.length && searched && listings.length > 0 && (
+        {searched && listings.length > 0 && totalPages <= 1 && (
           <View className='list-end'>
             <Text className='list-end-text'>已显示全部房源</Text>
           </View>

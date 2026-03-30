@@ -1,7 +1,7 @@
-import { View, Text, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState, useMemo } from 'react'
-import { getAgentVisitors } from '../../../utils/api'
+import { getAgentVisitors, getBrowseHistory } from '../../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../../utils/auth'
 import AgentTabBar from '../../../components/AgentTabBar'
 import './index.scss'
@@ -36,10 +36,27 @@ function isWithin7Days(dateStr: string): boolean {
   return (now - then) < 7 * 24 * 3600 * 1000
 }
 
+interface BrowseItem {
+  zpid: string
+  address: string
+  price: number
+  imageUrl: string
+  createdAt: string
+}
+
+function formatPrice(price: number): string {
+  if (!price) return ''
+  if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`
+  if (price >= 1000) return `$${(price / 1000).toFixed(0)}K`
+  return `$${price}`
+}
+
 export default function Visitors() {
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('所有访客')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [browseCache, setBrowseCache] = useState<Record<string, BrowseItem[]>>({})
 
   useDidShow(() => {
     if (!isLoggedIn() || getRole() !== 'agent') {
@@ -73,8 +90,28 @@ export default function Visitors() {
     return visitors
   }, [visitors, activeTab])
 
+  const toggleExpand = async (clientId: string) => {
+    if (expandedId === clientId) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(clientId)
+    if (!browseCache[clientId]) {
+      try {
+        const res = await getBrowseHistory(clientId)
+        setBrowseCache(prev => ({ ...prev, [clientId]: res.views || [] }))
+      } catch {
+        setBrowseCache(prev => ({ ...prev, [clientId]: [] }))
+      }
+    }
+  }
+
   const goDetail = (clientId: string) => {
     Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${clientId}` })
+  }
+
+  const goListing = (zpid: string) => {
+    Taro.navigateTo({ url: `/pages/detail/index?zpid=${zpid}` })
   }
 
   return (
@@ -107,27 +144,68 @@ export default function Visitors() {
             <Text className='count-text'>共 {filteredVisitors.length} 位访客</Text>
           </View>
           {filteredVisitors.map((v) => (
-            <View key={v.clientId} className='visitor-card' onClick={() => goDetail(v.clientId)}>
-              <View className='visitor-avatar'>
-                <Text className='visitor-initial'>{(v.clientName || '访')[0]}</Text>
+            <View key={v.clientId} className='visitor-card-wrap'>
+              <View className='visitor-card' onClick={() => toggleExpand(v.clientId)}>
+                <View className='visitor-avatar'>
+                  <Text className='visitor-initial'>{(v.clientName || '访')[0]}</Text>
+                </View>
+                <View className='visitor-info'>
+                  <View className='visitor-name-row'>
+                    <Text className='visitor-name'>{v.clientName || '未知访客'}</Text>
+                    {v.hasInquiry && (
+                      <View className='inquiry-badge'>
+                        <Text className='inquiry-text'>有咨询</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className='visitor-meta'>最近活跃: {timeAgo(v.lastActive)}</Text>
+                </View>
+                <View className='visitor-right'>
+                  <View className='visitor-badge'>
+                    <Text className='badge-text'>{v.viewCount} 次浏览</Text>
+                  </View>
+                  <Text className='expand-arrow'>{expandedId === v.clientId ? '收起' : '展开'}</Text>
+                </View>
               </View>
-              <View className='visitor-info'>
-                <View className='visitor-name-row'>
-                  <Text className='visitor-name'>{v.clientName || '未知访客'}</Text>
-                  {v.hasInquiry && (
-                    <View className='inquiry-badge'>
-                      <Text className='inquiry-text'>有咨询</Text>
+              {expandedId === v.clientId && (
+                <View className='visitor-expanded'>
+                  <View className='expanded-actions'>
+                    <View className='expanded-action-btn' onClick={() => goDetail(v.clientId)}>
+                      <Text className='action-btn-text'>查看详情</Text>
+                    </View>
+                  </View>
+                  {browseCache[v.clientId] && browseCache[v.clientId].length > 0 ? (
+                    <View className='browse-section'>
+                      <Text className='browse-title'>浏览记录</Text>
+                      <ScrollView scrollX className='browse-scroll'>
+                        {browseCache[v.clientId].map((item, i) => (
+                          <View key={i} className='browse-card' onClick={() => goListing(item.zpid)}>
+                            {item.imageUrl ? (
+                              <Image className='browse-image' src={item.imageUrl} mode='aspectFill' lazyLoad />
+                            ) : (
+                              <View className='browse-image browse-placeholder'>
+                                <Text className='browse-placeholder-text'>暂无图片</Text>
+                              </View>
+                            )}
+                            <View className='browse-info'>
+                              <Text className='browse-price'>{formatPrice(item.price)}</Text>
+                              <Text className='browse-addr'>{item.address}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ) : browseCache[v.clientId] ? (
+                    <View className='browse-empty'>
+                      <Text className='browse-empty-text'>暂无浏览记录</Text>
+                    </View>
+                  ) : (
+                    <View className='browse-empty'>
+                      <Text className='browse-empty-text'>加载中...</Text>
                     </View>
                   )}
                 </View>
-                <Text className='visitor-meta'>最近活跃: {timeAgo(v.lastActive)}</Text>
-              </View>
-              <View className='visitor-right'>
-                <View className='visitor-badge'>
-                  <Text className='badge-text'>{v.viewCount} 次浏览</Text>
-                </View>
-                <Text className='detail-link'>查看详情 {'>'}</Text>
-              </View>
+              )}
             </View>
           ))}
           <View className='bottom-spacer' />

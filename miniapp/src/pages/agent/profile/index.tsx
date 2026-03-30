@@ -1,4 +1,4 @@
-import { View, Text, Input, ScrollView } from '@tarojs/components'
+import { View, Text, Input, ScrollView, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 import { getAgentFullProfile, updateAgentProfile } from '../../../utils/api'
@@ -97,9 +97,13 @@ export default function AgentProfile() {
       <ScrollView scrollY className='profile-scroll'>
         {/* Avatar Section */}
         <View className='avatar-section'>
-          <View className='avatar-large'>
-            <Text className='avatar-letter'>{(displayName || username || 'A')[0]}</Text>
-          </View>
+          {avatarUrl ? (
+            <Image className='avatar-image' src={avatarUrl} mode='aspectFill' />
+          ) : (
+            <View className='avatar-large'>
+              <Text className='avatar-letter'>{(displayName || username || 'A')[0]}</Text>
+            </View>
+          )}
           {avatarUrl ? (
             <Text className='avatar-hint'>WeChat 头像</Text>
           ) : (

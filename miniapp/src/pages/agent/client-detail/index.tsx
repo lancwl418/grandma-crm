@@ -69,6 +69,15 @@ export default function ClientDetailPage() {
     Taro.navigateTo({ url: `/pages/detail/index?zpid=${zpid}` })
   }
 
+  const handleShareLink = () => {
+    if (!clientId) return
+    const browseUrl = `pages/index/index?clientId=${clientId}`
+    Taro.setClipboardData({
+      data: browseUrl,
+      success: () => Taro.showToast({ title: '浏览链接已复制', icon: 'none' })
+    })
+  }
+
   if (loading) {
     return (
       <View className='detail-page'>
@@ -138,6 +147,13 @@ export default function ClientDetailPage() {
                 <Text className='info-empty'>暂无联系方式</Text>
               </View>
             )}
+          </View>
+        </View>
+
+        {/* Share Browse Link */}
+        <View className='section'>
+          <View className='share-btn' onClick={handleShareLink}>
+            <Text className='share-btn-text'>分享浏览链接</Text>
           </View>
         </View>
 
