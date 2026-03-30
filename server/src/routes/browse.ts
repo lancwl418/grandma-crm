@@ -466,6 +466,205 @@ browseRouter.post("/message", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Agent login (email + password via Supabase Auth) ─────────
+
+browseRouter.post("/agent-login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Email and password are required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  try {
+    // If input doesn't look like an email, try to look up by username
+    let loginEmail = email;
+    if (!email.includes("@")) {
+      const { data: profile } = await supabaseAdmin
+        .from("agent_profiles")
+        .select("user_id")
+        .or(`username.ilike.${email.trim()},display_name.ilike.${email.trim()}`)
+        .limit(1)
+        .single();
+
+      if (profile) {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profile.user_id);
+        loginEmail = userData?.user?.email ?? email;
+      }
+    }
+
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+      email: loginEmail,
+      password
+    });
+
+    if (error || !data.user) {
+      res.status(401).json({ error: "账号或密码错误" });
+      return;
+    }
+
+    // Get display name from profile
+    let displayName = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "Agent";
+    const { data: profile } = await supabaseAdmin
+      .from("agent_profiles")
+      .select("display_name")
+      .eq("user_id", data.user.id)
+      .single();
+
+    if (profile?.display_name) {
+      displayName = profile.display_name;
+    }
+
+    res.json({
+      userId: data.user.id,
+      email: data.user.email || loginEmail,
+      displayName
+    });
+  } catch (err) {
+    console.error("[agent-login]", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// ── Agent stats ──────────────────────────────────────────────
+
+browseRouter.get("/agent-stats/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({ totalClients: 0, visitors: 0, interested: 0 });
+    return;
+  }
+
+  try {
+    // Total clients
+    const { count: totalClients } = await supabaseAdmin
+      .from("clients")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    // Visitors (clients with tag '网页访客' or '小程序访客')
+    const { count: visitors } = await supabaseAdmin
+      .from("clients")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .overlaps("tags", ["网页访客", "小程序访客"]);
+
+    // Interested (status = '意向强烈' or '看房中')
+    const { count: interested } = await supabaseAdmin
+      .from("clients")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .in("status", ["意向强烈", "看房中"]);
+
+    res.json({
+      totalClients: totalClients || 0,
+      visitors: visitors || 0,
+      interested: interested || 0
+    });
+  } catch (err) {
+    console.error("[agent-stats]", err);
+    res.json({ totalClients: 0, visitors: 0, interested: 0 });
+  }
+});
+
+// ── Agent visitors (clients with browse activity) ────────────
+
+browseRouter.get("/agent-visitors/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({ visitors: [] });
+    return;
+  }
+
+  try {
+    // Get all clients for this agent
+    const { data: clients } = await supabaseAdmin
+      .from("clients")
+      .select("id, remark_name, name")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+
+    if (!clients || clients.length === 0) {
+      res.json({ visitors: [] });
+      return;
+    }
+
+    const clientIds = clients.map((c: any) => c.id);
+
+    // Get browse activity grouped by client
+    const { data: views } = await supabaseAdmin
+      .from("client_listing_views")
+      .select("client_id, created_at")
+      .in("client_id", clientIds)
+      .order("created_at", { ascending: false });
+
+    // Aggregate per client
+    const viewMap: Record<string, { count: number; lastActive: string }> = {};
+    for (const v of views || []) {
+      if (!viewMap[v.client_id]) {
+        viewMap[v.client_id] = { count: 0, lastActive: v.created_at };
+      }
+      viewMap[v.client_id].count++;
+    }
+
+    // Only return clients that have views
+    const visitors = clients
+      .filter((c: any) => viewMap[c.id])
+      .map((c: any) => ({
+        clientId: c.id,
+        clientName: c.remark_name || c.name || "未知访客",
+        lastActive: viewMap[c.id].lastActive,
+        viewCount: viewMap[c.id].count
+      }));
+
+    res.json({ visitors });
+  } catch (err) {
+    console.error("[agent-visitors]", err);
+    res.json({ visitors: [] });
+  }
+});
+
+// ── Agent clients list ───────────────────────────────────────
+
+browseRouter.get("/agent-clients/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({ clients: [] });
+    return;
+  }
+
+  try {
+    const { data: clients } = await supabaseAdmin
+      .from("clients")
+      .select("id, remark_name, name, phone, status, urgency")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(100);
+
+    const result = (clients || []).map((c: any) => ({
+      id: c.id,
+      name: c.remark_name || c.name || "未命名客户",
+      phone: c.phone || "",
+      status: c.status || "新客户",
+      urgency: c.urgency || "medium"
+    }));
+
+    res.json({ clients: result });
+  } catch (err) {
+    console.error("[agent-clients]", err);
+    res.json({ clients: [] });
+  }
+});
+
 // ── Get client browse history (for CRM side) ────────────────
 
 browseRouter.get("/history/:clientId", async (req, res) => {

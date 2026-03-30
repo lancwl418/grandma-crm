@@ -2,7 +2,7 @@ import { View, Text, Image, Button } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 import { clientLoginByPhone, getBrowseHistory, getAgentInfo } from '../../utils/api'
-import { getClientId, setClientId, getUserInfo, setUserInfo, clearAuth, isLoggedIn, type StoredUserInfo } from '../../utils/auth'
+import { getClientId, setClientId, getUserInfo, setUserInfo, clearAuth, isLoggedIn, getRole, type StoredUserInfo } from '../../utils/auth'
 import './index.scss'
 
 export default function Profile() {
@@ -16,6 +16,11 @@ export default function Profile() {
   const [agentPhone, setAgentPhone] = useState('')
 
   useDidShow(() => {
+    // If agent, redirect to agent home
+    if (getRole() === 'agent') {
+      Taro.redirectTo({ url: '/pages/agent/index' })
+      return
+    }
     const stored = getUserInfo()
     if (stored && isLoggedIn()) {
       setLoggedIn(true)
@@ -116,6 +121,9 @@ export default function Profile() {
           setFavCount(0)
           setAgentName('')
           Taro.showToast({ title: '已退出登录', icon: 'none' })
+          setTimeout(() => {
+            Taro.redirectTo({ url: '/pages/login/index' })
+          }, 500)
         }
       }
     })

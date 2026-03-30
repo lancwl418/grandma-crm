@@ -15,7 +15,8 @@ function request<T>(url: string, options: { method?: 'GET' | 'POST'; data?: any 
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data as T)
         } else {
-          reject(new Error(`Request failed: ${res.statusCode}`))
+          const errMsg = (res.data as any)?.error || `Request failed: ${res.statusCode}`
+          reject(new Error(errMsg))
         }
       },
       fail: (err) => reject(err)
@@ -130,4 +131,27 @@ export function registerClient(data: {
 // ── Client name ─────────────────────────────────
 export function getClientName(clientId: string) {
   return request<{ name: string }>(`/api/browse/client-name/${clientId}`)
+}
+
+// ── Agent login ─────────────────────────────────
+export function agentLogin(email: string, password: string) {
+  return request<{ userId: string; email: string; displayName: string }>('/api/browse/agent-login', {
+    method: 'POST',
+    data: { email, password }
+  })
+}
+
+// ── Agent stats ─────────────────────────────────
+export function getAgentStats(userId: string) {
+  return request<{ totalClients: number; visitors: number; interested: number }>(`/api/browse/agent-stats/${userId}`)
+}
+
+// ── Agent visitors ──────────────────────────────
+export function getAgentVisitors(userId: string) {
+  return request<{ visitors: Array<{ clientId: string; clientName: string; lastActive: string; viewCount: number }> }>(`/api/browse/agent-visitors/${userId}`)
+}
+
+// ── Agent clients ───────────────────────────────
+export function getAgentClients(userId: string) {
+  return request<{ clients: Array<{ id: string; name: string; phone: string; status: string; urgency: string }> }>(`/api/browse/agent-clients/${userId}`)
 }

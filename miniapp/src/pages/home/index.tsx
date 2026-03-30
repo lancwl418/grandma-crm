@@ -2,7 +2,7 @@ import { View, Text, Image, ScrollView } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 import { getAgentInfo, getBrowseHistory } from '../../utils/api'
-import { getClientId } from '../../utils/auth'
+import { getClientId, isLoggedIn, getRole } from '../../utils/auth'
 import './index.scss'
 
 const HOT_AREAS = [
@@ -31,6 +31,16 @@ export default function Home() {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
 
   useDidShow(() => {
+    // Redirect if not logged in
+    if (!isLoggedIn()) {
+      Taro.redirectTo({ url: '/pages/login/index' })
+      return
+    }
+    // If agent, redirect to agent home
+    if (getRole() === 'agent') {
+      Taro.redirectTo({ url: '/pages/agent/index' })
+      return
+    }
     loadData()
   })
 
