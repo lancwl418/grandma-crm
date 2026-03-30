@@ -1,7 +1,7 @@
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
-import { useState } from 'react'
-import { getAgentStats, getAgentActivity } from '../../utils/api'
+import { useState, useEffect, useRef } from 'react'
+import { getAgentStats, getAgentActivity, getAgentFullProfile } from '../../utils/api'
 import { getAgentSession, isLoggedIn, getRole } from '../../utils/auth'
 import './index.scss'
 
@@ -28,6 +28,8 @@ function timeAgo(dateStr: string): string {
 
 export default function AgentHome() {
   const [agentName, setAgentName] = useState('')
+  const [agentAvatar, setAgentAvatar] = useState('')
+  const [activityIdx, setActivityIdx] = useState(0)
   const [agentUserId, setAgentUserId] = useState('')
   const [stats, setStats] = useState({ totalClients: 0, newThisMonth: 0, visitors: 0, interested: 0 })
   const [activities, setActivities] = useState<Activity[]>([])
@@ -43,6 +45,10 @@ export default function AgentHome() {
       setAgentUserId(session.userId)
       loadStats(session.userId)
       loadActivity(session.userId)
+      // Load avatar
+      getAgentFullProfile(session.userId).then((p) => {
+        if (p.avatarUrl) setAgentAvatar(p.avatarUrl)
+      }).catch(() => {})
     }
   })
 
@@ -76,6 +82,15 @@ export default function AgentHome() {
     }
   }
 
+  // Auto-scroll activity feed
+  useEffect(() => {
+    if (activities.length <= 1) return
+    const timer = setInterval(() => {
+      setActivityIdx((i) => (i + 1) % activities.length)
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [activities.length])
+
   const goVisitors = () => {
     Taro.navigateTo({ url: '/pages/agent/visitors/index' })
   }
@@ -97,9 +112,13 @@ export default function AgentHome() {
       {/* Header */}
       <View className='agent-header'>
         <View className='header-content'>
-          <View className='avatar-circle'>
-            <Text className='avatar-text'>{agentName ? agentName[0] : 'A'}</Text>
-          </View>
+          {agentAvatar ? (
+            <Image className='avatar-img' src={agentAvatar} mode='aspectFill' />
+          ) : (
+            <View className='avatar-circle'>
+              <Text className='avatar-text'>{agentName ? agentName[0] : 'A'}</Text>
+            </View>
+          )}
           <View className='header-info'>
             <Text className='welcome-text'>欢迎回来</Text>
             <Text className='agent-name-text'>{agentName || '经纪人'}</Text>
@@ -172,35 +191,43 @@ export default function AgentHome() {
           <Text className='share-hint'>分享小程序给客户，自动关联到您的账号</Text>
         </View>
 
-        {/* Activity Feed */}
-        <View className='activity-section'>
-          <Text className='section-title'>最近动态</Text>
-          {activities.length === 0 ? (
-            <View className='activity-empty'>
-              <Text className='activity-empty-text'>暂无客户动态</Text>
-            </View>
-          ) : (
-            <View className='activity-list'>
+        {/* Activity Feed — sliding */}
+        {activities.length > 0 && (
+          <View className='activity-section'>
+            <Text className='section-title'>最近动态</Text>
+            <View
+              className='activity-slider'
+              onClick={() => {
+                const a = activities[activityIdx]
+                if (a) Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })
+              }}
+            >
               {activities.map((a, i) => (
                 <View
                   key={i}
-                  className='activity-item'
-                  onClick={() => Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })}
+                  className='activity-slide'
+                  style={{
+                    transform: `translateY(${(i - activityIdx) * 100}%)`,
+                    opacity: i === activityIdx ? 1 : 0,
+                    transition: 'all 0.5s ease',
+                    position: i === 0 ? 'relative' : 'absolute',
+                    top: 0, left: 0, right: 0,
+                  }}
                 >
                   <View className='activity-dot' />
                   <View className='activity-content'>
                     <Text className='activity-text'>
                       <Text className='activity-name'>{a.clientName}</Text>
                       {' '}{a.action}{' '}
-                      <Text className='activity-address'>{a.address}</Text>
                     </Text>
+                    <Text className='activity-address-text'>{a.address}</Text>
                     <Text className='activity-time'>{timeAgo(a.createdAt)}</Text>
                   </View>
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         <View className='bottom-spacer' />
       </ScrollView>

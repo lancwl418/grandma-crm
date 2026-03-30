@@ -16,6 +16,13 @@
   align-items: center;
 }
 
+.avatar-img {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
+}
+
 .avatar-circle {
   width: 96rpx;
   height: 96rpx;
@@ -242,6 +249,27 @@
 .activity-empty-text {
   font-size: 28rpx;
   color: #94a3b8;
+}
+
+.activity-slider {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  position: relative;
+  overflow: hidden;
+  height: 120rpx;
+}
+
+.activity-slide {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.activity-address-text {
+  font-size: 24rpx;
+  color: #64748b;
+  margin-top: 4rpx;
 }
 
 .activity-list {
