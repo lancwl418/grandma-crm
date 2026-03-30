@@ -167,6 +167,55 @@ browseRouter.post("/verify-phone", async (req, res) => {
   });
 });
 
+// ── WeChat login (code2session) ──────────────────────────────
+
+browseRouter.post("/wx-login", async (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    res.status(400).json({ error: "code is required" });
+    return;
+  }
+
+  const appId = process.env.WX_APPID;
+  const secret = process.env.WX_SECRET;
+  if (!appId || !secret) {
+    res.status(500).json({ error: "WeChat config not set" });
+    return;
+  }
+
+  try {
+    const wxRes = await fetch(
+      `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${secret}&js_code=${code}&grant_type=authorization_code`
+    );
+    const wxData = await wxRes.json() as { openid?: string; session_key?: string; errcode?: number };
+
+    if (!wxData.openid) {
+      res.status(400).json({ error: "WeChat login failed", detail: wxData });
+      return;
+    }
+
+    // Find existing client by openid (stored in wechat field)
+    let clientId: string | null = null;
+    if (supabaseAdmin) {
+      const { data } = await supabaseAdmin
+        .from("clients")
+        .select("id")
+        .eq("wechat", `wx:${wxData.openid}`)
+        .limit(1)
+        .single();
+      clientId = data?.id ?? null;
+    }
+
+    res.json({
+      openid: wxData.openid,
+      clientId,
+    });
+  } catch (err) {
+    console.error("[wx-login]", err);
+    res.status(502).json({ error: "WeChat API error" });
+  }
+});
+
 // ── Client login by phone ────────────────────────────────────
 
 browseRouter.post("/client-login", async (req, res) => {
