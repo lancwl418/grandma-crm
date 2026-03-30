@@ -182,15 +182,92 @@ export function agentRegister(data: {
 
 // ── Agent stats ─────────────────────────────────
 export function getAgentStats(userId: string) {
-  return request<{ totalClients: number; visitors: number; interested: number }>(`/api/browse/agent-stats/${userId}`)
+  return request<{ totalClients: number; visitors: number; interested: number; newThisMonth?: number }>(`/api/browse/agent-stats/${userId}`)
 }
 
 // ── Agent visitors ──────────────────────────────
 export function getAgentVisitors(userId: string) {
-  return request<{ visitors: Array<{ clientId: string; clientName: string; lastActive: string; viewCount: number }> }>(`/api/browse/agent-visitors/${userId}`)
+  return request<{ visitors: Array<{ clientId: string; clientName: string; lastActive: string; viewCount: number; hasInquiry?: boolean }> }>(`/api/browse/agent-visitors/${userId}`)
 }
 
 // ── Agent clients ───────────────────────────────
 export function getAgentClients(userId: string) {
   return request<{ clients: Array<{ id: string; name: string; phone: string; status: string; urgency: string }> }>(`/api/browse/agent-clients/${userId}`)
+}
+
+// ── Client detail (for agent CRM) ───────────────
+export interface ClientDetail {
+  client: {
+    id: string
+    name: string
+    phone: string
+    wechat: string
+    status: string
+    urgency: string
+    tags: string[]
+    budget: string
+    needs: string
+  }
+  logs: Array<{
+    id: string
+    date: string
+    content: string
+    nextAction: string
+  }>
+  browseHistory: Array<{
+    zpid: string
+    address: string
+    price: number
+    imageUrl: string
+    createdAt: string
+  }>
+  favorites: Array<{
+    zpid: string
+    address: string
+    price: number
+    imageUrl: string
+    createdAt: string
+  }>
+}
+
+export function getClientDetail(clientId: string) {
+  return request<ClientDetail>(`/api/browse/client-detail/${clientId}`)
+}
+
+// ── Update agent profile ────────────────────────
+export function updateAgentProfile(userId: string, data: {
+  displayName?: string
+  phone?: string
+  wechat?: string
+  email?: string
+  title?: string
+}) {
+  return request<{ ok: boolean }>('/api/browse/update-agent-profile', {
+    method: 'POST',
+    data: { userId, ...data }
+  })
+}
+
+// ── Agent activity feed ─────────────────────────
+export function getAgentActivity(userId: string) {
+  return request<{ activities: Array<{
+    clientId: string
+    clientName: string
+    action: string
+    address: string
+    createdAt: string
+  }> }>(`/api/browse/agent-activity/${userId}`)
+}
+
+// ── Agent full profile (for editing) ────────────
+export function getAgentFullProfile(userId: string) {
+  return request<{
+    displayName: string
+    username: string
+    phone: string
+    wechat: string
+    email: string
+    title: string
+    avatarUrl: string
+  }>(`/api/browse/agent-full-profile/${userId}`)
 }

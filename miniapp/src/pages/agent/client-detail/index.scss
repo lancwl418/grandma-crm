@@ -1,0 +1,310 @@
+.detail-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.detail-scroll {
+  height: 100vh;
+}
+
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #64748b;
+}
+
+// Client Header
+.client-header {
+  background: #fff;
+  padding: 32rpx 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+}
+
+.header-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.header-initial {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.header-name {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12rpx;
+}
+
+.header-badges {
+  display: flex;
+  gap: 12rpx;
+}
+
+.badge {
+  border-radius: 16rpx;
+  padding: 6rpx 16rpx;
+}
+
+.badge-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+// Section
+.section {
+  padding: 24rpx 24rpx 0;
+}
+
+.section-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16rpx;
+}
+
+// Info Card
+.info-card {
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #64748b;
+  width: 100rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1e293b;
+
+  &.link {
+    color: #2563eb;
+  }
+}
+
+.info-action {
+  font-size: 24rpx;
+  color: #2563eb;
+  font-weight: 500;
+  margin-left: 16rpx;
+}
+
+.info-empty {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+// Tags
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+}
+
+.tag {
+  background: #eff6ff;
+  border-radius: 12rpx;
+  padding: 8rpx 16rpx;
+}
+
+.tag-text {
+  font-size: 24rpx;
+  color: #2563eb;
+}
+
+// Listing Scroll
+.listing-scroll {
+  white-space: nowrap;
+  padding-bottom: 8rpx;
+}
+
+.listing-card {
+  display: inline-block;
+  width: 320rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-right: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  vertical-align: top;
+  position: relative;
+}
+
+.listing-image {
+  width: 320rpx;
+  height: 200rpx;
+}
+
+.listing-placeholder {
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.listing-info {
+  padding: 12rpx 16rpx;
+  white-space: normal;
+}
+
+.listing-price {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.listing-addr {
+  display: block;
+  font-size: 22rpx;
+  color: #64748b;
+  margin-top: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listing-time {
+  display: block;
+  font-size: 20rpx;
+  color: #94a3b8;
+  padding: 0 16rpx 12rpx;
+}
+
+.fav-mark {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-icon {
+  font-size: 28rpx;
+  color: #ef4444;
+}
+
+// Logs
+.empty-section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 48rpx;
+  text-align: center;
+}
+
+.empty-section-text {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+.logs-list {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.log-item {
+  display: flex;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.log-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #2563eb;
+  margin-top: 12rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.log-content {
+  flex: 1;
+}
+
+.log-date {
+  display: block;
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-bottom: 6rpx;
+}
+
+.log-text {
+  display: block;
+  font-size: 26rpx;
+  color: #334155;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.log-next {
+  display: block;
+  font-size: 24rpx;
+  color: #2563eb;
+  margin-top: 8rpx;
+}
+
+.bottom-spacer {
+  height: 48rpx;
+}

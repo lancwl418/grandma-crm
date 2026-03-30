@@ -854,3 +854,227 @@ browseRouter.post("/agent-register", async (req, res) => {
     res.status(500).json({ error: "注册失败" });
   }
 });
+
+// ── Client detail (for agent CRM) ──────────────────────────────
+
+browseRouter.get("/client-detail/:clientId", async (req, res) => {
+  const { clientId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  try {
+    // Get client info
+    const { data: client, error } = await supabaseAdmin
+      .from("clients")
+      .select("id, remark_name, name, phone, wechat, status, urgency, tags, budget, needs")
+      .eq("id", clientId)
+      .single();
+
+    if (error || !client) {
+      res.status(404).json({ error: "Client not found" });
+      return;
+    }
+
+    // Get recent logs
+    const { data: logs } = await supabaseAdmin
+      .from("client_logs")
+      .select("id, date, content, next_action")
+      .eq("client_id", clientId)
+      .order("date", { ascending: false })
+      .limit(20);
+
+    // Get browse history
+    const { data: views } = await supabaseAdmin
+      .from("client_listing_views")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    // Separate favorites
+    const allViews = views || [];
+    const favorites = allViews.filter((v: any) => v.action === "favorite");
+    const browseHistory = allViews.filter((v: any) => v.action === "view");
+
+    res.json({
+      client: {
+        id: client.id,
+        name: client.remark_name || client.name || "未命名客户",
+        phone: client.phone || "",
+        wechat: client.wechat || "",
+        status: client.status || "新客户",
+        urgency: client.urgency || "medium",
+        tags: client.tags || [],
+        budget: client.budget || "",
+        needs: client.needs || "",
+      },
+      logs: (logs || []).map((l: any) => ({
+        id: l.id,
+        date: l.date,
+        content: l.content,
+        nextAction: l.next_action || "",
+      })),
+      browseHistory: browseHistory.map((v: any) => ({
+        zpid: v.zpid,
+        address: v.address,
+        price: v.price,
+        imageUrl: v.image_url,
+        createdAt: v.created_at,
+      })),
+      favorites: favorites.map((v: any) => ({
+        zpid: v.zpid,
+        address: v.address,
+        price: v.price,
+        imageUrl: v.image_url,
+        createdAt: v.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error("[client-detail]", err);
+    res.status(500).json({ error: "Failed to get client detail" });
+  }
+});
+
+// ── Update agent profile ──────────────────────────────────────
+
+browseRouter.post("/update-agent-profile", async (req, res) => {
+  const { userId, displayName, phone, wechat, email, title } = req.body;
+
+  if (!userId) {
+    res.status(400).json({ error: "userId is required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  try {
+    const updates: Record<string, string | null> = {};
+    if (displayName !== undefined) updates.display_name = displayName;
+    if (phone !== undefined) updates.phone = phone;
+    if (wechat !== undefined) updates.wechat = wechat;
+    if (email !== undefined) updates.email = email;
+    if (title !== undefined) updates.title = title;
+
+    const { error } = await supabaseAdmin
+      .from("agent_profiles")
+      .update(updates)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("[update-agent-profile]", error.message);
+      res.status(500).json({ error: "Failed to update profile" });
+      return;
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[update-agent-profile]", err);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// ── Agent activity feed ─────────────────────────────────────────
+
+browseRouter.get("/agent-activity/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({ activities: [] });
+    return;
+  }
+
+  try {
+    // Get all clients for this agent
+    const { data: clients } = await supabaseAdmin
+      .from("clients")
+      .select("id, remark_name, name")
+      .eq("user_id", userId);
+
+    if (!clients || clients.length === 0) {
+      res.json({ activities: [] });
+      return;
+    }
+
+    const clientIds = clients.map((c: any) => c.id);
+    const clientMap: Record<string, string> = {};
+    for (const c of clients) {
+      clientMap[c.id] = c.remark_name || c.name || "未知客户";
+    }
+
+    // Get recent browse activity
+    const { data: views } = await supabaseAdmin
+      .from("client_listing_views")
+      .select("client_id, address, action, created_at")
+      .in("client_id", clientIds)
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    const activities = (views || []).map((v: any) => {
+      const clientName = clientMap[v.client_id] || "未知客户";
+      const actionText = v.action === "favorite" ? "收藏了" : v.action === "inquiry" ? "咨询了" : "浏览了";
+      return {
+        clientId: v.client_id,
+        clientName,
+        action: actionText,
+        address: v.address || "某房源",
+        createdAt: v.created_at,
+      };
+    });
+
+    res.json({ activities });
+  } catch (err) {
+    console.error("[agent-activity]", err);
+    res.json({ activities: [] });
+  }
+});
+
+// ── Agent full profile (for editing) ─────────────────────────────
+
+browseRouter.get("/agent-full-profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!supabaseAdmin) {
+    res.json({});
+    return;
+  }
+
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("agent_profiles")
+      .select("display_name, username, phone, wechat, email, title, avatar_url")
+      .eq("user_id", userId)
+      .single();
+
+    if (!profile) {
+      res.json({
+        displayName: "",
+        username: "",
+        phone: "",
+        wechat: "",
+        email: "",
+        title: "",
+        avatarUrl: "",
+      });
+      return;
+    }
+
+    res.json({
+      displayName: profile.display_name || "",
+      username: profile.username || "",
+      phone: profile.phone || "",
+      wechat: profile.wechat || "",
+      email: profile.email || "",
+      title: profile.title || "",
+      avatarUrl: profile.avatar_url || "",
+    });
+  } catch (err) {
+    console.error("[agent-full-profile]", err);
+    res.json({});
+  }
+});

@@ -1,8 +1,66 @@
 .clients-page {
   min-height: 100vh;
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
 }
 
+// Search Bar
+.search-bar {
+  padding: 20rpx 24rpx;
+  background: #fff;
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 24rpx;
+  height: 76rpx;
+  padding: 0 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1e293b;
+}
+
+// Filter Tabs
+.filter-tabs {
+  display: flex;
+  padding: 0 24rpx 16rpx;
+  background: #fff;
+  gap: 16rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.filter-tab {
+  padding: 12rpx 28rpx;
+  border-radius: 32rpx;
+  background: #f1f5f9;
+
+  &.active {
+    background: #2563eb;
+  }
+}
+
+.tab-text {
+  font-size: 26rpx;
+  color: #64748b;
+  font-weight: 500;
+
+  &.active {
+    color: #fff;
+  }
+}
+
+// Loading / Empty
 .loading-wrap,
 .empty-wrap {
   display: flex;
@@ -31,9 +89,20 @@
   text-align: center;
 }
 
+// Client List
 .client-list {
-  padding: 24rpx;
-  min-height: 100vh;
+  flex: 1;
+  height: calc(100vh - 260rpx);
+  padding: 0 24rpx;
+}
+
+.list-count {
+  padding: 20rpx 0 8rpx;
+}
+
+.count-text {
+  font-size: 24rpx;
+  color: #94a3b8;
 }
 
 .client-card {
@@ -69,14 +138,26 @@
   overflow: hidden;
 }
 
+.client-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
 .client-name {
-  display: block;
   font-size: 30rpx;
   font-weight: 600;
   color: #1e293b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.urgency-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .client-phone {
@@ -96,4 +177,14 @@
 .status-text {
   font-size: 24rpx;
   font-weight: 500;
+}
+
+.card-arrow {
+  font-size: 28rpx;
+  color: #cbd5e1;
+  margin-left: 8rpx;
+}
+
+.bottom-spacer {
+  height: 48rpx;
 }

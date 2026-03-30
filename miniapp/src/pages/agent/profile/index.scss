@@ -1,0 +1,144 @@
+.profile-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.profile-scroll {
+  height: 100vh;
+}
+
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #64748b;
+}
+
+// Avatar Section
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 0 32rpx;
+  background: #fff;
+  margin-bottom: 16rpx;
+}
+
+.avatar-large {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16rpx;
+}
+
+.avatar-letter {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.avatar-hint {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+// Form
+.form-section {
+  background: #fff;
+  padding: 0 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.form-group {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.form-input-wrap {
+  background: #f8fafc;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+
+  &.readonly {
+    background: #f1f5f9;
+  }
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1e293b;
+}
+
+.form-readonly {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+// Buttons
+.button-section {
+  padding: 0 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 16rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.disabled {
+    opacity: 0.6;
+  }
+}
+
+.save-btn-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.logout-btn {
+  background: #fff;
+  border-radius: 16rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.logout-text {
+  font-size: 30rpx;
+  color: #ef4444;
+}
+
+.bottom-spacer {
+  height: 48rpx;
+}

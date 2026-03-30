@@ -7,7 +7,10 @@ export default defineAppConfig({
     'pages/profile/index',
     'pages/agent/index',
     'pages/agent/visitors/index',
-    'pages/agent/clients/index'
+    'pages/agent/clients/index',
+    'pages/agent/client-detail/index',
+    'pages/agent/search/index',
+    'pages/agent/profile/index'
   ],
   window: {
     backgroundTextStyle: 'light',
