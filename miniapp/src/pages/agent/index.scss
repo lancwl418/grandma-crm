@@ -45,9 +45,20 @@
 
 .brand-title {
   font-size: 28rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 1rpx;
   font-weight: 700;
   color: #272523;
+}
+
+.brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-subtitle {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: #91877a;
 }
 
 .brand-notice {
