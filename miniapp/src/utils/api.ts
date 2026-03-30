@@ -141,6 +141,45 @@ export function agentLogin(email: string, password: string) {
   })
 }
 
+// ── WeChat login (code → openid) ────────────────
+export function wxLogin(code: string) {
+  return request<{
+    openid: string
+    clientId: string | null
+    agentUserId: string | null
+    agentDisplayName: string | null
+  }>('/api/browse/wx-login', {
+    method: 'POST',
+    data: { code }
+  })
+}
+
+// ── Agent bind (link existing account) ──────────
+export function agentBind(data: {
+  username: string
+  openid: string
+  nickName: string
+  avatarUrl: string
+}) {
+  return request<{ userId: string; displayName: string }>('/api/browse/agent-bind', {
+    method: 'POST',
+    data
+  })
+}
+
+// ── Agent register (new account) ────────────────
+export function agentRegister(data: {
+  username: string
+  displayName: string
+  avatarUrl: string
+  openid: string
+}) {
+  return request<{ userId: string; displayName: string }>('/api/browse/agent-register', {
+    method: 'POST',
+    data
+  })
+}
+
 // ── Agent stats ─────────────────────────────────
 export function getAgentStats(userId: string) {
   return request<{ totalClients: number; visitors: number; interested: number }>(`/api/browse/agent-stats/${userId}`)

@@ -196,6 +196,9 @@ browseRouter.post("/wx-login", async (req, res) => {
 
     // Find existing client by openid (stored in wechat field)
     let clientId: string | null = null;
+    let agentUserId: string | null = null;
+    let agentDisplayName: string | null = null;
+
     if (supabaseAdmin) {
       const { data } = await supabaseAdmin
         .from("clients")
@@ -204,11 +207,26 @@ browseRouter.post("/wx-login", async (req, res) => {
         .limit(1)
         .single();
       clientId = data?.id ?? null;
+
+      // Also check if this openid is bound to an agent
+      const { data: agentProfile } = await supabaseAdmin
+        .from("agent_profiles")
+        .select("user_id, display_name")
+        .eq("wx_openid", wxData.openid)
+        .limit(1)
+        .single();
+
+      if (agentProfile) {
+        agentUserId = agentProfile.user_id;
+        agentDisplayName = agentProfile.display_name || null;
+      }
     }
 
     res.json({
       openid: wxData.openid,
       clientId,
+      agentUserId,
+      agentDisplayName,
     });
   } catch (err) {
     console.error("[wx-login]", err);
@@ -713,4 +731,126 @@ browseRouter.get("/history/:clientId", async (req, res) => {
   }
 
   res.json({ views });
+});
+
+// ── Agent bind (link WeChat to existing agent account) ──────
+
+browseRouter.post("/agent-bind", async (req, res) => {
+  const { username, openid, nickName, avatarUrl } = req.body;
+
+  if (!username || !openid) {
+    res.status(400).json({ error: "username and openid are required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  try {
+    // Find agent_profiles by username
+    const { data: profile, error } = await supabaseAdmin
+      .from("agent_profiles")
+      .select("user_id, display_name")
+      .ilike("username", username.trim())
+      .limit(1)
+      .single();
+
+    if (error || !profile) {
+      res.status(404).json({ error: "未找到该用户名对应的经纪人账号" });
+      return;
+    }
+
+    // Update wx_openid on the profile
+    const updates: Record<string, string> = { wx_openid: openid };
+    if (avatarUrl) updates.avatar_url = avatarUrl;
+
+    await supabaseAdmin
+      .from("agent_profiles")
+      .update(updates)
+      .eq("user_id", profile.user_id);
+
+    res.json({
+      userId: profile.user_id,
+      displayName: profile.display_name || nickName || username,
+    });
+  } catch (err) {
+    console.error("[agent-bind]", err);
+    res.status(500).json({ error: "关联失败" });
+  }
+});
+
+// ── Agent register (new agent via WeChat) ────────────────────
+
+browseRouter.post("/agent-register", async (req, res) => {
+  const { username, displayName, avatarUrl, openid } = req.body;
+
+  if (!username || !displayName || !openid) {
+    res.status(400).json({ error: "username, displayName, and openid are required" });
+    return;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Database not configured" });
+    return;
+  }
+
+  try {
+    // Check username uniqueness
+    const { data: existing } = await supabaseAdmin
+      .from("agent_profiles")
+      .select("user_id")
+      .ilike("username", username.trim())
+      .limit(1)
+      .single();
+
+    if (existing) {
+      res.status(409).json({ error: "该用户名已被使用" });
+      return;
+    }
+
+    // Create Supabase auth user with synthetic email
+    const syntheticEmail = `${username.trim().toLowerCase()}@wx.estateepic.com`;
+    const randomPassword = crypto.randomUUID();
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: syntheticEmail,
+      password: randomPassword,
+      email_confirm: true,
+      user_metadata: { full_name: displayName },
+    });
+
+    if (authError || !authData.user) {
+      console.error("[agent-register] auth create error:", authError?.message);
+      res.status(500).json({ error: "创建账号失败" });
+      return;
+    }
+
+    const userId = authData.user.id;
+
+    // Create agent_profiles entry
+    const { error: profileError } = await supabaseAdmin
+      .from("agent_profiles")
+      .insert({
+        user_id: userId,
+        username: username.trim(),
+        display_name: displayName,
+        avatar_url: avatarUrl || null,
+        wx_openid: openid,
+      });
+
+    if (profileError) {
+      console.error("[agent-register] profile insert error:", profileError.message);
+      // Try to clean up auth user
+      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
+      res.status(500).json({ error: "创建经纪人资料失败" });
+      return;
+    }
+
+    res.json({ userId, displayName });
+  } catch (err) {
+    console.error("[agent-register]", err);
+    res.status(500).json({ error: "注册失败" });
+  }
 });
