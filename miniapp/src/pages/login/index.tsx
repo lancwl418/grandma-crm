@@ -177,21 +177,23 @@ export default function Login() {
           <Text className='logo-text'>E</Text>
         </View>
         <Text className='app-name'>Estate Epic</Text>
-        <Text className='app-desc'>您的智能找房助手</Text>
+        <Text className='app-desc'>{agentId ? '你的专属经纪人邀请你找房' : '您的智能找房助手'}</Text>
       </View>
 
       <View className='login-choices'>
         <Button className='customer-btn' onClick={handleCustomerLogin}>
-          <Text className='btn-text-white'>我是客户（微信登录）</Text>
+          <Text className='btn-text-white'>{agentId ? '微信登录开始找房' : '我是客户（微信登录）'}</Text>
         </Button>
 
-        <Button className='agent-btn' onClick={() => setMode('agent')}>
-          <Text className='btn-text-blue'>我是经纪人（账号登录）</Text>
-        </Button>
+        {!agentId && (
+          <Button className='agent-btn' onClick={() => setMode('agent')}>
+            <Text className='btn-text-blue'>我是经纪人（账号登录）</Text>
+          </Button>
+        )}
       </View>
 
       <View className='login-footer'>
-        <Text className='footer-text'>登录即表示您同意我们的服务条款</Text>
+        <Text className='footer-text'>{agentId ? '授权微信登录后即可浏览房源' : '登录即表示您同意我们的服务条款'}</Text>
       </View>
     </View>
   )
