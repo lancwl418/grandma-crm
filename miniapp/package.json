@@ -4,8 +4,8 @@
   "private": true,
   "description": "Estate Epic 微信小程序",
   "scripts": {
-    "build:weapp": "taro build --type weapp",
-    "dev:weapp": "npm run build:weapp -- --watch"
+    "build:weapp": "npx taro build --type weapp",
+    "dev:weapp": "npx taro build --type weapp --watch"
   },
   "browserslist": ["last 3 versions", "Android >= 4.1", "ios >= 8"],
   "dependencies": {
