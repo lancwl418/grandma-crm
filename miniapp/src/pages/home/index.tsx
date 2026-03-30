@@ -56,7 +56,7 @@ export default function Home() {
 
     // Load agent info and favorites
     const clientId = getClientId()
-    if (clientId) {
+    if (clientId && !clientId.startsWith('wx_')) {
       try {
         const agent = await getAgentInfo(clientId)
         setAgentName(agent.agentName || '')
