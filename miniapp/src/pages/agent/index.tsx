@@ -160,25 +160,25 @@ export default function AgentHome() {
           <View className='action-grid'>
             <View className='grid-item' onClick={goClients}>
               <View className='grid-icon blue-bg'>
-                <Text className='grid-icon-text'>客</Text>
+                <Text className='grid-icon-emoji'>👥</Text>
               </View>
               <Text className='grid-label'>客户管理</Text>
             </View>
             <View className='grid-item' onClick={goVisitors}>
               <View className='grid-icon green-bg'>
-                <Text className='grid-icon-text grid-green'>访</Text>
+                <Text className='grid-icon-emoji'>📊</Text>
               </View>
               <Text className='grid-label'>访客记录</Text>
             </View>
             <View className='grid-item' onClick={goSearch}>
               <View className='grid-icon orange-bg'>
-                <Text className='grid-icon-text grid-orange'>搜</Text>
+                <Text className='grid-icon-emoji'>🏠</Text>
               </View>
               <Text className='grid-label'>房源搜索</Text>
             </View>
             <View className='grid-item' onClick={goProfile}>
               <View className='grid-icon purple-bg'>
-                <Text className='grid-icon-text grid-purple'>我</Text>
+                <Text className='grid-icon-emoji'>⚙️</Text>
               </View>
               <Text className='grid-label'>个人资料</Text>
             </View>

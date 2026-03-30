@@ -7,11 +7,11 @@ interface AgentTabBarProps {
 }
 
 const tabs = [
-  { icon: '\u{1F3E0}', label: '首页', path: '/pages/agent/index' },
-  { icon: '\u{1F441}', label: '访客', path: '/pages/agent/visitors/index' },
-  { icon: '\u{1F465}', label: '客户库', path: '/pages/agent/clients/index' },
-  { icon: '\u{1F50D}', label: '搜索', path: '/pages/agent/search/index' },
-  { icon: '\u{1F464}', label: '我的', path: '/pages/agent/profile/index' },
+  { icon: '🏠', label: '首页', path: '/pages/agent/index' },
+  { icon: '📊', label: '访客', path: '/pages/agent/visitors/index' },
+  { icon: '👥', label: '客户库', path: '/pages/agent/clients/index' },
+  { icon: '🔍', label: '搜索', path: '/pages/agent/search/index' },
+  { icon: '⚙️', label: '我的', path: '/pages/agent/profile/index' },
 ]
 
 export default function AgentTabBar({ current }: AgentTabBarProps) {
