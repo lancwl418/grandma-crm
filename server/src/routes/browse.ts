@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { searchListings, getPropertyDetail, getPropertyImage } from "../lib/zillow.js";
+import { searchCommercial, autocompleteCommercial } from "../lib/loopnet.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
@@ -36,6 +37,48 @@ browseRouter.get("/autocomplete", async (req, res) => {
     res.json({ results: [] });
   }
 });
+
+// ── Commercial (LoopNet) Search ─────────────────────────────
+
+browseRouter.get("/commercial/search", async (req, res) => {
+  const { city, state, type, page } = req.query;
+
+  if (!city || typeof city !== "string") {
+    res.status(400).json({ error: "city is required" });
+    return;
+  }
+
+  try {
+    const data = await searchCommercial({
+      city,
+      state: typeof state === "string" ? state : undefined,
+      type: type === "lease" ? "lease" : "sale",
+      page: page ? Number(page) : 1,
+    });
+    res.json(data);
+  } catch (err) {
+    console.error("[browse/commercial/search]", err);
+    res.status(502).json({ error: "Failed to search commercial listings" });
+  }
+});
+
+browseRouter.get("/commercial/autocomplete", async (req, res) => {
+  const { keyword } = req.query;
+
+  if (!keyword || typeof keyword !== "string" || keyword.length < 2) {
+    res.json({ results: [] });
+    return;
+  }
+
+  try {
+    const results = await autocompleteCommercial(keyword);
+    res.json({ results });
+  } catch {
+    res.json({ results: [] });
+  }
+});
+
+// ── Residential (Zillow) Search ─────────────────────────────
 
 browseRouter.get("/search", async (req, res) => {
   try {
