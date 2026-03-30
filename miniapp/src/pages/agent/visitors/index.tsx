@@ -99,10 +99,13 @@ export default function Visitors() {
     if (!browseCache[clientId]) {
       try {
         const res = await getBrowseHistory(clientId)
-        const mapped = (res.views || []).map((v: any) => ({
-          ...v,
-          imageUrl: v.image_url || v.imageUrl || '',
-        }))
+        const seen = new Set<string>()
+        const mapped: any[] = []
+        for (const v of res.views || []) {
+          if (seen.has(v.zpid)) continue
+          seen.add(v.zpid)
+          mapped.push({ ...v, imageUrl: v.image_url || v.imageUrl || '' })
+        }
         setBrowseCache(prev => ({ ...prev, [clientId]: mapped }))
       } catch {
         setBrowseCache(prev => ({ ...prev, [clientId]: [] }))
