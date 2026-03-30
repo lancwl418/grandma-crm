@@ -1089,6 +1089,7 @@ export default function BrowseListings() {
           </div>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {listings.map((listing) => (
           <div
             key={listing.zpid}
@@ -1171,6 +1172,7 @@ export default function BrowseListings() {
             </button>
           </div>
         ))}
+        </div>
 
         {/* Pagination */}
         {searched && totalPages > 1 && (

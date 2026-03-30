@@ -850,6 +850,7 @@ export default function AgentSearchPage() {
           </div>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {listings.map((listing) => (
           <div
             key={listing.zpid || listing.address}
@@ -923,6 +924,7 @@ export default function AgentSearchPage() {
             </button>
           </div>
         ))}
+        </div>
 
         {/* Pagination */}
         {searched && totalPages > 1 && (
