@@ -11,7 +11,7 @@ const tabs = [
   { icon: '📊', label: '访客', path: '/pages/agent/visitors/index' },
   { icon: '👥', label: '客户库', path: '/pages/agent/clients/index' },
   { icon: '🔍', label: '搜索', path: '/pages/agent/search/index' },
-  { icon: '⚙️', label: '我的', path: '/pages/agent/profile/index' },
+  { icon: '📢', label: '营销中心', path: '/pages/agent/marketing/index' },
 ]
 
 export default function AgentTabBar({ current }: AgentTabBarProps) {

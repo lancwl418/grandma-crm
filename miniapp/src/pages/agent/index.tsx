@@ -126,6 +126,9 @@ export default function AgentHome() {
             <Text className='agent-name-text'>{agentName || '经纪人'}</Text>
           </View>
           <View className='header-actions'>
+            <View className='header-edit-btn' onClick={goProfile}>
+              <Text className='header-edit-text'>✏️</Text>
+            </View>
             <Button className='header-share-btn' openType='share'>
               <Text className='header-share-text'>分享</Text>
             </Button>
@@ -176,11 +179,11 @@ export default function AgentHome() {
               </View>
               <Text className='grid-label'>房源搜索</Text>
             </View>
-            <View className='grid-item' onClick={goProfile}>
+            <View className='grid-item' onClick={() => Taro.redirectTo({ url: '/pages/agent/marketing/index' })}>
               <View className='grid-icon purple-bg'>
-                <Text className='grid-icon-emoji'>⚙️</Text>
+                <Text className='grid-icon-emoji'>📢</Text>
               </View>
-              <Text className='grid-label'>个人资料</Text>
+              <Text className='grid-label'>营销中心</Text>
             </View>
           </View>
         </View>

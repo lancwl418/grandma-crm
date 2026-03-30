@@ -63,6 +63,20 @@
   flex-shrink: 0;
 }
 
+.header-edit-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-edit-text {
+  font-size: 28rpx;
+}
+
 .header-share-btn {
   background: rgba(255, 255, 255, 0.2) !important;
   color: #fff !important;
