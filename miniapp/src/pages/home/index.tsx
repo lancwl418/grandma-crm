@@ -67,7 +67,13 @@ export default function Home() {
 
       try {
         const res = await getBrowseHistory(clientId)
-        const views = res.views || []
+        const views = (res.views || []).map((v: any) => ({
+          zpid: v.zpid,
+          address: v.address,
+          price: v.price,
+          imageUrl: v.image_url || v.imageUrl || '',
+          action: v.action,
+        }))
         // Favorites
         const favs = views.filter((v: any) => v.action === 'favorite')
         setFavorites(favs.slice(0, 10))
@@ -188,7 +194,7 @@ export default function Home() {
       {recentViews.length > 0 && (
         <View className='section'>
           <Text className='section-title'>最近浏览</Text>
-          <ScrollView scrollX className='favorites-scroll' enhanced showScrollbar={false}>
+          <View className='favorites-scroll'>
             {recentViews.map((item, i) => (
               <View key={i} className='favorite-card' onClick={() => goDetail(item)}>
                 {item.imageUrl ? (
@@ -204,7 +210,7 @@ export default function Home() {
                 </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
         </View>
       )}
 
@@ -212,7 +218,7 @@ export default function Home() {
       {favorites.length > 0 && (
         <View className='section'>
           <Text className='section-title'>最近收藏</Text>
-          <ScrollView scrollX className='favorites-scroll' enhanced showScrollbar={false}>
+          <View className='favorites-scroll'>
             {favorites.map((item, i) => (
               <View key={i} className='favorite-card' onClick={() => goDetail(item)}>
                 {item.imageUrl ? (
@@ -228,7 +234,7 @@ export default function Home() {
                 </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
         </View>
       )}
 
