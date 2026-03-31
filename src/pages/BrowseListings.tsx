@@ -855,7 +855,6 @@ export default function BrowseListings() {
 
           <div className="px-5 pt-7 space-y-6">
             <section className="border-b border-[#e6e1d7] pb-6">
-              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">甄选豪宅</p>
               <h1 className="text-[54px] leading-[1.03] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "精品房源"}</h1>
               <p className="text-[19px] text-[#4a4f53] mt-2">{selectedDetail.address}</p>
               <p className="text-[58px] leading-none text-[#1a1f22] mt-5 font-light">{selectedDetail.priceFormatted}</p>
