@@ -65,12 +65,23 @@ async function translateLongTextToZh(text: string): Promise<string> {
 
 // ── Search listings (public, for client browse page) ────────
 
+// ── Simple TTL cache for autocomplete ───────────────────────
+const autocompleteCache = new Map<string, { data: unknown; expires: number }>();
+const AUTOCOMPLETE_TTL = 10 * 60 * 1000; // 10 minutes
+
 // ── Autocomplete ────────────────────────────────────────────
 
 browseRouter.get("/autocomplete", async (req, res) => {
   const { query } = req.query;
   if (!query || typeof query !== "string" || query.length < 2) {
     res.json({ results: [] });
+    return;
+  }
+
+  const cacheKey = `ac:${query.toLowerCase().trim()}`;
+  const cached = autocompleteCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    res.json(cached.data);
     return;
   }
 
@@ -90,7 +101,16 @@ browseRouter.get("/autocomplete", async (req, res) => {
       display: r.display,
       type: r.metaData?.regionType || r.resultType || "",
     }));
-    res.json({ results });
+    const result = { results };
+    autocompleteCache.set(cacheKey, { data: result, expires: Date.now() + AUTOCOMPLETE_TTL });
+    // Lazy cleanup
+    if (autocompleteCache.size > 200) {
+      const now = Date.now();
+      for (const [k, v] of autocompleteCache) {
+        if (now > v.expires) autocompleteCache.delete(k);
+      }
+    }
+    res.json(result);
   } catch {
     res.json({ results: [] });
   }
@@ -193,8 +213,12 @@ browseRouter.get("/search", async (req, res) => {
     });
 
     res.json(results);
-  } catch (err) {
+  } catch (err: any) {
     console.error("[browse/search]", err);
+    if (err?.message === "RATE_LIMITED") {
+      res.status(429).json({ error: "搜索请求过于频繁，请稍后再试" });
+      return;
+    }
     res.status(502).json({ error: "Failed to search listings" });
   }
 });
@@ -219,8 +243,12 @@ browseRouter.get("/listing/:zpid", async (req, res) => {
       }
     }
     res.json(detail);
-  } catch (err) {
+  } catch (err: any) {
     console.error("[browse/listing]", err);
+    if (err?.message === "RATE_LIMITED") {
+      res.status(429).json({ error: "请求过于频繁，请稍后再试" });
+      return;
+    }
     res.status(502).json({ error: "Failed to get listing detail" });
   }
 });
