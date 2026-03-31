@@ -96,6 +96,8 @@ const RENT_PRICE_PRESETS: PricePreset[] = [
   { label: "$8,000 以上", min: "8000", max: "" },
 ];
 
+const DEFAULT_TYPE_OPTIONS = ["不限", "独栋", "公寓", "联排", "公寓楼"];
+
 function formatMoney(v: number, type: "sale" | "rent"): string {
   if (type === "rent") return `$${Math.round(v).toLocaleString()}`;
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
@@ -238,7 +240,7 @@ export default function BrowseListings() {
   const [selectedBedrooms, setSelectedBedrooms] = useState<number[]>([]);
   const [showBedroomPicker, setShowBedroomPicker] = useState(false);
   const [dynamicPricePresets, setDynamicPricePresets] = useState<PricePreset[]>(SALE_PRICE_PRESETS);
-  const [dynamicTypeOptions, setDynamicTypeOptions] = useState<string[]>(["不限", "独栋", "公寓", "联排", "公寓楼"]);
+  const [dynamicTypeOptions, setDynamicTypeOptions] = useState<string[]>(DEFAULT_TYPE_OPTIONS);
   const [dynamicBedroomOptions, setDynamicBedroomOptions] = useState<number[]>(DEFAULT_BEDROOM_OPTIONS);
 
   // Results (allListings = full API response, listings = current page slice)
@@ -593,6 +595,27 @@ export default function BrowseListings() {
     setTypeIndex(0);
     setSelectedBedrooms([]);
     refreshWithFilters(0, [], 0);
+  };
+
+  const resetResidentialSearch = () => {
+    setLocation("");
+    setSearched(false);
+    setLoading(false);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setViewMode("list");
+    setPricePresetIndex(0);
+    setTypeIndex(0);
+    setSelectedBedrooms([]);
+    setDynamicPricePresets(listingType === "rent" ? RENT_PRICE_PRESETS : SALE_PRICE_PRESETS);
+    setDynamicTypeOptions(DEFAULT_TYPE_OPTIONS);
+    setDynamicBedroomOptions(DEFAULT_BEDROOM_OPTIONS);
+    setSourceListings([]);
+    setAllListings([]);
+    setListings([]);
+    setCurrentPage(1);
+    setTotalPages(1);
+    setTotalResults(0);
   };
 
   const toggleBedroom = (value: number) => {
@@ -1123,11 +1146,11 @@ export default function BrowseListings() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-[#8a7f6c]">{totalResults} 套房源</span>
               {(pricePresetIndex > 0 || typeIndex > 0 || selectedBedrooms.length > 0) && (
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="h-7 px-3 rounded-full border border-[#d4cab7] bg-[#f4eee2] text-xs text-[#7a633b] font-semibold"
-                >清空筛选</button>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="h-7 px-3 rounded-full border border-[#d4cab7] bg-[#f4eee2] text-xs text-[#7a633b] font-semibold"
+            >清空筛选</button>
               )}
             </div>
             <p className="text-xs text-[#9c927f] mt-1">{filterSummary}</p>
@@ -1568,13 +1591,22 @@ export default function BrowseListings() {
                 );
               })}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowBedroomPicker(false)}
-              className="w-full h-11 rounded-xl bg-[#7f6430] text-white font-semibold"
-            >
-              完成
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setShowBedroomPicker(false); resetResidentialSearch(); }}
+                className="h-11 rounded-xl border border-[#d4cab7] bg-[#f4eee2] text-[#7a633b] font-semibold"
+              >
+                清除全部筛选
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBedroomPicker(false)}
+                className="h-11 rounded-xl bg-[#7f6430] text-white font-semibold"
+              >
+                完成
+              </button>
+            </div>
           </div>
         </div>
       )}
