@@ -1,33 +1,6 @@
 const RAPIDAPI_HOST = "private-zillow.p.rapidapi.com";
 const BASE_URL = `https://${RAPIDAPI_HOST}`;
 
-// ── Simple TTL cache ────────────────────────────────────────
-const cache = new Map<string, { data: unknown; expires: number }>();
-
-function cacheGet<T>(key: string): T | undefined {
-  const entry = cache.get(key);
-  if (!entry) return undefined;
-  if (Date.now() > entry.expires) {
-    cache.delete(key);
-    return undefined;
-  }
-  return entry.data as T;
-}
-
-function cacheSet(key: string, data: unknown, ttlMs: number): void {
-  cache.set(key, { data, expires: Date.now() + ttlMs });
-  // Lazy cleanup: cap size at 500 entries
-  if (cache.size > 500) {
-    const now = Date.now();
-    for (const [k, v] of cache) {
-      if (now > v.expires) cache.delete(k);
-    }
-  }
-}
-
-const SEARCH_TTL = 5 * 60 * 1000;  // 5 minutes
-const DETAIL_TTL = 10 * 60 * 1000; // 10 minutes
-
 function getApiKey(): string {
   const key = process.env.RAPIDAPI_KEY;
   if (!key) throw new Error("RAPIDAPI_KEY not set");
@@ -92,6 +65,7 @@ export interface ZillowPropertyDetail {
   broker: string | null;
   mlsId: string | null;
   schools: Array<{ name: string; rating: number; distance: string; type: string }>;
+  features: string[];
 }
 
 // ── Search Listings ─────────────────────────────────────────
@@ -116,10 +90,6 @@ function formatPrice(n: number): string {
 export async function searchListings(
   params: SearchListingsParams
 ): Promise<{ results: ZillowListingResult[]; totalPages: number }> {
-  const cacheKey = `search:${JSON.stringify(params)}`;
-  const cached = cacheGet<{ results: ZillowListingResult[]; totalPages: number }>(cacheKey);
-  if (cached) return cached;
-
   const isRent = params.listingType === "rent";
   const url = new URL(`${BASE_URL}/search/byaddress`);
   url.searchParams.set("location", params.location);
@@ -134,9 +104,6 @@ export async function searchListings(
 
   const response = await fetch(url.toString(), { headers: headers() });
   if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error("RATE_LIMITED");
-    }
     throw new Error(`Zillow API error: ${response.status}`);
   }
 
@@ -179,12 +146,10 @@ export async function searchListings(
     };
   });
 
-  const result = {
+  return {
     results,
     totalPages: data.pagesInfo?.totalPages ?? 1,
   };
-  cacheSet(cacheKey, result, SEARCH_TTL);
-  return result;
 }
 
 // ── Property Detail ─────────────────────────────────────────
@@ -192,16 +157,9 @@ export async function searchListings(
 export async function getPropertyDetail(
   zpid: number
 ): Promise<ZillowPropertyDetail> {
-  const cacheKey = `detail:${zpid}`;
-  const cached = cacheGet<ZillowPropertyDetail>(cacheKey);
-  if (cached) return cached;
-
   const url = `${BASE_URL}/pro/byzpid?zpid=${zpid}`;
   const response = await fetch(url, { headers: headers() });
   if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error("RATE_LIMITED");
-    }
     throw new Error(`Zillow API error: ${response.status}`);
   }
 
@@ -225,7 +183,24 @@ export async function getPropertyDetail(
     type: s.type ?? s.level ?? "",
   }));
 
-  const detail: ZillowPropertyDetail = {
+  const rawFeatureCandidates: unknown[] = [
+    ...(Array.isArray(d?.resoFacts?.atAGlanceFacts) ? d.resoFacts.atAGlanceFacts.map((item: any) => item?.factValue ?? item?.factLabel) : []),
+    ...(Array.isArray(d?.resoFacts?.amenities) ? d.resoFacts.amenities : []),
+    ...(Array.isArray(d?.resoFacts?.communityFeatures) ? d.resoFacts.communityFeatures : []),
+    ...(Array.isArray(d?.resoFacts?.interiorFeatures) ? d.resoFacts.interiorFeatures : []),
+    ...(Array.isArray(d?.resoFacts?.exteriorFeatures) ? d.resoFacts.exteriorFeatures : []),
+  ];
+
+  const features = Array.from(
+    new Set(
+      rawFeatureCandidates
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    )
+  ).slice(0, 8);
+
+  return {
     zpid: d.zpid ?? zpid,
     address: [d.streetAddress, d.city, d.state, d.zipcode].filter(Boolean).join(", "),
     price: d.price ?? 0,
@@ -248,9 +223,8 @@ export async function getPropertyDetail(
     broker: d.brokerageName ?? d.attributionInfo?.brokerName ?? null,
     mlsId: d.attributionInfo?.mlsId ?? null,
     schools,
+    features,
   };
-  cacheSet(cacheKey, detail, DETAIL_TTL);
-  return detail;
 }
 
 // ── Quick image fetch ───────────────────────────────────────
