@@ -903,33 +903,44 @@ export default function BrowseListings() {
         <div className="fixed left-0 right-0 bottom-0 bg-white/95 border-t border-[#e2ddd3] p-3 z-30">
           {contactOpen && (
             <div className="max-w-2xl mx-auto mb-3 rounded-2xl border border-[#e6e1d7] bg-white p-3 space-y-2">
-              {agentPhone && <a href={`tel:${agentPhone}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><Phone className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{agentPhone}</span></a>}
-              {agentEmail && <button type="button" onClick={() => { setEmailSubject(`Inquiry: ${selectedDetail.address}`); setEmailBody(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`); setEmailOpen(true); setContactOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><Send className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{agentEmail}</span></button>}
-              {agentWechat && <button type="button" onClick={() => { navigator.clipboard.writeText(agentWechat); setWechatCopied(true); setTimeout(() => setWechatCopied(false), 2000); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><MessageCircle className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{wechatCopied ? "已复制微信号" : agentWechat}</span></button>}
+              {agentPhone && (
+                <a href={`tel:${agentPhone}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]">
+                  <Phone className="h-4 w-4 text-[#7f6430]" />
+                  <span className="text-sm text-[#1a1f22]">电话：{agentPhone}</span>
+                </a>
+              )}
+              {agentEmail && (
+                <a
+                  href={`mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${selectedDetail.address}`)}&body=${encodeURIComponent(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`)}`}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"
+                >
+                  <Send className="h-4 w-4 text-[#7f6430]" />
+                  <span className="text-sm text-[#1a1f22]">邮箱：{agentEmail}</span>
+                </a>
+              )}
+              {agentWechat && (
+                <a
+                  href={agentWechat.startsWith("http") ? agentWechat : `weixin://dl/chat?${encodeURIComponent(agentWechat)}`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(agentWechat);
+                    setWechatCopied(true);
+                    setTimeout(() => setWechatCopied(false), 2000);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"
+                >
+                  <MessageCircle className="h-4 w-4 text-[#7f6430]" />
+                  <span className="text-sm text-[#1a1f22]">{wechatCopied ? "微信已复制" : `微信：${agentWechat}`}</span>
+                </a>
+              )}
             </div>
           )}
-          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (agentWechat) {
-                  navigator.clipboard.writeText(agentWechat);
-                  setWechatCopied(true);
-                  setTimeout(() => setWechatCopied(false), 2000);
-                } else if (agentPhone) {
-                  window.location.href = `tel:${agentPhone}`;
-                }
-              }}
-              className="h-14 rounded-2xl border border-[#ddd7ce] bg-[#f8f6f2] text-[#1a1f22] font-semibold tracking-[0.12em] uppercase"
-            >
-              WhatsApp
-            </button>
+          <div className="max-w-2xl mx-auto">
             <button
               type="button"
               onClick={() => setContactOpen(!contactOpen)}
-              className="h-14 rounded-2xl bg-[#a08344] text-white font-semibold tracking-[0.12em] uppercase"
+              className="w-full h-14 rounded-2xl bg-[#a08344] text-white font-semibold tracking-[0.08em]"
             >
-              Inquire Now
+              联系经纪人
             </button>
           </div>
         </div>
