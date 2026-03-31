@@ -199,26 +199,6 @@ browseRouter.get("/search", async (req, res) => {
   }
 });
 
-browseRouter.post("/translate-description", async (req, res) => {
-  const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-  if (!text) {
-    res.json({ translatedText: "" });
-    return;
-  }
-
-  try {
-    if (/[\u4e00-\u9fa5]/.test(text)) {
-      res.json({ translatedText: text });
-      return;
-    }
-    const translatedText = await translateLongTextToZh(text);
-    res.json({ translatedText });
-  } catch (err) {
-    console.error("[browse/translate-description]", err);
-    res.status(502).json({ error: "Failed to translate description" });
-  }
-});
-
 // ── Get listing detail (public) ─────────────────────────────
 
 browseRouter.get("/listing/:zpid", async (req, res) => {
@@ -228,7 +208,16 @@ browseRouter.get("/listing/:zpid", async (req, res) => {
       res.status(400).json({ error: "Invalid zpid" });
       return;
     }
-    const detail = await getPropertyDetail(zpid);
+    const detail = await getPropertyDetail(zpid) as any;
+    const rawDescription = typeof detail?.description === "string" ? detail.description.trim() : "";
+    if (rawDescription && !/[\u4e00-\u9fa5]/.test(rawDescription)) {
+      try {
+        detail.description_en = rawDescription;
+        detail.description = await translateLongTextToZh(rawDescription);
+      } catch (translateErr) {
+        console.error("[browse/listing/translate]", translateErr);
+      }
+    }
     res.json(detail);
   } catch (err) {
     console.error("[browse/listing]", err);

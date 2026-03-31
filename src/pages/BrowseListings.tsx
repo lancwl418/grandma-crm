@@ -403,8 +403,6 @@ export default function BrowseListings() {
   const [emailSubject, setEmailSubject] = useState("Property Inquiry");
   const [emailListingInfo, setEmailListingInfo] = useState<{ zpid: number; address: string; price: number; imageUrl: string } | null>(null);
   const [wechatCopied, setWechatCopied] = useState(false);
-  const [translatedDescription, setTranslatedDescription] = useState("");
-  const descriptionCacheRef = useRef<Record<string, string>>({});
 
   // Verification — if clientId exists in URL, already verified
   const [verified, setVerified] = useState(!!clientId);
@@ -784,44 +782,6 @@ export default function BrowseListings() {
     }
   }, [phoneInput, clientId]);
 
-  useEffect(() => {
-    const raw = selectedDetail?.description?.trim();
-    if (!raw) {
-      setTranslatedDescription("");
-      return;
-    }
-    if (/[\u4e00-\u9fa5]/.test(raw)) {
-      setTranslatedDescription(raw);
-      return;
-    }
-    if (descriptionCacheRef.current[raw]) {
-      setTranslatedDescription(descriptionCacheRef.current[raw]);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/browse/translate-description`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: raw }),
-        });
-        const data = await res.json();
-        const translated = data?.translatedText;
-        if (!cancelled && typeof translated === "string" && translated.trim()) {
-          descriptionCacheRef.current[raw] = translated;
-          setTranslatedDescription(translated);
-          return;
-        }
-      } catch {
-        // ignore
-      }
-      if (!cancelled) setTranslatedDescription(raw);
-    })();
-    return () => { cancelled = true; };
-  }, [selectedDetail?.description]);
-
   // ── Detail View ───────────────────────────────────────────
 
   if (selectedDetail) {
@@ -920,7 +880,7 @@ export default function BrowseListings() {
             {selectedDetail.description && (
               <section className="space-y-4">
                 <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">房源介绍</p>
-                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{translatedDescription || selectedDetail.description}</p>
+                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{selectedDetail.description}</p>
               </section>
             )}
 
