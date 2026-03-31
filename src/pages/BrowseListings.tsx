@@ -802,11 +802,13 @@ export default function BrowseListings() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(raw)}&langpair=en|zh-CN`
-        );
+        const res = await fetch(`${API_BASE}/api/browse/translate-description`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: raw }),
+        });
         const data = await res.json();
-        const translated = data?.responseData?.translatedText;
+        const translated = data?.translatedText;
         if (!cancelled && typeof translated === "string" && translated.trim()) {
           descriptionCacheRef.current[raw] = translated;
           setTranslatedDescription(translated);

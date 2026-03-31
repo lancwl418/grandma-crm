@@ -4,6 +4,64 @@ import { searchCommercial, autocompleteCommercial, getCommercialDetail } from ".
 import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
+const translateCache = new Map<string, string>();
+
+function splitForTranslate(text: string, maxLen = 1000): string[] {
+  const parts: string[] = [];
+  const blocks = text
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  for (const block of blocks) {
+    if (block.length <= maxLen) {
+      parts.push(block);
+      continue;
+    }
+
+    const sentences = block.split(/(?<=[.!?])\s+/);
+    let current = "";
+    for (const sentence of sentences) {
+      if (!sentence) continue;
+      if ((current + " " + sentence).trim().length > maxLen) {
+        if (current) parts.push(current.trim());
+        current = sentence;
+      } else {
+        current = `${current} ${sentence}`.trim();
+      }
+    }
+    if (current) parts.push(current.trim());
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
+async function translateChunkToZh(chunk: string): Promise<string> {
+  const cacheKey = `en2zh:${chunk}`;
+  const cached = translateCache.get(cacheKey);
+  if (cached) return cached;
+
+  const response = await fetch(
+    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(chunk)}`
+  );
+  const data = await response.json() as any;
+  const translated = Array.isArray(data?.[0])
+    ? data[0].map((row: any[]) => row?.[0] || "").join("")
+    : "";
+
+  const result = translated?.trim() || chunk;
+  translateCache.set(cacheKey, result);
+  return result;
+}
+
+async function translateLongTextToZh(text: string): Promise<string> {
+  const chunks = splitForTranslate(text);
+  const translatedChunks: string[] = [];
+  for (const chunk of chunks) {
+    translatedChunks.push(await translateChunkToZh(chunk));
+  }
+  return translatedChunks.join("\n\n");
+}
 
 // ── Search listings (public, for client browse page) ────────
 
@@ -138,6 +196,26 @@ browseRouter.get("/search", async (req, res) => {
   } catch (err) {
     console.error("[browse/search]", err);
     res.status(502).json({ error: "Failed to search listings" });
+  }
+});
+
+browseRouter.post("/translate-description", async (req, res) => {
+  const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
+  if (!text) {
+    res.json({ translatedText: "" });
+    return;
+  }
+
+  try {
+    if (/[\u4e00-\u9fa5]/.test(text)) {
+      res.json({ translatedText: text });
+      return;
+    }
+    const translatedText = await translateLongTextToZh(text);
+    res.json({ translatedText });
+  } catch (err) {
+    console.error("[browse/translate-description]", err);
+    res.status(502).json({ error: "Failed to translate description" });
   }
 });
 
@@ -1078,16 +1156,30 @@ browseRouter.get("/agent-activity/:userId", async (req, res) => {
     // Get recent browse activity
     const { data: views } = await supabaseAdmin
       .from("client_listing_views")
-      .select("client_id, address, action, created_at")
+      .select("client_id, zpid, address, action, created_at")
       .in("client_id", clientIds)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(80);
 
-    const activities = (views || []).map((v: any) => {
+    // De-duplicate repeated "view" actions for the same client + property.
+    // Keep only the most recent one (query is already ordered by created_at desc).
+    const seenViewKeys = new Set<string>();
+    const dedupedViews = (views || []).filter((v: any) => {
+      if (v.action !== "view") return true;
+      const propertyKey = v.zpid ? String(v.zpid) : String(v.address || "").trim().toLowerCase();
+      if (!propertyKey) return true;
+      const viewKey = `${v.client_id}::${propertyKey}`;
+      if (seenViewKeys.has(viewKey)) return false;
+      seenViewKeys.add(viewKey);
+      return true;
+    });
+
+    const activities = dedupedViews.slice(0, 30).map((v: any) => {
       const clientName = clientMap[v.client_id] || "未知客户";
       const actionText = v.action === "favorite" ? "收藏了" : v.action === "inquiry" ? "咨询了" : "浏览了";
       return {
         clientId: v.client_id,
+        zpid: v.zpid ? String(v.zpid) : "",
         clientName,
         action: actionText,
         address: v.address || "某房源",
