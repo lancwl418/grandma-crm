@@ -65,6 +65,7 @@ export interface ZillowPropertyDetail {
   broker: string | null;
   mlsId: string | null;
   schools: Array<{ name: string; rating: number; distance: string; type: string }>;
+  features: string[];
 }
 
 // ── Search Listings ─────────────────────────────────────────
@@ -182,6 +183,23 @@ export async function getPropertyDetail(
     type: s.type ?? s.level ?? "",
   }));
 
+  const rawFeatureCandidates: unknown[] = [
+    ...(Array.isArray(d?.resoFacts?.atAGlanceFacts) ? d.resoFacts.atAGlanceFacts.map((item: any) => item?.factValue ?? item?.factLabel) : []),
+    ...(Array.isArray(d?.resoFacts?.amenities) ? d.resoFacts.amenities : []),
+    ...(Array.isArray(d?.resoFacts?.communityFeatures) ? d.resoFacts.communityFeatures : []),
+    ...(Array.isArray(d?.resoFacts?.interiorFeatures) ? d.resoFacts.interiorFeatures : []),
+    ...(Array.isArray(d?.resoFacts?.exteriorFeatures) ? d.resoFacts.exteriorFeatures : []),
+  ];
+
+  const features = Array.from(
+    new Set(
+      rawFeatureCandidates
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    )
+  ).slice(0, 8);
+
   return {
     zpid: d.zpid ?? zpid,
     address: [d.streetAddress, d.city, d.state, d.zipcode].filter(Boolean).join(", "),
@@ -205,6 +223,7 @@ export async function getPropertyDetail(
     broker: d.brokerageName ?? d.attributionInfo?.brokerName ?? null,
     mlsId: d.attributionInfo?.mlsId ?? null,
     schools,
+    features,
   };
 }
 

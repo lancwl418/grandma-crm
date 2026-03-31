@@ -4,7 +4,45 @@ import { searchCommercial, autocompleteCommercial, getCommercialDetail } from ".
 import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
-const translateCache = new Map<string, string>();
+const TRANSLATE_CACHE_TTL_MS = 30 * 60 * 1000;
+const TRANSLATE_CACHE_MAX_ENTRIES = 2000;
+const TRANSLATE_MAX_RETRIES = 3;
+const TRANSLATE_BASE_DELAY_MS = 300;
+
+type TranslateCacheEntry = {
+  value: string;
+  expiresAt: number;
+};
+
+const translateCache = new Map<string, TranslateCacheEntry>();
+const inFlightTranslations = new Map<string, Promise<string>>();
+
+function readTranslateCache(cacheKey: string): string | null {
+  const entry = translateCache.get(cacheKey);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    translateCache.delete(cacheKey);
+    return null;
+  }
+  return entry.value;
+}
+
+function writeTranslateCache(cacheKey: string, value: string): void {
+  if (translateCache.size >= TRANSLATE_CACHE_MAX_ENTRIES) {
+    const oldestKey = translateCache.keys().next().value;
+    if (oldestKey) translateCache.delete(oldestKey);
+  }
+  translateCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + TRANSLATE_CACHE_TTL_MS,
+  });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function splitForTranslate(text: string, maxLen = 1000): string[] {
   const parts: string[] = [];
@@ -38,20 +76,54 @@ function splitForTranslate(text: string, maxLen = 1000): string[] {
 
 async function translateChunkToZh(chunk: string): Promise<string> {
   const cacheKey = `en2zh:${chunk}`;
-  const cached = translateCache.get(cacheKey);
+  const cached = readTranslateCache(cacheKey);
   if (cached) return cached;
 
-  const response = await fetch(
-    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(chunk)}`
-  );
-  const data = await response.json() as any;
-  const translated = Array.isArray(data?.[0])
-    ? data[0].map((row: any[]) => row?.[0] || "").join("")
-    : "";
+  const inFlight = inFlightTranslations.get(cacheKey);
+  if (inFlight) return inFlight;
 
-  const result = translated?.trim() || chunk;
-  translateCache.set(cacheKey, result);
-  return result;
+  const requestPromise = (async (): Promise<string> => {
+    for (let attempt = 0; attempt <= TRANSLATE_MAX_RETRIES; attempt += 1) {
+      try {
+        const response = await fetch(
+          `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(chunk)}`
+        );
+        if (!response.ok) {
+          const shouldRetry = response.status === 429 || response.status >= 500;
+          if (shouldRetry && attempt < TRANSLATE_MAX_RETRIES) {
+            const backoff = TRANSLATE_BASE_DELAY_MS * (2 ** attempt) + Math.floor(Math.random() * 150);
+            await sleep(backoff);
+            continue;
+          }
+          return chunk;
+        }
+
+        const data = await response.json() as any;
+        const translated = Array.isArray(data?.[0])
+          ? data[0].map((row: any[]) => row?.[0] || "").join("")
+          : "";
+        const result = translated?.trim() || chunk;
+        writeTranslateCache(cacheKey, result);
+        return result;
+      } catch (error) {
+        if (attempt < TRANSLATE_MAX_RETRIES) {
+          const backoff = TRANSLATE_BASE_DELAY_MS * (2 ** attempt) + Math.floor(Math.random() * 150);
+          await sleep(backoff);
+          continue;
+        }
+        console.error("[browse/listing/translate/chunk]", error);
+        return chunk;
+      }
+    }
+    return chunk;
+  })();
+
+  inFlightTranslations.set(cacheKey, requestPromise);
+  try {
+    return await requestPromise;
+  } finally {
+    inFlightTranslations.delete(cacheKey);
+  }
 }
 
 async function translateLongTextToZh(text: string): Promise<string> {

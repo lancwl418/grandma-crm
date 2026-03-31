@@ -53,6 +53,7 @@ interface ListingDetail {
   broker: string | null;
   mlsId: string | null;
   schools: Array<{ name: string; rating: number; distance: string; type: string }>;
+  features?: string[];
 }
 
 // ── Home Type labels ────────────────────────────────────────
@@ -171,6 +172,19 @@ function getListingTitle(listing: Listing): string {
   if (!listing.address) return "房源";
   const firstChunk = listing.address.split(",")[0];
   return firstChunk || listing.address;
+}
+
+function getFeatureIcon(feature: string): string {
+  const text = feature.toLowerCase();
+  if (/pool|泳池|spa|热水浴/.test(text)) return "🏊";
+  if (/wine|酒窖|cellar/.test(text)) return "🍷";
+  if (/theater|影院|cinema/.test(text)) return "🎭";
+  if (/garage|车库|parking|停车/.test(text)) return "🚗";
+  if (/garden|院子|yard|landscape/.test(text)) return "🌳";
+  if (/gym|健身|fitness/.test(text)) return "🏋️";
+  if (/fireplace|壁炉/.test(text)) return "🔥";
+  if (/view|景观|景色|mountain|ocean/.test(text)) return "🌅";
+  return "✨";
 }
 
 // ── Commercial types ──────────────────────────────────────
@@ -883,15 +897,19 @@ export default function BrowseListings() {
               </section>
             )}
 
-            <section className="rounded-3xl bg-[#eeedea] p-6">
-              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">特色配置</p>
-              <div className="grid grid-cols-2 gap-y-7">
-                <div className="text-center"><p className="text-3xl">🏊</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">无边泳池</p></div>
-                <div className="text-center"><p className="text-3xl">🏛️</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">私家展厅</p></div>
-                <div className="text-center"><p className="text-3xl">🎭</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">家庭影院</p></div>
-                <div className="text-center"><p className="text-3xl">🍷</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">酒窖</p></div>
-              </div>
-            </section>
+            {selectedDetail.features && selectedDetail.features.length > 0 && (
+              <section className="rounded-3xl bg-[#eeedea] p-6">
+                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">特色配置</p>
+                <div className="grid grid-cols-2 gap-y-7">
+                  {selectedDetail.features.map((feature, idx) => (
+                    <div key={`${feature}-${idx}`} className="text-center">
+                      <p className="text-3xl">{getFeatureIcon(feature)}</p>
+                      <p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">{feature}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section>
               <div className="flex items-center justify-between mb-4">
