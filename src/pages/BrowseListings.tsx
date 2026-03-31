@@ -403,6 +403,8 @@ export default function BrowseListings() {
   const [emailSubject, setEmailSubject] = useState("Property Inquiry");
   const [emailListingInfo, setEmailListingInfo] = useState<{ zpid: number; address: string; price: number; imageUrl: string } | null>(null);
   const [wechatCopied, setWechatCopied] = useState(false);
+  const [translatedDescription, setTranslatedDescription] = useState("");
+  const descriptionCacheRef = useRef<Record<string, string>>({});
 
   // Verification — if clientId exists in URL, already verified
   const [verified, setVerified] = useState(!!clientId);
@@ -775,12 +777,48 @@ export default function BrowseListings() {
         setClientName(data.clientName);
         setShowVerify(false);
       } else {
-        setVerifyError("电话号码不匹配 our records");
+        setVerifyError("电话号码与记录不匹配");
       }
     } catch {
       setVerifyError("验证失败，请重试");
     }
   }, [phoneInput, clientId]);
+
+  useEffect(() => {
+    const raw = selectedDetail?.description?.trim();
+    if (!raw) {
+      setTranslatedDescription("");
+      return;
+    }
+    if (/[\u4e00-\u9fa5]/.test(raw)) {
+      setTranslatedDescription(raw);
+      return;
+    }
+    if (descriptionCacheRef.current[raw]) {
+      setTranslatedDescription(descriptionCacheRef.current[raw]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(raw)}&langpair=en|zh-CN`
+        );
+        const data = await res.json();
+        const translated = data?.responseData?.translatedText;
+        if (!cancelled && typeof translated === "string" && translated.trim()) {
+          descriptionCacheRef.current[raw] = translated;
+          setTranslatedDescription(translated);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      if (!cancelled) setTranslatedDescription(raw);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDetail?.description]);
 
   // ── Detail View ───────────────────────────────────────────
 
@@ -851,62 +889,59 @@ export default function BrowseListings() {
                 </button>
               </div>
             </div>
-            <div className="absolute left-4 bottom-4 px-4 py-1.5 rounded-full bg-white/95 text-[#1e2224] text-base font-semibold tracking-widest">
-              EXTERIOR • 01/{Math.max(heroPhotos.length, 1).toString().padStart(2, "0")}
-            </div>
           </div>
 
           <div className="px-5 pt-7 space-y-6">
             <section className="border-b border-[#e6e1d7] pb-6">
-              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">Bel Air Estate</p>
-              <h1 className="text-[54px] leading-[1.03] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "Luxury Residence"}</h1>
+              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">甄选豪宅</p>
+              <h1 className="text-[54px] leading-[1.03] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "精品房源"}</h1>
               <p className="text-[19px] text-[#4a4f53] mt-2">{selectedDetail.address}</p>
               <p className="text-[58px] leading-none text-[#1a1f22] mt-5 font-light">{selectedDetail.priceFormatted}</p>
-              {pricePerSqft && <p className="text-[20px] tracking-[0.14em] text-[#504940] font-semibold mt-2">${pricePerSqft.toLocaleString()} / SQ FT</p>}
+              {pricePerSqft && <p className="text-[20px] tracking-[0.14em] text-[#504940] font-semibold mt-2">${pricePerSqft.toLocaleString()} / 每平方英尺</p>}
             </section>
 
             <section className="grid grid-cols-2 gap-4 border-b border-[#e6e1d7] pb-6">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><BedDouble className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.beds || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">Bedrooms</p></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.beds || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卧室</p></div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Bath className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.baths || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">Bathrooms</p></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.baths || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卫浴</p></div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Ruler className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.sqft?.toLocaleString() || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">SQ FT</p></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.sqft?.toLocaleString() || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">面积</p></div>
               </div>
             </section>
 
             {selectedDetail.description && (
               <section className="space-y-4">
-                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">The Obsidian Narrative</p>
-                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{selectedDetail.description}</p>
+                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">房源介绍</p>
+                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{translatedDescription || selectedDetail.description}</p>
               </section>
             )}
 
             <section className="rounded-3xl bg-[#eeedea] p-6">
-              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">Exclusive Curations</p>
+              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">特色配置</p>
               <div className="grid grid-cols-2 gap-y-7">
-                <div className="text-center"><p className="text-3xl">🏊</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Infinity Pool</p></div>
-                <div className="text-center"><p className="text-3xl">🏛️</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Private Gallery</p></div>
-                <div className="text-center"><p className="text-3xl">🎭</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Home Cinema</p></div>
-                <div className="text-center"><p className="text-3xl">🍷</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Wine Cellar</p></div>
+                <div className="text-center"><p className="text-3xl">🏊</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">无边泳池</p></div>
+                <div className="text-center"><p className="text-3xl">🏛️</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">私家展厅</p></div>
+                <div className="text-center"><p className="text-3xl">🎭</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">家庭影院</p></div>
+                <div className="text-center"><p className="text-3xl">🍷</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">酒窖</p></div>
               </div>
             </section>
 
             <section>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">Location</p>
+                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">位置</p>
                 <p className="text-[#4a4f53] text-xl">{selectedDetail.address.split(",").slice(1, 3).join(",").trim() || selectedDetail.address}</p>
               </div>
               <div className="rounded-3xl bg-[#d7d7d7] h-64 relative overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center text-6xl">📍</div>
                 <div className="absolute left-4 right-4 bottom-4 rounded-2xl bg-white/90 p-4">
-                  <p className="text-[#7f6430] font-semibold tracking-[0.1em] uppercase">Signature Address</p>
-                  <p className="text-sm text-[#4a4f53] mt-1">Minutes from Bel Air Country Club and major city amenities.</p>
+                  <p className="text-[#7f6430] font-semibold tracking-[0.1em] uppercase">核心地段</p>
+                  <p className="text-sm text-[#4a4f53] mt-1">临近主要生活配套与城市核心区域。</p>
                 </div>
               </div>
             </section>
@@ -924,13 +959,13 @@ export default function BrowseListings() {
                 </div>
               </div>
               <div className="pt-3 border-t border-[#ebe7df] grid grid-cols-3 gap-2 text-center">
-                <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739]"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Call</p></a>
+                <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739]"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">电话</p></a>
                 <a
                   href={agentEmail ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${selectedDetail.address}`)}&body=${encodeURIComponent(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`)}` : "#"}
                   className="py-3 text-[#4f4739]"
                 >
                   <Send className="h-6 w-6 mx-auto" />
-                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">Email</p>
+                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">邮箱</p>
                 </a>
                 <a
                   href={agentWechat ? (agentWechat.startsWith("http") ? agentWechat : `weixin://dl/chat?${encodeURIComponent(agentWechat)}`) : "#"}
@@ -944,7 +979,7 @@ export default function BrowseListings() {
                   className="py-3 text-[#4f4739]"
                 >
                   <MessageCircle className="h-6 w-6 mx-auto" />
-                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">{wechatCopied ? "Copied" : "Wechat"}</p>
+                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">{wechatCopied ? "已复制" : "微信"}</p>
                 </a>
               </div>
             </section>
