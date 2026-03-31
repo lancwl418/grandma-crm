@@ -871,16 +871,32 @@ export default function BrowseListings() {
                 )}
                 <div>
                   <p className="text-5xl font-semibold text-[#1a1f22] leading-none">{agentName}</p>
-                  <p className="text-[#7f6430] mt-1 font-semibold tracking-[0.16em] uppercase text-sm">{agentTitle || "Principal Agent"}</p>
-                  <p className="text-[#4a4f53] mt-1">{selectedDetail.broker || "Aurelian Luxe Properties"}</p>
+                  <p className="text-[#7f6430] mt-1 font-semibold tracking-[0.16em] uppercase text-sm">{agentTitle || "房产经纪人"}</p>
                 </div>
               </div>
-              <button type="button" className="w-full h-14 rounded-2xl bg-[#a08344] text-white text-xl font-semibold tracking-[0.12em] uppercase">Schedule Private Tour</button>
-              <button type="button" className="w-full h-14 rounded-2xl bg-[#ececea] text-[#1a1f22] text-xl font-semibold tracking-[0.12em] uppercase">Request Documents</button>
               <div className="pt-3 border-t border-[#ebe7df] grid grid-cols-3 gap-2 text-center">
                 <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739]"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Call</p></a>
-                <button type="button" onClick={() => { setEmailSubject(`Inquiry: ${selectedDetail.address}`); setEmailBody(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`); setEmailOpen(true); }} className="py-3 text-[#4f4739]"><Send className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Email</p></button>
-                <button type="button" onClick={() => { if (agentWechat) navigator.clipboard.writeText(agentWechat); }} className="py-3 text-[#4f4739]"><MessageCircle className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Wechat</p></button>
+                <a
+                  href={agentEmail ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${selectedDetail.address}`)}&body=${encodeURIComponent(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`)}` : "#"}
+                  className="py-3 text-[#4f4739]"
+                >
+                  <Send className="h-6 w-6 mx-auto" />
+                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">Email</p>
+                </a>
+                <a
+                  href={agentWechat ? (agentWechat.startsWith("http") ? agentWechat : `weixin://dl/chat?${encodeURIComponent(agentWechat)}`) : "#"}
+                  onClick={() => {
+                    if (agentWechat) {
+                      navigator.clipboard.writeText(agentWechat);
+                      setWechatCopied(true);
+                      setTimeout(() => setWechatCopied(false), 2000);
+                    }
+                  }}
+                  className="py-3 text-[#4f4739]"
+                >
+                  <MessageCircle className="h-6 w-6 mx-auto" />
+                  <p className="mt-1 text-sm tracking-[0.1em] uppercase">{wechatCopied ? "Copied" : "Wechat"}</p>
+                </a>
               </div>
             </section>
 
