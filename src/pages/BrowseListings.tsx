@@ -260,6 +260,7 @@ export default function BrowseListings() {
 
   // Recently viewed (from tracking history)
   const [recentViews, setRecentViews] = useState<Listing[]>([]);
+  const [favoriteListings, setFavoriteListings] = useState<Listing[]>([]);
 
   // Agent info
   const [agentName, setAgentName] = useState("Your Agent");
@@ -460,29 +461,43 @@ export default function BrowseListings() {
         }
         setFavorites(favSet);
 
-        // Deduplicate by zpid, take latest
-        const seen = new Set<string>();
-        const unique: Listing[] = [];
+        const toListing = (v: { zpid: string; address: string; price: number; image_url: string | null; action: string }): Listing => ({
+          zpid: Number(v.zpid),
+          address: v.address,
+          city: "", state: "", zipcode: "",
+          price: v.price,
+          priceFormatted: v.price >= 1000000 ? `$${(v.price / 1000000).toFixed(1)}M` : `$${(v.price / 1000).toFixed(0)}K`,
+          beds: 0, baths: 0, sqft: 0,
+          homeType: "",
+          status: v.action === "favorite" ? "FAVORITED" : "VIEWED",
+          daysOnZillow: 0,
+          imageUrl: v.image_url || "",
+          detailUrl: "",
+          zestimate: null,
+          photos: v.image_url ? [v.image_url] : [],
+        });
+
+        // 最近浏览（仅 view，按最新去重）
+        const seenViews = new Set<string>();
+        const recentUnique: Listing[] = [];
         for (const v of views) {
-          if (seen.has(v.zpid)) continue;
-          seen.add(v.zpid);
-          unique.push({
-            zpid: Number(v.zpid),
-            address: v.address,
-            city: "", state: "", zipcode: "",
-            price: v.price,
-            priceFormatted: v.price >= 1000000 ? `$${(v.price / 1000000).toFixed(1)}M` : `$${(v.price / 1000).toFixed(0)}K`,
-            beds: 0, baths: 0, sqft: 0,
-            homeType: "",
-            status: v.action === "favorite" ? "FAVORITED" : "VIEWED",
-            daysOnZillow: 0,
-            imageUrl: v.image_url || "",
-            detailUrl: "",
-            zestimate: null,
-            photos: v.image_url ? [v.image_url] : [],
-          });
+          if (v.action !== "view") continue;
+          if (seenViews.has(v.zpid)) continue;
+          seenViews.add(v.zpid);
+          recentUnique.push(toListing(v));
         }
-        setRecentViews(unique.slice(0, 6));
+        setRecentViews(recentUnique.slice(0, 6));
+
+        // 收藏房源（仅 favorite，按最新去重）
+        const seenFav = new Set<string>();
+        const favUnique: Listing[] = [];
+        for (const v of views) {
+          if (v.action !== "favorite") continue;
+          if (seenFav.has(v.zpid)) continue;
+          seenFav.add(v.zpid);
+          favUnique.push(toListing(v));
+        }
+        setFavoriteListings(favUnique.slice(0, 6));
       })
       .catch(() => {});
   }, [clientId]);
@@ -1271,20 +1286,77 @@ export default function BrowseListings() {
         {loading && <div className="text-center py-12 text-[#9f9688] text-sm">搜索中...</div>}
 
         {!loading && !searched && (
-          <div>
-            <h3 className="text-base font-semibold text-[#2b2f32] mb-3">热门区域</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {HOT_AREAS.map((area) => (
-                <button
-                  key={area.label}
-                  type="button"
-                  onClick={() => searchLocation(area.label)}
-                  className="rounded-xl border border-[#e1dbd0] bg-[#faf8f4] py-3 text-left px-3"
-                >
-                  <div className="text-sm font-semibold text-[#2c3033]">{area.name}</div>
-                  <div className="text-xs text-[#a19787]">CA</div>
-                </button>
-              ))}
+          <div className="space-y-6">
+            {recentViews.length > 0 && (
+              <div>
+                <h3 className="text-base font-semibold text-[#2b2f32] mb-3">最近浏览</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {recentViews.map((listing) => (
+                    <button
+                      key={`view-${listing.zpid}`}
+                      type="button"
+                      onClick={() => viewDetail(listing)}
+                      className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
+                    >
+                      {listing.imageUrl ? (
+                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
+                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {favoriteListings.length > 0 && (
+              <div>
+                <h3 className="text-base font-semibold text-[#2b2f32] mb-3">收藏房源</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {favoriteListings.map((listing) => (
+                    <button
+                      key={`fav-${listing.zpid}`}
+                      type="button"
+                      onClick={() => viewDetail(listing)}
+                      className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
+                    >
+                      {listing.imageUrl ? (
+                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
+                      )}
+                      <div className="p-2">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
+                          <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
+                        </div>
+                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-base font-semibold text-[#2b2f32] mb-3">热门区域</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {HOT_AREAS.map((area) => (
+                  <button
+                    key={area.label}
+                    type="button"
+                    onClick={() => searchLocation(area.label)}
+                    className="rounded-xl border border-[#e1dbd0] bg-[#faf8f4] py-3 text-left px-3"
+                  >
+                    <div className="text-sm font-semibold text-[#2c3033]">{area.name}</div>
+                    <div className="text-xs text-[#a19787]">CA</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
