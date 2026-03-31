@@ -747,7 +747,9 @@ export default function BrowseListings() {
   // ── Detail View ───────────────────────────────────────────
 
   if (selectedDetail) {
-    const heroImage = selectedDetail.photos[0] || selectedDetail.imageUrl;
+    const heroPhotos = selectedDetail.photos.length > 0
+      ? selectedDetail.photos
+      : (selectedDetail.imageUrl ? [selectedDetail.imageUrl] : []);
     const pricePerSqft = selectedDetail.price > 0 && selectedDetail.sqft > 0
       ? Math.round(selectedDetail.price / selectedDetail.sqft)
       : null;
@@ -755,8 +757,17 @@ export default function BrowseListings() {
       <div className="min-h-screen bg-[#f3f2ef] pb-28">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
-            {heroImage ? (
-              <img src={heroImage} alt={selectedDetail.address} className="w-full h-[380px] object-cover" />
+            {heroPhotos.length > 0 ? (
+              <div className="w-full h-[380px] overflow-x-auto flex snap-x snap-mandatory scroll-smooth">
+                {heroPhotos.map((photo, idx) => (
+                  <img
+                    key={`${photo}-${idx}`}
+                    src={photo}
+                    alt={`${selectedDetail.address}-${idx + 1}`}
+                    className="w-full h-[380px] object-cover shrink-0 snap-center"
+                  />
+                ))}
+              </div>
             ) : (
               <div className="w-full h-[380px] bg-gray-300" />
             )}
@@ -803,7 +814,7 @@ export default function BrowseListings() {
               </div>
             </div>
             <div className="absolute left-4 bottom-4 px-4 py-1.5 rounded-full bg-white/95 text-[#1e2224] text-base font-semibold tracking-widest">
-              EXTERIOR • 01/{Math.max(selectedDetail.photos.length, 1).toString().padStart(2, "0")}
+              EXTERIOR • 01/{Math.max(heroPhotos.length, 1).toString().padStart(2, "0")}
             </div>
           </div>
 
@@ -956,7 +967,7 @@ export default function BrowseListings() {
               onClick={() => setContactOpen(!contactOpen)}
               className="w-full h-14 rounded-2xl bg-[#a08344] text-white font-semibold tracking-[0.08em]"
             >
-              联系经纪人
+              联系中介{agentName || "顾问"}
             </button>
           </div>
         </div>
