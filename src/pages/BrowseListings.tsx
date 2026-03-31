@@ -1287,31 +1287,22 @@ export default function BrowseListings() {
 
         {!loading && !searched && (
           <div className="space-y-6">
-            {recentViews.length > 0 && (
-              <div>
-                <h3 className="text-base font-semibold text-[#2b2f32] mb-3">最近浏览</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {recentViews.map((listing) => (
-                    <button
-                      key={`view-${listing.zpid}`}
-                      type="button"
-                      onClick={() => viewDetail(listing)}
-                      className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
-                    >
-                      {listing.imageUrl ? (
-                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
-                      ) : (
-                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
-                      )}
-                      <div className="p-2">
-                        <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
-                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            <div>
+              <h3 className="text-base font-semibold text-[#2b2f32] mb-3">热门区域</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {HOT_AREAS.map((area) => (
+                  <button
+                    key={area.label}
+                    type="button"
+                    onClick={() => searchLocation(area.label)}
+                    className="rounded-xl border border-[#e1dbd0] bg-[#faf8f4] py-3 text-left px-3"
+                  >
+                    <div className="text-sm font-semibold text-[#2c3033]">{area.name}</div>
+                    <div className="text-xs text-[#a19787]">CA</div>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
 
             {favoriteListings.length > 0 && (
               <div>
@@ -1342,22 +1333,31 @@ export default function BrowseListings() {
               </div>
             )}
 
-            <div>
-              <h3 className="text-base font-semibold text-[#2b2f32] mb-3">热门区域</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {HOT_AREAS.map((area) => (
-                  <button
-                    key={area.label}
-                    type="button"
-                    onClick={() => searchLocation(area.label)}
-                    className="rounded-xl border border-[#e1dbd0] bg-[#faf8f4] py-3 text-left px-3"
-                  >
-                    <div className="text-sm font-semibold text-[#2c3033]">{area.name}</div>
-                    <div className="text-xs text-[#a19787]">CA</div>
-                  </button>
-                ))}
+            {recentViews.length > 0 && (
+              <div>
+                <h3 className="text-base font-semibold text-[#2b2f32] mb-3">最近浏览</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {recentViews.map((listing) => (
+                    <button
+                      key={`view-${listing.zpid}`}
+                      type="button"
+                      onClick={() => viewDetail(listing)}
+                      className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
+                    >
+                      {listing.imageUrl ? (
+                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
+                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
