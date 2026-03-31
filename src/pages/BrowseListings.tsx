@@ -747,182 +747,192 @@ export default function BrowseListings() {
   // ── Detail View ───────────────────────────────────────────
 
   if (selectedDetail) {
+    const heroImage = selectedDetail.photos[0] || selectedDetail.imageUrl;
+    const pricePerSqft = selectedDetail.price > 0 && selectedDetail.sqft > 0
+      ? Math.round(selectedDetail.price / selectedDetail.sqft)
+      : null;
     return (
-      <div className="min-h-screen bg-gray-50 pb-16">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-3">
-          <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="p-1">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-sm font-medium truncate flex-1">{selectedDetail.address}</h1>
-          <button
-            type="button"
-            onClick={() => {
-              const zpid = selectedDetail.zpid || 0;
-              if (!verified && clientId) {
-                setShowVerify(true);
-                return;
-              }
-              const isFav = favorites.has(zpid);
-              setFavorites((prev) => {
-                const next = new Set(prev);
-                if (isFav) next.delete(zpid); else next.add(zpid);
-                return next;
-              });
-              if (!isFav && clientId) {
-                fetch(`${API_BASE}/api/browse/track`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    clientId, zpid, address: selectedDetail.address,
-                    price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite",
-                  }),
-                }).catch(() => {});
-              }
-            }}
-            className="p-1.5"
-          >
-            <Heart className={`h-5 w-5 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
-          </button>
-        </div>
-
-        {/* Photos */}
-        <div className="overflow-x-auto flex gap-1 bg-gray-200">
-          {selectedDetail.photos.length > 0 ? (
-            selectedDetail.photos.map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                alt={`Photo ${i + 1}`}
-                className="h-56 sm:h-72 w-auto object-cover shrink-0"
-              />
-            ))
-          ) : (
-            <div className="h-56 w-full bg-gray-200 flex items-center justify-center text-gray-400">
-              暂无图片
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="p-4 space-y-4">
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{selectedDetail.priceFormatted}</div>
-            <p className="text-sm text-gray-500 mt-1">{selectedDetail.address}</p>
-          </div>
-
-          <div className="flex gap-4 text-sm text-gray-700">
-            <span className="flex items-center gap-1"><BedDouble className="h-4 w-4" /> {selectedDetail.beds} 卧</span>
-            <span className="flex items-center gap-1"><Bath className="h-4 w-4" /> {selectedDetail.baths} 卫</span>
-            <span className="flex items-center gap-1"><Ruler className="h-4 w-4" /> {selectedDetail.sqft?.toLocaleString()} sqft</span>
-          </div>
-
-          <div className="flex gap-3 text-xs text-gray-500">
-            <span>{HOME_TYPE_LABELS[selectedDetail.homeType] || selectedDetail.homeType}</span>
-            {selectedDetail.yearBuilt && <span>建于 {selectedDetail.yearBuilt}</span>}
-            <span>{selectedDetail.daysOnZillow} 天前上市</span>
-          </div>
-
-          {selectedDetail.zestimate && (
-            <div className="bg-blue-50 rounded-lg p-3 text-sm">
-              <span className="text-gray-600">Zestimate: </span>
-              <span className="font-semibold text-blue-700">${selectedDetail.zestimate.toLocaleString()}</span>
-              {selectedDetail.rentZestimate && (
-                <span className="text-gray-500 ml-3">Rent: ${selectedDetail.rentZestimate.toLocaleString()}/mo</span>
-              )}
-            </div>
-          )}
-
-          {/* Zillow link (small) */}
-          <a
-            href={selectedDetail.detailUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-500 underline"
-          >
-            在 Zillow 查看 →
-          </a>
-
-          {selectedDetail.description && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">房屋描述</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{selectedDetail.description}</p>
-            </div>
-          )}
-
-          {selectedDetail.schools.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">学区</h3>
-              <div className="space-y-2">
-                {selectedDetail.schools.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div>
-                      <span className="text-gray-900">{s.name}</span>
-                      <span className="text-gray-400 ml-2">{s.type} · {s.distance}</span>
-                    </div>
-                    <span className={`font-medium ${s.rating >= 8 ? "text-green-600" : s.rating >= 5 ? "text-yellow-600" : "text-gray-500"}`}>
-                      {s.rating}/10
-                    </span>
-                  </div>
-                ))}
+      <div className="min-h-screen bg-[#f3f2ef] pb-28">
+        <div className="max-w-2xl mx-auto">
+          <div className="relative">
+            {heroImage ? (
+              <img src={heroImage} alt={selectedDetail.address} className="w-full h-[380px] object-cover" />
+            ) : (
+              <div className="w-full h-[380px] bg-gray-300" />
+            )}
+            <div className="absolute inset-x-0 top-0 p-4 flex items-center justify-between">
+              <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center">
+                <ChevronLeft className="h-6 w-6 text-[#222]" />
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const zpid = selectedDetail.zpid || 0;
+                    if (!verified && clientId) { setShowVerify(true); return; }
+                    const isFav = favorites.has(zpid);
+                    setFavorites((prev) => {
+                      const next = new Set(prev);
+                      if (isFav) next.delete(zpid); else next.add(zpid);
+                      return next;
+                    });
+                    if (!isFav && clientId) {
+                      fetch(`${API_BASE}/api/browse/track`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          clientId, zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite",
+                        }),
+                      }).catch(() => {});
+                    }
+                  }}
+                  className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center"
+                >
+                  <Heart className={`h-6 w-6 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-[#222]"}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const shareUrl = selectedDetail.detailUrl || window.location.href;
+                    try { await navigator.clipboard.writeText(shareUrl); } catch {}
+                  }}
+                  className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center"
+                >
+                  <Send className="h-5 w-5 text-[#222]" />
+                </button>
               </div>
             </div>
-          )}
+            <div className="absolute left-4 bottom-4 px-4 py-1.5 rounded-full bg-white/95 text-[#1e2224] text-base font-semibold tracking-widest">
+              EXTERIOR • 01/{Math.max(selectedDetail.photos.length, 1).toString().padStart(2, "0")}
+            </div>
+          </div>
 
-          {selectedDetail.broker && (
-            <p className="text-xs text-gray-400">经纪公司 {selectedDetail.broker} · MLS# {selectedDetail.mlsId}</p>
-          )}
+          <div className="px-5 pt-7 space-y-6">
+            <section className="border-b border-[#e6e1d7] pb-6">
+              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">Bel Air Estate</p>
+              <h1 className="text-[54px] leading-[1.03] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "Luxury Residence"}</h1>
+              <p className="text-[19px] text-[#4a4f53] mt-2">{selectedDetail.address}</p>
+              <p className="text-[58px] leading-none text-[#1a1f22] mt-5 font-light">{selectedDetail.priceFormatted}</p>
+              {pricePerSqft && <p className="text-[20px] tracking-[0.14em] text-[#504940] font-semibold mt-2">${pricePerSqft.toLocaleString()} / SQ FT</p>}
+            </section>
 
+            <section className="grid grid-cols-2 gap-4 border-b border-[#e6e1d7] pb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><BedDouble className="h-6 w-6" /></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.beds || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">Bedrooms</p></div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Bath className="h-6 w-6" /></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.baths || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">Bathrooms</p></div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Ruler className="h-6 w-6" /></div>
+                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.sqft?.toLocaleString() || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">SQ FT</p></div>
+              </div>
+            </section>
+
+            {selectedDetail.description && (
+              <section className="space-y-4">
+                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">The Obsidian Narrative</p>
+                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{selectedDetail.description}</p>
+              </section>
+            )}
+
+            <section className="rounded-3xl bg-[#eeedea] p-6">
+              <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">Exclusive Curations</p>
+              <div className="grid grid-cols-2 gap-y-7">
+                <div className="text-center"><p className="text-3xl">🏊</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Infinity Pool</p></div>
+                <div className="text-center"><p className="text-3xl">🏛️</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Private Gallery</p></div>
+                <div className="text-center"><p className="text-3xl">🎭</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Home Cinema</p></div>
+                <div className="text-center"><p className="text-3xl">🍷</p><p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">Wine Cellar</p></div>
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">Location</p>
+                <p className="text-[#4a4f53] text-xl">{selectedDetail.address.split(",").slice(1, 3).join(",").trim() || selectedDetail.address}</p>
+              </div>
+              <div className="rounded-3xl bg-[#d7d7d7] h-64 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center text-6xl">📍</div>
+                <div className="absolute left-4 right-4 bottom-4 rounded-2xl bg-white/90 p-4">
+                  <p className="text-[#7f6430] font-semibold tracking-[0.1em] uppercase">Signature Address</p>
+                  <p className="text-sm text-[#4a4f53] mt-1">Minutes from Bel Air Country Club and major city amenities.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl bg-[#f7f6f3] p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                {agentAvatar ? (
+                  <img src={agentAvatar} alt={agentName} className="w-24 h-24 rounded-3xl object-cover" />
+                ) : (
+                  <div className="w-24 h-24 rounded-3xl bg-[#1f2427] text-white text-3xl flex items-center justify-center">{agentName[0]}</div>
+                )}
+                <div>
+                  <p className="text-5xl font-semibold text-[#1a1f22] leading-none">{agentName}</p>
+                  <p className="text-[#7f6430] mt-1 font-semibold tracking-[0.16em] uppercase text-sm">{agentTitle || "Principal Agent"}</p>
+                  <p className="text-[#4a4f53] mt-1">{selectedDetail.broker || "Aurelian Luxe Properties"}</p>
+                </div>
+              </div>
+              <button type="button" className="w-full h-14 rounded-2xl bg-[#a08344] text-white text-xl font-semibold tracking-[0.12em] uppercase">Schedule Private Tour</button>
+              <button type="button" className="w-full h-14 rounded-2xl bg-[#ececea] text-[#1a1f22] text-xl font-semibold tracking-[0.12em] uppercase">Request Documents</button>
+              <div className="pt-3 border-t border-[#ebe7df] grid grid-cols-3 gap-2 text-center">
+                <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739]"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Call</p></a>
+                <button type="button" onClick={() => { setEmailSubject(`Inquiry: ${selectedDetail.address}`); setEmailBody(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`); setEmailOpen(true); }} className="py-3 text-[#4f4739]"><Send className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Email</p></button>
+                <button type="button" onClick={() => { if (agentWechat) navigator.clipboard.writeText(agentWechat); }} className="py-3 text-[#4f4739]"><MessageCircle className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">Wechat</p></button>
+              </div>
+            </section>
+
+            {selectedDetail.schools.length > 0 && (
+              <section className="rounded-3xl bg-[#f1f0ed] p-5">
+                <p className="text-xl font-semibold text-[#1a1f22] mb-3">附近学校</p>
+                <div className="space-y-3">
+                  {selectedDetail.schools.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between border-b border-[#e3dfd8] pb-2 last:border-0">
+                      <div><p className="text-[#1a1f22]">{s.name}</p><p className="text-sm text-[#8f8880]">{s.distance} · {s.type}</p></div>
+                      <span className="px-3 py-1 rounded-xl bg-[#d9f2df] text-[#1f3b2a] font-semibold">{s.rating}/10</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
 
-        {/* Fixed bottom: contact agent */}
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom z-20">
-          {/* Expanded contact options */}
+        <div className="fixed left-0 right-0 bottom-0 bg-white/95 border-t border-[#e2ddd3] p-3 z-30">
           {contactOpen && (
-            <div className="px-4 py-3 space-y-2 border-b border-gray-100">
-              {agentPhone && (
-                <a href={`tel:${agentPhone}`} className="flex items-center gap-3 py-2.5 px-3 bg-green-50 rounded-xl active:bg-green-100 transition">
-                  <Phone className="h-5 w-5 text-green-600" />
-                  <div className="flex-1"><p className="text-sm font-medium text-gray-900">电话联系</p><p className="text-xs text-gray-400">{agentPhone}</p></div>
-                </a>
-              )}
-              {agentWechat && (
-                <button type="button" onClick={() => { navigator.clipboard.writeText(agentWechat); setWechatCopied(true); setTimeout(() => setWechatCopied(false), 2000); }}
-                  className="w-full flex items-center gap-3 py-2.5 px-3 bg-emerald-50 rounded-xl active:bg-emerald-100 transition">
-                  <MessageCircle className="h-5 w-5 text-emerald-600" />
-                  <div className="flex-1 text-left"><p className="text-sm font-medium text-gray-900">{wechatCopied ? "已复制微信号" : "微信联系"}</p><p className="text-xs text-gray-400">{agentWechat}</p></div>
-                </button>
-              )}
-              {agentEmail && (
-                <button type="button" onClick={() => {
-                  setEmailListingInfo({ zpid: selectedDetail.zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl });
-                  setEmailBody(`Hi ${agentName},\n\nI'm interested in this property:\n${selectedDetail.address}\nPrice: ${selectedDetail.priceFormatted}\n\nPlease contact me with more details.\n\nThank you!`);
-                  setEmailSubject(`Inquiry: ${selectedDetail.address}`);
-                  setEmailOpen(true); setContactOpen(false);
-                }} className="w-full flex items-center gap-3 py-2.5 px-3 bg-blue-50 rounded-xl active:bg-blue-100 transition">
-                  <Send className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1 text-left"><p className="text-sm font-medium text-gray-900">发送留言</p><p className="text-xs text-gray-400">{agentEmail}</p></div>
-                </button>
-              )}
+            <div className="max-w-2xl mx-auto mb-3 rounded-2xl border border-[#e6e1d7] bg-white p-3 space-y-2">
+              {agentPhone && <a href={`tel:${agentPhone}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><Phone className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{agentPhone}</span></a>}
+              {agentEmail && <button type="button" onClick={() => { setEmailSubject(`Inquiry: ${selectedDetail.address}`); setEmailBody(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`); setEmailOpen(true); setContactOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><Send className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{agentEmail}</span></button>}
+              {agentWechat && <button type="button" onClick={() => { navigator.clipboard.writeText(agentWechat); setWechatCopied(true); setTimeout(() => setWechatCopied(false), 2000); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"><MessageCircle className="h-4 w-4 text-[#7f6430]" /><span className="text-sm text-[#1a1f22]">{wechatCopied ? "已复制微信号" : agentWechat}</span></button>}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => setContactOpen(!contactOpen)}
-            className="w-full px-4 py-3 flex items-center justify-center gap-2 active:bg-gray-50"
-          >
-            {agentAvatar ? (
-              <img src={agentAvatar} alt="" className="w-7 h-7 rounded-full object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">{agentName[0]}</div>
-            )}
-            <span className="text-sm font-medium text-green-700">联系经纪人 {agentName}</span>
-            <ChevronDown className={`h-4 w-4 text-gray-400 transition ${contactOpen ? "rotate-180" : ""}`} />
-          </button>
+          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (agentWechat) {
+                  navigator.clipboard.writeText(agentWechat);
+                  setWechatCopied(true);
+                  setTimeout(() => setWechatCopied(false), 2000);
+                } else if (agentPhone) {
+                  window.location.href = `tel:${agentPhone}`;
+                }
+              }}
+              className="h-14 rounded-2xl border border-[#ddd7ce] bg-[#f8f6f2] text-[#1a1f22] font-semibold tracking-[0.12em] uppercase"
+            >
+              WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => setContactOpen(!contactOpen)}
+              className="h-14 rounded-2xl bg-[#a08344] text-white font-semibold tracking-[0.12em] uppercase"
+            >
+              Inquire Now
+            </button>
+          </div>
         </div>
-
-        {/* Click outside to close */}
-        {contactOpen && <div className="fixed inset-0 z-10" onClick={() => setContactOpen(false)} />}
       </div>
     );
   }
