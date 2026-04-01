@@ -1081,7 +1081,7 @@ export default function BrowseListings() {
       <div className="bg-white border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo-wide.png" alt="Estate Epic" className="h-10" />
+            <img src="/logo-wide.png" alt="Estate Epic" className="h-10 cursor-pointer" onClick={() => { setSelectedDetail(null); setCommercialDetail(null); window.scrollTo(0, 0); }} />
           </div>
           {verified && (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
