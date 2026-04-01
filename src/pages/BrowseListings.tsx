@@ -1053,13 +1053,14 @@ export default function BrowseListings() {
           <button
             type="button"
             onClick={() => setContactOpen(!contactOpen)}
-            className="w-14 h-14 rounded-full bg-[#a08344] text-white shadow-lg hover:bg-[#8a7139] transition flex items-center justify-center"
+            className="flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-[#a08344] text-white shadow-lg hover:bg-[#8a7139] transition"
           >
             {agentAvatar ? (
-              <img src={agentAvatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#a08344]" />
+              <img src={agentAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white/30" />
             ) : (
-              <MessageCircle className="h-6 w-6" />
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><MessageCircle className="h-5 w-5" /></div>
             )}
+            <span className="text-sm font-medium whitespace-nowrap">联系{agentName}</span>
           </button>
         </div>
       </div>
@@ -1084,7 +1085,7 @@ export default function BrowseListings() {
       <div className="bg-white border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo-wide.png" alt="Estate Epic" className="h-10 cursor-pointer" onClick={() => { setSelectedDetail(null); setCommercialDetail(null); window.scrollTo(0, 0); }} />
+            <img src="/logo-wide.png" alt="Estate Epic" className="h-10 cursor-pointer" onClick={() => { setSelectedDetail(null); setCommercialDetail(null); setSearched(false); setLocation(""); setContactOpen(false); window.scrollTo(0, 0); }} />
           </div>
           {verified && (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
@@ -1840,13 +1841,14 @@ export default function BrowseListings() {
         <button
           type="button"
           onClick={() => setContactOpen(!contactOpen)}
-          className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
+          className="flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition"
         >
           {agentAvatar ? (
-            <img src={agentAvatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-blue-600" />
+            <img src={agentAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white/30" />
           ) : (
-            <MessageCircle className="h-6 w-6" />
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><MessageCircle className="h-5 w-5" /></div>
           )}
+          <span className="text-sm font-medium whitespace-nowrap">联系{agentName}</span>
         </button>
       </div>
 
