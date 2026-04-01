@@ -806,7 +806,7 @@ export default function BrowseListings() {
       ? Math.round(selectedDetail.price / selectedDetail.sqft)
       : null;
     return (
-      <div className="min-h-screen bg-[#f3f2ef] pb-28">
+      <div className="min-h-screen bg-[#f3f2ef] pb-8">
         <div className="max-w-7xl mx-auto">
           {/* Back bar */}
           <div className="px-4 lg:px-8 pt-4">
@@ -1015,11 +1015,12 @@ export default function BrowseListings() {
           </div>
         </div>
 
-        <div className="fixed left-0 right-0 bottom-0 bg-white/95 border-t border-[#e2ddd3] p-3 z-30">
+        {/* Floating contact button */}
+        <div className="fixed right-4 bottom-6 z-40">
           {contactOpen && (
-            <div className="max-w-2xl mx-auto mb-3 rounded-2xl border border-[#e6e1d7] bg-white p-3 space-y-2">
+            <div className="absolute bottom-16 right-0 w-64 rounded-2xl border border-[#e6e1d7] bg-white shadow-xl p-3 space-y-2">
               {agentPhone && (
-                <a href={`tel:${agentPhone}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]">
+                <a href={`tel:${agentPhone}`} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3] hover:bg-[#efeeeb] transition">
                   <Phone className="h-4 w-4 text-[#7f6430]" />
                   <span className="text-sm text-[#1a1f22]">电话：{agentPhone}</span>
                 </a>
@@ -1027,7 +1028,7 @@ export default function BrowseListings() {
               {agentEmail && (
                 <a
                   href={`mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${selectedDetail.address}`)}&body=${encodeURIComponent(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`)}`}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3] hover:bg-[#efeeeb] transition"
                 >
                   <Send className="h-4 w-4 text-[#7f6430]" />
                   <span className="text-sm text-[#1a1f22]">邮箱：{agentEmail}</span>
@@ -1041,7 +1042,7 @@ export default function BrowseListings() {
                     setWechatCopied(true);
                     setTimeout(() => setWechatCopied(false), 2000);
                   }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3]"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f7f6f3] hover:bg-[#efeeeb] transition"
                 >
                   <MessageCircle className="h-4 w-4 text-[#7f6430]" />
                   <span className="text-sm text-[#1a1f22]">{wechatCopied ? "微信已复制" : `微信：${agentWechat}`}</span>
@@ -1049,15 +1050,17 @@ export default function BrowseListings() {
               )}
             </div>
           )}
-          <div className="max-w-2xl mx-auto">
-            <button
-              type="button"
-              onClick={() => setContactOpen(!contactOpen)}
-              className="w-full h-14 rounded-2xl bg-[#a08344] text-white font-semibold tracking-[0.08em]"
-            >
-              联系中介{agentName || "顾问"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setContactOpen(!contactOpen)}
+            className="w-14 h-14 rounded-full bg-[#a08344] text-white shadow-lg hover:bg-[#8a7139] transition flex items-center justify-center"
+          >
+            {agentAvatar ? (
+              <img src={agentAvatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#a08344]" />
+            ) : (
+              <MessageCircle className="h-6 w-6" />
+            )}
+          </button>
         </div>
       </div>
     );
@@ -1076,7 +1079,7 @@ export default function BrowseListings() {
   ].join(" | ");
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3">
         <div className="flex items-center justify-between">
@@ -1779,13 +1782,12 @@ export default function BrowseListings() {
         </div>
       )}
 
-      {/* Agent contact bottom bar */}
-      <div className="fixed bottom-0 inset-x-0 z-40 safe-bottom">
-        {/* Expanded contact panel */}
+      {/* Floating contact button */}
+      <div className="fixed right-4 bottom-6 z-40">
         {contactOpen && (
-          <div className="bg-white border-t border-gray-200 px-4 py-3 space-y-2">
+          <div className="absolute bottom-16 right-0 w-72 rounded-2xl border border-gray-200 bg-white shadow-xl p-3 space-y-2">
             {agentPhone && (
-              <a href={`tel:${agentPhone}`} className="flex items-center gap-3 py-2.5 px-3 bg-green-50 rounded-xl active:bg-green-100 transition">
+              <a href={`tel:${agentPhone}`} className="flex items-center gap-3 py-2.5 px-3 bg-green-50 rounded-xl hover:bg-green-100 active:bg-green-100 transition">
                 <Phone className="h-5 w-5 text-green-600" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">电话联系</p>
@@ -1801,7 +1803,7 @@ export default function BrowseListings() {
                   setWechatCopied(true);
                   setTimeout(() => setWechatCopied(false), 2000);
                 }}
-                className="w-full flex items-center gap-3 py-2.5 px-3 bg-emerald-50 rounded-xl active:bg-emerald-100 transition"
+                className="w-full flex items-center gap-3 py-2.5 px-3 bg-emerald-50 rounded-xl hover:bg-emerald-100 active:bg-emerald-100 transition"
               >
                 <MessageCircle className="h-5 w-5 text-emerald-600" />
                 <div className="flex-1 text-left">
@@ -1824,7 +1826,7 @@ export default function BrowseListings() {
                   setEmailOpen(true);
                   setContactOpen(false);
                 }}
-                className="w-full flex items-center gap-3 py-2.5 px-3 bg-blue-50 rounded-xl active:bg-blue-100 transition"
+                className="w-full flex items-center gap-3 py-2.5 px-3 bg-blue-50 rounded-xl hover:bg-blue-100 active:bg-blue-100 transition"
               >
                 <Send className="h-5 w-5 text-blue-600" />
                 <div className="flex-1 text-left">
@@ -1835,25 +1837,16 @@ export default function BrowseListings() {
             )}
           </div>
         )}
-
-        {/* Agent bar */}
         <button
           type="button"
           onClick={() => setContactOpen(!contactOpen)}
-          className="w-full bg-white border-t border-gray-200 px-4 py-2.5 flex items-center justify-center gap-3"
+          className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
         >
           {agentAvatar ? (
-            <img src={agentAvatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+            <img src={agentAvatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-blue-600" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
-              {agentName[0]}
-            </div>
+            <MessageCircle className="h-6 w-6" />
           )}
-          <div className="text-left">
-            <p className="text-sm font-medium text-gray-900">{agentName}</p>
-            {agentTitle && <p className="text-[10px] text-gray-400">{agentTitle}</p>}
-          </div>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition ${contactOpen ? "rotate-180" : ""}`} />
         </button>
       </div>
 
