@@ -15,6 +15,85 @@ function headers(): Record<string, string> {
   };
 }
 
+// ── TTL Cache + In-flight Dedup ─────────────────────────────
+
+const SEARCH_TTL = 5 * 60 * 1000;  // 5 min
+const DETAIL_TTL = 10 * 60 * 1000; // 10 min
+const CACHE_MAX_ENTRIES = 500;
+
+type CacheEntry<T> = { data: T; expiresAt: number };
+
+const searchCache = new Map<string, CacheEntry<{ results: ZillowListingResult[]; totalPages: number }>>();
+const detailCache = new Map<string, CacheEntry<ZillowPropertyDetail>>();
+const inFlightSearch = new Map<string, Promise<{ results: ZillowListingResult[]; totalPages: number }>>();
+const inFlightDetail = new Map<string, Promise<ZillowPropertyDetail>>();
+
+function getCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T, ttl: number): void {
+  if (cache.size >= CACHE_MAX_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
+  cache.set(key, { data, expiresAt: Date.now() + ttl });
+}
+
+// ── Retry with backoff ──────────────────────────────────────
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 300;
+
+function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null;
+  const seconds = Number(header);
+  if (!Number.isNaN(seconds) && seconds > 0) return Math.min(seconds * 1000, 10000);
+  const date = Date.parse(header);
+  if (!Number.isNaN(date)) {
+    const delta = date - Date.now();
+    return delta > 0 ? Math.min(delta, 10000) : null;
+  }
+  return null;
+}
+
+async function fetchWithRetry(url: string, opts: RequestInit): Promise<Response> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(url, opts);
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        const delayMs = BASE_DELAY_MS * (2 ** attempt) + Math.floor(Math.random() * 150);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+      throw err;
+    }
+
+    if (response.status === 429 || response.status >= 500) {
+      if (attempt < MAX_RETRIES) {
+        const delayMs = parseRetryAfter(response.headers.get("Retry-After"))
+          ?? BASE_DELAY_MS * (2 ** attempt) + Math.floor(Math.random() * 150);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+      if (response.status === 429) {
+        throw new Error("RATE_LIMITED");
+      }
+    }
+
+    return response;
+  }
+  throw new Error("RATE_LIMITED");
+}
+
 // ── Types ───────────────────────────────────────────────────
 
 export interface ZillowListingResult {
@@ -102,13 +181,21 @@ export async function searchListings(
   if (params.bathsMin) url.searchParams.set("bathsMin", String(params.bathsMin));
   if (params.homeType) url.searchParams.set("homeType", params.homeType);
 
-  const response = await fetch(url.toString(), { headers: headers() });
-  if (!response.ok) {
-    throw new Error(`Zillow API error: ${response.status}`);
-  }
+  const cacheKey = url.toString();
+  const cached = getCache(searchCache, cacheKey);
+  if (cached) return cached;
 
-  const data = await response.json();
-  const searchResults = data.searchResults ?? [];
+  const existing = inFlightSearch.get(cacheKey);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const response = await fetchWithRetry(url.toString(), { headers: headers() });
+    if (!response.ok) {
+      throw new Error(`Zillow API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const searchResults = data.searchResults ?? [];
 
   const results: ZillowListingResult[] = searchResults.map((item: any) => {
     const r = item.property ?? item;
@@ -146,10 +233,20 @@ export async function searchListings(
     };
   });
 
-  return {
-    results,
-    totalPages: data.pagesInfo?.totalPages ?? 1,
-  };
+    const result = {
+      results,
+      totalPages: data.pagesInfo?.totalPages ?? 1,
+    };
+    setCache(searchCache, cacheKey, result, SEARCH_TTL);
+    return result;
+  })();
+
+  inFlightSearch.set(cacheKey, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightSearch.delete(cacheKey);
+  }
 }
 
 // ── Property Detail ─────────────────────────────────────────
@@ -157,14 +254,22 @@ export async function searchListings(
 export async function getPropertyDetail(
   zpid: number
 ): Promise<ZillowPropertyDetail> {
-  const url = `${BASE_URL}/pro/byzpid?zpid=${zpid}`;
-  const response = await fetch(url, { headers: headers() });
-  if (!response.ok) {
-    throw new Error(`Zillow API error: ${response.status}`);
-  }
+  const cacheKey = `detail:${zpid}`;
+  const cached = getCache(detailCache, cacheKey);
+  if (cached) return cached;
 
-  const data = await response.json();
-  const d = data.propertyDetails ?? {};
+  const existing = inFlightDetail.get(cacheKey);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const url = `${BASE_URL}/pro/byzpid?zpid=${zpid}`;
+    const response = await fetchWithRetry(url, { headers: headers() });
+    if (!response.ok) {
+      throw new Error(`Zillow API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const d = data.propertyDetails ?? {};
 
   const photos = (d.originalPhotos ?? [])
     .slice(0, 15)
@@ -200,31 +305,41 @@ export async function getPropertyDetail(
     )
   ).slice(0, 8);
 
-  return {
-    zpid: d.zpid ?? zpid,
-    address: [d.streetAddress, d.city, d.state, d.zipcode].filter(Boolean).join(", "),
-    price: d.price ?? 0,
-    priceFormatted: d.price ? formatPrice(d.price) : "N/A",
-    beds: d.bedrooms ?? 0,
-    baths: d.bathrooms ?? 0,
-    sqft: d.livingArea ?? 0,
-    lotSqft: d.lotSize ?? null,
-    homeType: d.homeType ?? "",
-    yearBuilt: d.yearBuilt ?? null,
-    status: d.homeStatus ?? "",
-    daysOnZillow: d.daysOnZillow ?? 0,
-    description: d.description ?? null,
-    zestimate: d.zestimate ?? null,
-    rentZestimate: d.rentZestimate ?? null,
-    imageUrl: d.hiResImageLink ?? photos[0] ?? "",
-    detailUrl: data.zillowURL ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
-    photos,
-    streetViewUrl: d.streetViewImageUrl ?? null,
-    broker: d.brokerageName ?? d.attributionInfo?.brokerName ?? null,
-    mlsId: d.attributionInfo?.mlsId ?? null,
-    schools,
-    features,
-  };
+    const detail: ZillowPropertyDetail = {
+      zpid: d.zpid ?? zpid,
+      address: [d.streetAddress, d.city, d.state, d.zipcode].filter(Boolean).join(", "),
+      price: d.price ?? 0,
+      priceFormatted: d.price ? formatPrice(d.price) : "N/A",
+      beds: d.bedrooms ?? 0,
+      baths: d.bathrooms ?? 0,
+      sqft: d.livingArea ?? 0,
+      lotSqft: d.lotSize ?? null,
+      homeType: d.homeType ?? "",
+      yearBuilt: d.yearBuilt ?? null,
+      status: d.homeStatus ?? "",
+      daysOnZillow: d.daysOnZillow ?? 0,
+      description: d.description ?? null,
+      zestimate: d.zestimate ?? null,
+      rentZestimate: d.rentZestimate ?? null,
+      imageUrl: d.hiResImageLink ?? photos[0] ?? "",
+      detailUrl: data.zillowURL ?? `https://www.zillow.com/homedetails/${zpid}_zpid/`,
+      photos,
+      streetViewUrl: d.streetViewImageUrl ?? null,
+      broker: d.brokerageName ?? d.attributionInfo?.brokerName ?? null,
+      mlsId: d.attributionInfo?.mlsId ?? null,
+      schools,
+      features,
+    };
+    setCache(detailCache, cacheKey, detail, DETAIL_TTL);
+    return detail;
+  })();
+
+  inFlightDetail.set(cacheKey, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightDetail.delete(cacheKey);
+  }
 }
 
 // ── Quick image fetch ───────────────────────────────────────

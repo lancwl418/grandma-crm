@@ -8,7 +8,13 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
   const baseConfig: UserConfigExport<'webpack5'> = {
     projectName: 'miniapp',
     date: '2026-3-29',
-    designWidth: 750,
+    designWidth(input) {
+      // NutUI 组件基于 375 设计稿，项目自身基于 750
+      if (input?.file?.replace(/\\+/g, '/').indexOf('@nutui') > -1) {
+        return 375
+      }
+      return 750
+    },
     deviceRatio: {
       640: 2.34 / 2,
       750: 1,
@@ -18,7 +24,8 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     sourceRoot: 'src',
     outputRoot: 'dist',
     plugins: [
-      "@tarojs/plugin-generator"
+      "@tarojs/plugin-generator",
+      "@tarojs/plugin-html"
     ],
     defineConstants: {
     },

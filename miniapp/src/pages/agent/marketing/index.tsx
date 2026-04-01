@@ -8,7 +8,7 @@ export default function MarketingPage() {
     <View className='marketing-page'>
       <View className='marketing-content'>
         <View className='marketing-icon'>
-          <Notice size={42} />
+          <Notice size={42} fallback />
         </View>
         <Text className='marketing-title'>营销中心</Text>
         <Text className='marketing-desc'>即将上线</Text>
@@ -16,7 +16,7 @@ export default function MarketingPage() {
         <View className='feature-list'>
           <View className='feature-item'>
             <View className='feature-icon'>
-              <Star size={22} />
+              <Star size={22} fallback />
             </View>
             <View className='feature-info'>
               <Text className='feature-name'>智能推荐房源</Text>
@@ -25,7 +25,7 @@ export default function MarketingPage() {
           </View>
           <View className='feature-item'>
             <View className='feature-icon'>
-              <Share size={22} />
+              <Share size={22} fallback />
             </View>
             <View className='feature-info'>
               <Text className='feature-name'>批量分享</Text>
@@ -34,7 +34,7 @@ export default function MarketingPage() {
           </View>
           <View className='feature-item'>
             <View className='feature-icon'>
-              <ArrowUp size={22} />
+              <ArrowUp size={22} fallback />
             </View>
             <View className='feature-info'>
               <Text className='feature-name'>数据分析</Text>

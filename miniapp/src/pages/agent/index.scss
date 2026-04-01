@@ -169,12 +169,12 @@
   background: #f7f6f4;
   border: 1rpx solid #e5e1dc;
   border-radius: 18rpx;
-  padding: 20rpx 18rpx;
+  padding: 24rpx 20rpx;
 }
 
 .stats-label {
   display: block;
-  font-size: 18rpx;
+  font-size: 24rpx;
   letter-spacing: 1.5rpx;
   color: #ada59a;
   font-weight: 600;
@@ -183,7 +183,7 @@
 .stats-value {
   display: block;
   margin-top: 10rpx;
-  font-size: 46rpx;
+  font-size: 58rpx;
   font-weight: 700;
   color: #7b6139;
 }
@@ -196,14 +196,14 @@
 }
 
 .stats-trend {
-  font-size: 20rpx;
+  font-size: 26rpx;
   color: #9b8260;
   font-weight: 600;
 }
 
 .section-kicker {
   display: block;
-  font-size: 20rpx;
+  font-size: 26rpx;
   letter-spacing: 3rpx;
   color: #888074;
   font-weight: 700;
@@ -315,6 +315,7 @@
 
 .insights-section {
   margin-top: 30rpx;
+  padding-bottom: 16rpx;
 }
 
 .insights-head {
@@ -336,6 +337,26 @@
   border: 1rpx solid #e5e1dc;
   border-radius: 20rpx;
   padding: 8rpx 18rpx;
+}
+
+.insights-slider-wrap {
+  margin-top: 14rpx;
+}
+
+.insights-slider {
+  height: 210rpx;
+}
+
+.insight-slide-card {
+  height: 180rpx;
+  background: #f7f6f4;
+  border: 1rpx solid #e5e1dc;
+  border-radius: 20rpx;
+  padding: 20rpx 18rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
 }
 
 .insight-item {
@@ -414,5 +435,5 @@
 }
 
 .bottom-spacer {
-  height: 136rpx;
+  height: 188rpx;
 }

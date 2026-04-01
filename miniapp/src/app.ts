@@ -4,7 +4,7 @@ import { configure } from '@nutui/icons-react-taro'
 import { isLoggedIn, getRole, setStoredAgentId } from './utils/auth'
 
 import '@nutui/nutui-react-taro/dist/style.css'
-import '@nutui/icons-react-taro/dist/style_iconfont.css'
+import './styles/nutui-iconfont.css'
 import './app.scss'
 
 // WeChat Mini Program 上 iconfont 渲染更稳定，避免 SVG mask 图标不显示

@@ -33,7 +33,7 @@ export default function AgentTabBar({ current }: AgentTabBarProps) {
           >
             <View className={`tab-icon-shell ${i === current ? 'active' : ''}`}>
               <View className={`tab-icon ${i === current ? 'active' : ''}`}>
-                <TabIcon size={18} />
+                <TabIcon size={18} fallback />
               </View>
             </View>
             <Text className={`tab-label ${i === current ? 'active' : ''}`}>{tab.label}</Text>

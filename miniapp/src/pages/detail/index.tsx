@@ -1,15 +1,15 @@
 import { View, Text, Image, Swiper, SwiperItem, Button } from '@tarojs/components'
 import Taro, { useLoad, useRouter, useShareAppMessage } from '@tarojs/taro'
 import { useState } from 'react'
-import { Heart, HeartFill, Share } from '@nutui/icons-react-taro'
-import { getListingDetail, trackView, getAgentInfo, sendMessage } from '../../utils/api'
+import { Heart, HeartFill } from '@nutui/icons-react-taro'
+import { getListingDetail, trackView, getAgentInfo } from '../../utils/api'
 import { getClientId, getRole } from '../../utils/auth'
 import './index.scss'
 
 interface SchoolInfo {
   name: string
   rating: number
-  level: string
+  type: string
   distance: string
 }
 
@@ -21,7 +21,11 @@ export default function Detail() {
   const [isFavorite, setIsFavorite] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [agentName, setAgentName] = useState('')
+  const [agentTitle, setAgentTitle] = useState('')
+  const [agentAvatar, setAgentAvatar] = useState('')
   const [agentPhone, setAgentPhone] = useState('')
+  const [agentEmail, setAgentEmail] = useState('')
+  const [agentWechat, setAgentWechat] = useState('')
   const [loading, setLoading] = useState(true)
 
   // Share individual listing as WeChat card
@@ -70,11 +74,17 @@ export default function Detail() {
         imageUrl,
         action: 'view'
       }).catch(() => {})
+    }
 
-      // Load agent info
+    // Load agent info
+    if (clientId) {
       getAgentInfo(clientId).then(agent => {
         setAgentName(agent.agentName || '')
+        setAgentTitle(agent.agentTitle || '')
+        setAgentAvatar(agent.agentAvatar || '')
         setAgentPhone(agent.agentPhone || '')
+        setAgentEmail(agent.agentEmail || '')
+        setAgentWechat(agent.agentWechat || '')
       }).catch(() => {})
     }
 
@@ -125,32 +135,42 @@ export default function Detail() {
   }
 
   const handleContact = () => {
+    if (!getClientId()) {
+      Taro.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const options: Array<{ label: string; type: 'phone' | 'email' | 'wechat' }> = []
+    if (agentPhone) options.push({ label: '电话联系中介', type: 'phone' })
+    if (agentEmail) options.push({ label: '复制中介邮箱', type: 'email' })
+    if (agentWechat) options.push({ label: '复制中介微信', type: 'wechat' })
+
+    if (options.length === 0) {
+      Taro.showToast({ title: '暂无中介联系方式', icon: 'none' })
+      return
+    }
+
     Taro.showActionSheet({
-      itemList: ['电话联系经纪人', '发送留言咨询'],
+      itemList: options.map((o) => o.label),
       success: (res) => {
-        if (res.tapIndex === 0) {
+        const chosen = options[res.tapIndex]
+        if (!chosen) return
+
+        if (chosen.type === 'phone') {
           if (agentPhone) {
             Taro.makePhoneCall({ phoneNumber: agentPhone }).catch(() => {})
-          } else {
-            Taro.showToast({ title: '暂无经纪人电话', icon: 'none' })
           }
-        } else if (res.tapIndex === 1) {
-          const clientId = getClientId()
-          if (!clientId) {
-            Taro.showToast({ title: '请先登录', icon: 'none' })
-            return
-          }
-          sendMessage({
-            clientId,
-            message: `您好，我对这套房源感兴趣：${(detail && detail.address) || ''}`,
-            listingAddress: detail && detail.address ? detail.address : undefined,
-            listingPrice: detail && detail.price ? detail.price : undefined
-          }).then(() => {
-            Taro.showToast({ title: '留言已发送', icon: 'success' })
-          }).catch(() => {
-            Taro.showToast({ title: '发送失败', icon: 'none' })
-          })
+          return
         }
+
+        const data = chosen.type === 'email' ? agentEmail : agentWechat
+        if (!data) return
+        const label = chosen.type === 'email' ? '邮箱' : '微信'
+        Taro.setClipboardData({
+          data,
+          success: () => {
+            Taro.showToast({ title: `${label}已复制`, icon: 'success' })
+          }
+        })
       }
     })
   }
@@ -179,6 +199,15 @@ export default function Detail() {
   const brokerName = currentDetail.brokerName || attributionInfo.brokerName || currentDetail.broker || ''
   const mlsId = currentDetail.mlsId || ''
   const description = currentDetail.description || ''
+  const status = currentDetail.status || ''
+  const daysOnZillow = currentDetail.daysOnZillow || 0
+  const lotSqft = currentDetail.lotSqft || 0
+  const rentZestimate = currentDetail.rentZestimate || null
+  const county = currentDetail.county || ''
+  const neighborhood = currentDetail.neighborhood || ''
+  const hoaFee = currentDetail.hoaFee || null
+  const propertyTaxRate = currentDetail.propertyTaxRate || null
+  const priceHistory = currentDetail.priceHistory || []
   const yearBuilt = currentDetail.yearBuilt || ''
   const beds = currentDetail.beds || currentDetail.bedrooms || 0
   const baths = currentDetail.baths || currentDetail.bathrooms || 0
@@ -278,8 +307,8 @@ export default function Detail() {
           {schools.map((school: SchoolInfo, i: number) => (
             <View key={i} className='school-item'>
               <View className='school-info'>
-                <Text className='school-name'>{school.name || school}</Text>
-                {school.level && <Text className='school-level'>{school.level}</Text>}
+                <Text className='school-name'>{school.name || '学校信息'}</Text>
+                {school.type && <Text className='school-level'>{school.type}</Text>}
                 {school.distance && <Text className='school-distance'>{school.distance}</Text>}
               </View>
               {school.rating != null && (
@@ -302,17 +331,52 @@ export default function Detail() {
         </View>
       ) : null}
 
+      {/* Around Info */}
+      <View className='content-section'>
+        <Text className='content-title'>周边与房源信息</Text>
+        {status ? <Text className='info-line'>房源状态：{status}</Text> : null}
+        {daysOnZillow ? <Text className='info-line'>在架天数：{daysOnZillow} 天</Text> : null}
+        {currentDetail.homeType ? <Text className='info-line'>房源类型：{currentDetail.homeType}</Text> : null}
+        {rentZestimate ? <Text className='info-line'>租金估值：{formatPrice(Number(rentZestimate))}/月</Text> : null}
+        {lotSqft ? <Text className='info-line'>土地面积：{lotSqft.toLocaleString()} sqft</Text> : null}
+        {hoaFee ? <Text className='info-line'>HOA：${Number(hoaFee).toLocaleString()}/月</Text> : null}
+        {propertyTaxRate ? <Text className='info-line'>房产税率：{propertyTaxRate}%</Text> : null}
+        {neighborhood ? <Text className='info-line'>社区：{neighborhood}</Text> : null}
+        {county ? <Text className='info-line'>行政区：{county}</Text> : null}
+      </View>
+
+      {/* Price History */}
+      {priceHistory.length > 0 && (
+        <View className='content-section'>
+          <Text className='content-title'>价格历史</Text>
+          {priceHistory.slice(0, 5).map((row: any, idx: number) => (
+            <View className='history-row' key={idx}>
+              <Text className='history-date'>{row.date || row.time || '-'}</Text>
+              <Text className='history-event'>{row.event || row.source || '记录'}</Text>
+              <Text className='history-price'>{row.price ? `$${Number(row.price).toLocaleString()}` : '-'}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Agent Card */}
       {agentName ? (
         <View className='content-section'>
           <Text className='content-title'>您的经纪人</Text>
           <View className='agent-row'>
-            <View className='agent-avatar-placeholder'>
-              <Text className='agent-initial'>{agentName[0]}</Text>
-            </View>
+            {agentAvatar ? (
+              <Image className='agent-avatar-placeholder' src={agentAvatar} mode='aspectFill' />
+            ) : (
+              <View className='agent-avatar-placeholder'>
+                <Text className='agent-initial'>{agentName[0]}</Text>
+              </View>
+            )}
             <View className='agent-info-col'>
               <Text className='agent-name-text'>{agentName}</Text>
+              {agentTitle ? <Text className='agent-subtitle-text'>{agentTitle}</Text> : null}
               {agentPhone && <Text className='agent-phone-text'>{agentPhone}</Text>}
+              {agentEmail && <Text className='agent-phone-text'>{agentEmail}</Text>}
+              {agentWechat && <Text className='agent-phone-text'>微信：{agentWechat}</Text>}
             </View>
           </View>
         </View>
@@ -323,22 +387,18 @@ export default function Detail() {
 
       {/* Fixed Bottom Bar */}
       <View className='bottom-bar'>
-        <View className='favorite-btn' onClick={handleFavorite}>
-          <View className={`fav-heart ${isFavorite ? 'active' : ''}`}>
-            {isFavorite ? <HeartFill size={20} /> : <Heart size={20} />}
-          </View>
-          <Text className='fav-label'>收藏</Text>
-        </View>
-        <Button className='share-btn' openType='share'>
-          <View className='share-icon'>
-            <Share size={20} />
-          </View>
-          <Text className='share-label'>分享</Text>
-        </Button>
         {isAgent ? (
-          <Button className='contact-btn' openType='share'>分享房源</Button>
+          <>
+            <View className='favorite-btn' onClick={handleFavorite}>
+              <View className={`fav-heart ${isFavorite ? 'active' : ''}`}>
+                {isFavorite ? <HeartFill size={20} fallback /> : <Heart size={20} fallback />}
+              </View>
+              <Text className='fav-label'>收藏</Text>
+            </View>
+            <Button className='contact-btn' openType='share'>分享房源</Button>
+          </>
         ) : (
-          <Button className='contact-btn' onClick={handleContact}>联系经纪人</Button>
+          <Button className='contact-btn guest-only' onClick={handleContact}>联系中介</Button>
         )}
       </View>
     </View>

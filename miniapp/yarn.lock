@@ -2280,6 +2280,11 @@
     inquirer "^8.2.6"
     ts-morph "^26.0.0"
 
+"@tarojs/plugin-html@^4.1.11":
+  version "4.1.11"
+  resolved "https://registry.npmjs.org/@tarojs/plugin-html/-/plugin-html-4.1.11.tgz"
+  integrity sha512-yHsry/YHPlzHeRA0621KzleXEWqUDZqCpHi5Lg1k53NZsVQ0fH2GdZlTDUXX5qAQw99Vvu/YIAkGGZ0UGrG8Tw==
+
 "@tarojs/plugin-platform-alipay@4.1.11":
   version "4.1.11"
   resolved "https://registry.npmjs.org/@tarojs/plugin-platform-alipay/-/plugin-platform-alipay-4.1.11.tgz"

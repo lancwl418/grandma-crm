@@ -5,6 +5,7 @@ import { supabaseAdmin } from "../lib/supabase.js";
 
 export const browseRouter = Router();
 const TRANSLATE_CACHE_TTL_MS = 30 * 60 * 1000;
+const TRANSLATE_NEGATIVE_TTL_MS = 2 * 60 * 1000;
 const TRANSLATE_CACHE_MAX_ENTRIES = 2000;
 const TRANSLATE_MAX_RETRIES = 3;
 const TRANSLATE_BASE_DELAY_MS = 300;
@@ -27,14 +28,14 @@ function readTranslateCache(cacheKey: string): string | null {
   return entry.value;
 }
 
-function writeTranslateCache(cacheKey: string, value: string): void {
+function writeTranslateCache(cacheKey: string, value: string, ttl: number = TRANSLATE_CACHE_TTL_MS): void {
   if (translateCache.size >= TRANSLATE_CACHE_MAX_ENTRIES) {
     const oldestKey = translateCache.keys().next().value;
     if (oldestKey) translateCache.delete(oldestKey);
   }
   translateCache.set(cacheKey, {
     value,
-    expiresAt: Date.now() + TRANSLATE_CACHE_TTL_MS,
+    expiresAt: Date.now() + ttl,
   });
 }
 
@@ -95,6 +96,7 @@ async function translateChunkToZh(chunk: string): Promise<string> {
             await sleep(backoff);
             continue;
           }
+          writeTranslateCache(cacheKey, chunk, TRANSLATE_NEGATIVE_TTL_MS);
           return chunk;
         }
 
@@ -112,6 +114,7 @@ async function translateChunkToZh(chunk: string): Promise<string> {
           continue;
         }
         console.error("[browse/listing/translate/chunk]", error);
+        writeTranslateCache(cacheKey, chunk, TRANSLATE_NEGATIVE_TTL_MS);
         return chunk;
       }
     }
@@ -168,6 +171,13 @@ browseRouter.get("/autocomplete", async (req, res) => {
         },
       }
     );
+    if (!response.ok) {
+      console.error(`[browse/autocomplete] upstream error: ${response.status}`);
+      res.status(response.status === 429 ? 429 : 502).json({
+        error: response.status === 429 ? "请求过于频繁，请稍后再试" : "Autocomplete service unavailable",
+      });
+      return;
+    }
     const data = await response.json();
     const results = (data.results ?? []).slice(0, 6).map((r: any) => ({
       display: r.display,
@@ -183,8 +193,9 @@ browseRouter.get("/autocomplete", async (req, res) => {
       }
     }
     res.json(result);
-  } catch {
-    res.json({ results: [] });
+  } catch (err) {
+    console.error("[browse/autocomplete]", err);
+    res.status(502).json({ error: "Autocomplete service unavailable" });
   }
 });
 

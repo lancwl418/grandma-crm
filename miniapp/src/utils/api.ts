@@ -253,6 +253,7 @@ export function updateAgentProfile(userId: string, data: {
 export function getAgentActivity(userId: string) {
   return request<{ activities: Array<{
     clientId: string
+    zpid?: string
     clientName: string
     action: string
     address: string

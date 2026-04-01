@@ -1,4 +1,4 @@
-import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Image, Swiper, SwiperItem } from '@tarojs/components'
 import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
 import { useState } from 'react'
 import { Notice, Share, Edit, Search, Category, Star, Service } from '@nutui/icons-react-taro'
@@ -9,6 +9,7 @@ import './index.scss'
 
 interface Activity {
   clientId: string
+  zpid?: string
   clientName: string
   action: string
   address: string
@@ -80,7 +81,17 @@ export default function AgentHome() {
   const loadActivity = async (userId: string) => {
     try {
       const result = await getAgentActivity(userId)
-      setActivities(result.activities || [])
+      const seenViewKeys = new Set<string>()
+      const deduped = (result.activities || []).filter((item) => {
+        if (item.action !== '浏览了') return true
+        const propertyKey = (item.zpid || item.address || '').trim().toLowerCase()
+        if (!propertyKey) return true
+        const key = `${item.clientId}::${propertyKey}`
+        if (seenViewKeys.has(key)) return false
+        seenViewKeys.add(key)
+        return true
+      })
+      setActivities(deduped)
     } catch {
       // ignore
     }
@@ -130,7 +141,7 @@ export default function AgentHome() {
             </View>
           </View>
           <View className='brand-notice'>
-            <Notice size={16} />
+            <Notice size={16} fallback />
           </View>
         </View>
 
@@ -148,13 +159,13 @@ export default function AgentHome() {
           <View className='profile-actions'>
             <Button className='profile-btn' openType='share'>
               <View className='profile-btn-inner'>
-                <Share size={14} />
+                <Share size={14} fallback />
                 <Text className='profile-btn-text'>分享</Text>
               </View>
             </Button>
             <View className='profile-btn' onClick={goProfile}>
               <View className='profile-btn-inner'>
-                <Edit size={14} />
+                <Edit size={14} fallback />
                 <Text className='profile-btn-text'>编辑资料</Text>
               </View>
             </View>
@@ -187,22 +198,22 @@ export default function AgentHome() {
           <Text className='section-kicker'>常用工具</Text>
           <View className='toolkit-grid'>
             <View className='toolkit-card' onClick={goSearch}>
-              <View className='toolkit-icon'><Search size={18} /></View>
+              <View className='toolkit-icon'><Search size={18} fallback /></View>
               <Text className='toolkit-title'>房源搜索</Text>
               <Text className='toolkit-subtitle'>房源搜索</Text>
             </View>
             <View className='toolkit-card' onClick={goVisitors}>
-              <View className='toolkit-icon'><Category size={18} /></View>
+              <View className='toolkit-icon'><Category size={18} fallback /></View>
               <Text className='toolkit-title'>任务看板</Text>
               <Text className='toolkit-subtitle'>任务看板</Text>
             </View>
             <View className='toolkit-card' onClick={goMarketing}>
-              <View className='toolkit-icon'><Service size={18} /></View>
+              <View className='toolkit-icon'><Service size={18} fallback /></View>
               <Text className='toolkit-title'>营销中心</Text>
               <Text className='toolkit-subtitle'>营销中心</Text>
             </View>
             <View className='toolkit-card highlight' onClick={showToastSoon}>
-              <View className='toolkit-icon'><Star size={18} /></View>
+              <View className='toolkit-icon'><Star size={18} fallback /></View>
               <Text className='toolkit-title'>智能助手</Text>
               <Text className='toolkit-subtitle'>即将上线</Text>
             </View>
@@ -224,32 +235,42 @@ export default function AgentHome() {
             <Text className='view-all' onClick={goVisitors}>查看全部</Text>
           </View>
           {activities.length > 0 ? (
-            <View className='insights-list'>
-              {activities.slice(0, 3).map((a, i) => (
-                <View
-                  key={`${a.clientId}-${i}`}
-                  className='insight-item'
-                  onClick={() => Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })}
-                >
-                  {a.imageUrl ? (
-                    <Image className='insight-avatar' src={a.imageUrl} mode='aspectFill' />
-                  ) : (
-                    <View className='insight-avatar insight-avatar-fallback'>
-                      <Text className='insight-avatar-text'>{a.clientName ? a.clientName[0] : '客'}</Text>
+            <View className='insights-slider-wrap'>
+              <Swiper
+                className='insights-slider'
+                indicatorDots={false}
+                circular={activities.length > 1}
+                autoplay={activities.length > 1}
+                interval={3500}
+                duration={450}
+              >
+                {activities.slice(0, 8).map((a, i) => (
+                  <SwiperItem key={`${a.clientId}-${i}`}>
+                    <View
+                      className='insight-slide-card'
+                      onClick={() => Taro.navigateTo({ url: `/pages/agent/client-detail/index?clientId=${a.clientId}` })}
+                    >
+                      {a.imageUrl ? (
+                        <Image className='insight-avatar' src={a.imageUrl} mode='aspectFill' />
+                      ) : (
+                        <View className='insight-avatar insight-avatar-fallback'>
+                          <Text className='insight-avatar-text'>{a.clientName ? a.clientName[0] : '客'}</Text>
+                        </View>
+                      )}
+                      <View className='insight-main'>
+                        <Text className='insight-line'>
+                          <Text className='insight-name'>{a.clientName}</Text>
+                          {' '}
+                          {a.action}
+                          {' '}
+                          <Text className='insight-address'>{a.address}</Text>
+                        </Text>
+                        <Text className='insight-time'>{timeAgo(a.createdAt)}</Text>
+                      </View>
                     </View>
-                  )}
-                  <View className='insight-main'>
-                    <Text className='insight-line'>
-                      <Text className='insight-name'>{a.clientName}</Text>
-                      {' '}
-                      {a.action}
-                      {' '}
-                      <Text className='insight-address'>{a.address}</Text>
-                    </Text>
-                    <Text className='insight-time'>{timeAgo(a.createdAt)}</Text>
-                  </View>
-                </View>
-              ))}
+                  </SwiperItem>
+                ))}
+              </Swiper>
             </View>
           ) : (
             <View className='insight-empty'>
