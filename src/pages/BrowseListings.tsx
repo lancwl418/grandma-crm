@@ -807,114 +807,150 @@ export default function BrowseListings() {
       : null;
     return (
       <div className="min-h-screen bg-[#f3f2ef] pb-28">
-        <div className="max-w-2xl mx-auto">
-          <div className="relative">
-            {heroPhotos.length > 0 ? (
-              <div className="w-full h-[380px] overflow-x-auto flex snap-x snap-mandatory scroll-smooth">
-                {heroPhotos.map((photo, idx) => (
-                  <img
-                    key={`${photo}-${idx}`}
-                    src={photo}
-                    alt={`${selectedDetail.address}-${idx + 1}`}
-                    className="w-full h-[380px] object-cover shrink-0 snap-center"
-                  />
-                ))}
+        <div className="max-w-7xl mx-auto">
+          {/* Back bar */}
+          <div className="px-4 lg:px-8 pt-4">
+            <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="flex items-center gap-1 text-sm text-[#7f6430] hover:text-[#5b4c2f] transition">
+              <ChevronLeft className="h-5 w-5" />
+              <span className="hidden sm:inline">返回搜索结果</span>
+              <span className="sm:hidden">返回</span>
+            </button>
+          </div>
+
+          {/* Desktop: side-by-side / Mobile: stacked */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-4">
+            {/* Photo gallery */}
+            <div className="relative">
+              {heroPhotos.length > 0 ? (
+                <>
+                  {/* Mobile: horizontal scroll */}
+                  <div className="lg:hidden w-full h-[380px] overflow-x-auto flex snap-x snap-mandatory scroll-smooth">
+                    {heroPhotos.map((photo, idx) => (
+                      <img key={`${photo}-${idx}`} src={photo} alt={`${selectedDetail.address}-${idx + 1}`} className="w-full h-[380px] object-cover shrink-0 snap-center" />
+                    ))}
+                  </div>
+                  {/* Desktop: grid gallery */}
+                  <div className="hidden lg:block">
+                    <div className="rounded-2xl overflow-hidden">
+                      <img src={heroPhotos[0]} alt={selectedDetail.address} className="w-full h-[400px] object-cover" />
+                    </div>
+                    {heroPhotos.length > 1 && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {heroPhotos.slice(1, 7).map((photo, idx) => (
+                          <img key={`${photo}-${idx}`} src={photo} alt={`${selectedDetail.address}-${idx + 2}`} className="w-full h-28 object-cover rounded-xl" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-[380px] lg:h-[400px] bg-gray-300 lg:rounded-2xl" />
+              )}
+              {/* Mobile-only overlay buttons */}
+              <div className="lg:hidden absolute inset-x-0 top-0 p-4 flex items-center justify-between">
+                <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center">
+                  <ChevronLeft className="h-6 w-6 text-[#222]" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const zpid = selectedDetail.zpid || 0;
+                      if (!verified && clientId) { setShowVerify(true); return; }
+                      const isFav = favorites.has(zpid);
+                      setFavorites((prev) => { const next = new Set(prev); if (isFav) next.delete(zpid); else next.add(zpid); return next; });
+                      if (!isFav && clientId) {
+                        fetch(`${API_BASE}/api/browse/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId, zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite" }) }).catch(() => {});
+                      }
+                    }}
+                    className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center"
+                  >
+                    <Heart className={`h-6 w-6 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-[#222]"}`} />
+                  </button>
+                  <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(selectedDetail.detailUrl || window.location.href); } catch {} }} className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center">
+                    <Send className="h-5 w-5 text-[#222]" />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="w-full h-[380px] bg-gray-300" />
-            )}
-            <div className="absolute inset-x-0 top-0 p-4 flex items-center justify-between">
-              <button onClick={() => { setSelectedDetail(null); setEmailListingInfo(null); }} className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center">
-                <ChevronLeft className="h-6 w-6 text-[#222]" />
-              </button>
-              <div className="flex items-center gap-2">
+            </div>
+
+            {/* Info panel */}
+            <div className="px-5 lg:px-0 pt-7 lg:pt-0 space-y-6">
+              {/* Desktop action buttons */}
+              <div className="hidden lg:flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     const zpid = selectedDetail.zpid || 0;
                     if (!verified && clientId) { setShowVerify(true); return; }
                     const isFav = favorites.has(zpid);
-                    setFavorites((prev) => {
-                      const next = new Set(prev);
-                      if (isFav) next.delete(zpid); else next.add(zpid);
-                      return next;
-                    });
+                    setFavorites((prev) => { const next = new Set(prev); if (isFav) next.delete(zpid); else next.add(zpid); return next; });
                     if (!isFav && clientId) {
-                      fetch(`${API_BASE}/api/browse/track`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          clientId, zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite",
-                        }),
-                      }).catch(() => {});
+                      fetch(`${API_BASE}/api/browse/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId, zpid, address: selectedDetail.address, price: selectedDetail.price, imageUrl: selectedDetail.imageUrl, action: "favorite" }) }).catch(() => {});
                     }
                   }}
-                  className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e0dbd2] bg-white hover:bg-[#f7f5f0] transition text-sm"
                 >
-                  <Heart className={`h-6 w-6 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-[#222]"}`} />
+                  <Heart className={`h-5 w-5 ${favorites.has(selectedDetail.zpid || 0) ? "fill-red-500 text-red-500" : "text-[#7f6430]"}`} />
+                  收藏
                 </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const shareUrl = selectedDetail.detailUrl || window.location.href;
-                    try { await navigator.clipboard.writeText(shareUrl); } catch {}
-                  }}
-                  className="w-11 h-11 rounded-2xl bg-white/90 flex items-center justify-center"
-                >
-                  <Send className="h-5 w-5 text-[#222]" />
+                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(selectedDetail.detailUrl || window.location.href); } catch {} }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e0dbd2] bg-white hover:bg-[#f7f5f0] transition text-sm">
+                  <Send className="h-4 w-4 text-[#7f6430]" />
+                  分享
                 </button>
               </div>
+
+              <section className="border-b border-[#e6e1d7] pb-6">
+                <h1 className="text-4xl lg:text-[42px] leading-[1.08] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "精品房源"}</h1>
+                <p className="text-base lg:text-lg text-[#4a4f53] mt-2">{selectedDetail.address}</p>
+                <p className="text-4xl lg:text-5xl leading-none text-[#1a1f22] mt-5 font-light">{selectedDetail.priceFormatted}</p>
+                {pricePerSqft && <p className="text-base lg:text-lg tracking-[0.14em] text-[#504940] font-semibold mt-2">${pricePerSqft.toLocaleString()} / 每平方英尺</p>}
+              </section>
+
+              <section className="grid grid-cols-3 gap-4 border-b border-[#e6e1d7] pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><BedDouble className="h-5 w-5 lg:h-6 lg:w-6" /></div>
+                  <div><p className="text-3xl lg:text-4xl font-semibold text-[#1a1f22]">{selectedDetail.beds || "-"}</p><p className="text-xs lg:text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卧室</p></div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Bath className="h-5 w-5 lg:h-6 lg:w-6" /></div>
+                  <div><p className="text-3xl lg:text-4xl font-semibold text-[#1a1f22]">{selectedDetail.baths || "-"}</p><p className="text-xs lg:text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卫浴</p></div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Ruler className="h-5 w-5 lg:h-6 lg:w-6" /></div>
+                  <div><p className="text-3xl lg:text-4xl font-semibold text-[#1a1f22]">{selectedDetail.sqft?.toLocaleString() || "-"}</p><p className="text-xs lg:text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">面积</p></div>
+                </div>
+              </section>
+
+              {selectedDetail.description && (
+                <section className="space-y-4">
+                  <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">房源介绍</p>
+                  <p className="text-base lg:text-lg leading-relaxed text-[#4a4f53]">{selectedDetail.description}</p>
+                </section>
+              )}
+
+              {selectedDetail.features && selectedDetail.features.length > 0 && (
+                <section className="rounded-3xl bg-[#eeedea] p-6">
+                  <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">特色配置</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-7">
+                    {selectedDetail.features.map((feature, idx) => (
+                      <div key={`${feature}-${idx}`} className="text-center">
+                        <p className="text-3xl">{getFeatureIcon(feature)}</p>
+                        <p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase text-sm">{feature}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
 
-          <div className="px-5 pt-7 space-y-6">
-            <section className="border-b border-[#e6e1d7] pb-6">
-              <h1 className="text-[54px] leading-[1.03] font-semibold text-[#1a1f22] mt-2">{selectedDetail.address.split(",")[0] || "精品房源"}</h1>
-              <p className="text-[19px] text-[#4a4f53] mt-2">{selectedDetail.address}</p>
-              <p className="text-[58px] leading-none text-[#1a1f22] mt-5 font-light">{selectedDetail.priceFormatted}</p>
-              {pricePerSqft && <p className="text-[20px] tracking-[0.14em] text-[#504940] font-semibold mt-2">${pricePerSqft.toLocaleString()} / 每平方英尺</p>}
-            </section>
-
-            <section className="grid grid-cols-2 gap-4 border-b border-[#e6e1d7] pb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><BedDouble className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.beds || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卧室</p></div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Bath className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.baths || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">卫浴</p></div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-[#efeeeb] flex items-center justify-center text-[#7f6430]"><Ruler className="h-6 w-6" /></div>
-                <div><p className="text-4xl font-semibold text-[#1a1f22]">{selectedDetail.sqft?.toLocaleString() || "-"}</p><p className="text-sm tracking-[0.12em] text-[#4f4739] font-semibold uppercase">面积</p></div>
-              </div>
-            </section>
-
-            {selectedDetail.description && (
-              <section className="space-y-4">
-                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">房源介绍</p>
-                <p className="text-[18px] leading-relaxed text-[#4a4f53]">{selectedDetail.description}</p>
-              </section>
-            )}
-
-            {selectedDetail.features && selectedDetail.features.length > 0 && (
-              <section className="rounded-3xl bg-[#eeedea] p-6">
-                <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase mb-6">特色配置</p>
-                <div className="grid grid-cols-2 gap-y-7">
-                  {selectedDetail.features.map((feature, idx) => (
-                    <div key={`${feature}-${idx}`} className="text-center">
-                      <p className="text-3xl">{getFeatureIcon(feature)}</p>
-                      <p className="mt-2 text-[#4f4739] font-semibold tracking-[0.1em] uppercase">{feature}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
+          {/* Full-width sections below the two-column layout */}
+          <div className="max-w-4xl mx-auto px-5 lg:px-8 space-y-6 mt-6">
             <section>
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[#7f6430] text-sm font-semibold tracking-[0.2em] uppercase">位置</p>
-                <p className="text-[#4a4f53] text-xl">{selectedDetail.address.split(",").slice(1, 3).join(",").trim() || selectedDetail.address}</p>
+                <p className="text-[#4a4f53] text-base lg:text-xl">{selectedDetail.address.split(",").slice(1, 3).join(",").trim() || selectedDetail.address}</p>
               </div>
               <div className="rounded-3xl bg-[#d7d7d7] h-64 relative overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center text-6xl">📍</div>
@@ -928,20 +964,20 @@ export default function BrowseListings() {
             <section className="rounded-3xl bg-[#f7f6f3] p-6 space-y-4">
               <div className="flex items-center gap-4">
                 {agentAvatar ? (
-                  <img src={agentAvatar} alt={agentName} className="w-24 h-24 rounded-3xl object-cover" />
+                  <img src={agentAvatar} alt={agentName} className="w-20 h-20 lg:w-24 lg:h-24 rounded-3xl object-cover" />
                 ) : (
-                  <div className="w-24 h-24 rounded-3xl bg-[#1f2427] text-white text-3xl flex items-center justify-center">{agentName[0]}</div>
+                  <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-3xl bg-[#1f2427] text-white text-2xl lg:text-3xl flex items-center justify-center">{agentName[0]}</div>
                 )}
                 <div>
-                  <p className="text-5xl font-semibold text-[#1a1f22] leading-none">{agentName}</p>
+                  <p className="text-3xl lg:text-5xl font-semibold text-[#1a1f22] leading-none">{agentName}</p>
                   <p className="text-[#7f6430] mt-1 font-semibold tracking-[0.16em] uppercase text-sm">{agentTitle || "房产经纪人"}</p>
                 </div>
               </div>
               <div className="pt-3 border-t border-[#ebe7df] grid grid-cols-3 gap-2 text-center">
-                <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739]"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">电话</p></a>
+                <a href={agentPhone ? `tel:${agentPhone}` : "#"} className="py-3 text-[#4f4739] hover:bg-[#eeedea] rounded-xl transition"><Phone className="h-6 w-6 mx-auto" /><p className="mt-1 text-sm tracking-[0.1em] uppercase">电话</p></a>
                 <a
                   href={agentEmail ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${selectedDetail.address}`)}&body=${encodeURIComponent(`Hi ${agentName},\n\nI'm interested in ${selectedDetail.address}`)}` : "#"}
-                  className="py-3 text-[#4f4739]"
+                  className="py-3 text-[#4f4739] hover:bg-[#eeedea] rounded-xl transition"
                 >
                   <Send className="h-6 w-6 mx-auto" />
                   <p className="mt-1 text-sm tracking-[0.1em] uppercase">邮箱</p>
@@ -955,7 +991,7 @@ export default function BrowseListings() {
                       setTimeout(() => setWechatCopied(false), 2000);
                     }
                   }}
-                  className="py-3 text-[#4f4739]"
+                  className="py-3 text-[#4f4739] hover:bg-[#eeedea] rounded-xl transition"
                 >
                   <MessageCircle className="h-6 w-6 mx-auto" />
                   <p className="mt-1 text-sm tracking-[0.1em] uppercase">{wechatCopied ? "已复制" : "微信"}</p>
@@ -1296,14 +1332,14 @@ export default function BrowseListings() {
 
       {/* Results */}
       {category === "residential" ? (
-      <div className="p-4 space-y-4">
+      <div className="p-4 lg:px-8 xl:px-12">
         {loading && <div className="text-center py-12 text-[#9f9688] text-sm">搜索中...</div>}
 
         {!loading && !searched && (
           <div className="space-y-6">
             <div>
               <h3 className="text-base font-semibold text-[#2b2f32] mb-3">热门区域</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 {HOT_AREAS.map((area) => (
                   <button
                     key={area.label}
@@ -1386,49 +1422,53 @@ export default function BrowseListings() {
           <div className="text-center py-12 text-[#9f9688] text-sm">暂无结果，请尝试其他区域或筛选条件。</div>
         )}
 
-        {!loading && searched && viewMode === "list" && listings.map((listing, index) => (
-          <div key={listing.zpid} className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden">
-            <button type="button" onClick={() => viewDetail(listing)} className="w-full text-left">
-              <div className="relative">
-                {listing.imageUrl ? (
-                  <img src={listing.imageUrl} alt={listing.address} className="w-full h-56 object-cover" />
-                ) : (
-                  <div className="w-full h-56 bg-gray-200 flex items-center justify-center text-gray-400"><Home className="h-8 w-8" /></div>
-                )}
-                <div className="absolute left-3 top-3 flex gap-2">
-                  <span className="h-8 leading-8 px-3 rounded bg-[#7f6430] text-white text-xs font-bold tracking-widest">{index % 2 === 0 ? "精选" : "独家"}</span>
-                  <span className="h-8 leading-8 px-3 rounded bg-black/70 text-white text-xs font-bold tracking-widest">{listingType === "rent" ? "出租" : "新上架"}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!verified) { setShowVerify(true); return; }
-                    toggleFavorite(listing);
-                  }}
-                  className="absolute right-3 bottom-3 w-10 h-10 rounded-xl bg-black/60 border border-white/40 flex items-center justify-center"
-                >
-                  <Heart className={`h-4 w-4 ${favorites.has(listing.zpid) ? "fill-red-500 text-red-500" : "text-[#f4f3ee]"}`} />
+        {!loading && searched && viewMode === "list" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {listings.map((listing, index) => (
+              <div key={listing.zpid} className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden">
+                <button type="button" onClick={() => viewDetail(listing)} className="w-full text-left">
+                  <div className="relative">
+                    {listing.imageUrl ? (
+                      <img src={listing.imageUrl} alt={listing.address} className="w-full h-48 lg:h-52 object-cover" />
+                    ) : (
+                      <div className="w-full h-48 lg:h-52 bg-gray-200 flex items-center justify-center text-gray-400"><Home className="h-8 w-8" /></div>
+                    )}
+                    <div className="absolute left-3 top-3 flex gap-2">
+                      <span className="h-7 leading-7 px-2.5 rounded bg-[#7f6430] text-white text-xs font-bold tracking-widest">{index % 2 === 0 ? "精选" : "独家"}</span>
+                      <span className="h-7 leading-7 px-2.5 rounded bg-black/70 text-white text-xs font-bold tracking-widest">{listingType === "rent" ? "出租" : "新上架"}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!verified) { setShowVerify(true); return; }
+                        toggleFavorite(listing);
+                      }}
+                      className="absolute right-3 bottom-3 w-10 h-10 rounded-xl bg-black/60 border border-white/40 flex items-center justify-center"
+                    >
+                      <Heart className={`h-4 w-4 ${favorites.has(listing.zpid) ? "fill-red-500 text-red-500" : "text-[#f4f3ee]"}`} />
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-lg lg:text-xl font-medium text-[#1f2427] leading-tight line-clamp-2">{getListingTitle(listing)}</p>
+                    <p className="text-sm text-[#4a4f53] mt-1.5 line-clamp-1">{listing.address}</p>
+                    <div className="text-xs text-[#8f8880] mt-1.5 space-x-1">
+                      {listing.beds > 0 && <span>{listing.beds} 卧</span>}
+                      {listing.baths > 0 && <span>• {listing.baths} 卫</span>}
+                      {listing.sqft > 0 && <span>• {listing.sqft.toLocaleString()} sqft</span>}
+                    </div>
+                    <p className="text-2xl lg:text-2xl text-[#7f6430] mt-2 font-medium">
+                      {listing.buildingName && listing.price === 0
+                        ? (listing.minPrice != null && listing.maxPrice != null ? `$${listing.minPrice.toLocaleString()} - $${listing.maxPrice.toLocaleString()}/月` : "")
+                        : listing.priceFormatted}
+                    </p>
+                    <p className="text-xs text-[#8f8880] mt-1 tracking-wider">{HOME_TYPE_LABELS[listing.homeType] || listing.homeType}</p>
+                  </div>
                 </button>
               </div>
-              <div className="p-4">
-                <p className="text-2xl font-medium text-[#1f2427] leading-tight">{getListingTitle(listing)}</p>
-                <p className="text-sm text-[#4a4f53] mt-2">{listing.address}</p>
-                <div className="text-xs text-[#8f8880] mt-2 space-x-1">
-                  {listing.beds > 0 && <span>{listing.beds} 卧</span>}
-                  {listing.baths > 0 && <span>• {listing.baths} 卫</span>}
-                  {listing.sqft > 0 && <span>• {listing.sqft.toLocaleString()} 平方英尺</span>}
-                </div>
-                <p className="text-3xl text-[#7f6430] mt-3 font-medium">
-                  {listing.buildingName && listing.price === 0
-                    ? (listing.minPrice != null && listing.maxPrice != null ? `$${listing.minPrice.toLocaleString()} - $${listing.maxPrice.toLocaleString()}/月` : "")
-                    : listing.priceFormatted}
-                </p>
-                <p className="text-xs text-[#8f8880] mt-1 tracking-wider">{HOME_TYPE_LABELS[listing.homeType] || listing.homeType}</p>
-              </div>
-            </button>
+            ))}
           </div>
-        ))}
+        )}
       </div>
       ) : (
       <div className="p-4 space-y-3">
