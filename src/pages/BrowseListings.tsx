@@ -1360,7 +1360,7 @@ export default function BrowseListings() {
             {favoriteListings.length > 0 && (
               <div>
                 <h3 className="text-base font-semibold text-[#2b2f32] mb-3">收藏房源</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {favoriteListings.map((listing) => (
                     <button
                       key={`fav-${listing.zpid}`}
@@ -1369,16 +1369,16 @@ export default function BrowseListings() {
                       className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
                     >
                       {listing.imageUrl ? (
-                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
+                        <img src={listing.imageUrl} alt={listing.address} className="w-full aspect-square object-cover" />
                       ) : (
-                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
+                        <div className="w-full aspect-square bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
                       )}
-                      <div className="p-2">
+                      <div className="p-2.5">
                         <div className="flex items-center justify-between gap-1">
-                          <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
+                          <p className="text-sm text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
                           <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
                         </div>
-                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
+                        <p className="text-xs text-[#4a4f53] truncate mt-1">{listing.address}</p>
                       </div>
                     </button>
                   ))}
@@ -1389,7 +1389,7 @@ export default function BrowseListings() {
             {recentViews.length > 0 && (
               <div>
                 <h3 className="text-base font-semibold text-[#2b2f32] mb-3">最近浏览</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {recentViews.map((listing) => (
                     <button
                       key={`view-${listing.zpid}`}
@@ -1398,13 +1398,13 @@ export default function BrowseListings() {
                       className="bg-[#f7f5f0] rounded-xl border border-[#e0dbd2] overflow-hidden text-left"
                     >
                       {listing.imageUrl ? (
-                        <img src={listing.imageUrl} alt={listing.address} className="w-full h-24 object-cover" />
+                        <img src={listing.imageUrl} alt={listing.address} className="w-full aspect-square object-cover" />
                       ) : (
-                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
+                        <div className="w-full aspect-square bg-gray-200 flex items-center justify-center"><Home className="h-5 w-5 text-gray-400" /></div>
                       )}
-                      <div className="p-2">
-                        <p className="text-xs text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
-                        <p className="text-[11px] text-[#4a4f53] truncate mt-0.5">{listing.address}</p>
+                      <div className="p-2.5">
+                        <p className="text-sm text-[#7f6430] font-semibold truncate">{listing.priceFormatted}</p>
+                        <p className="text-xs text-[#4a4f53] truncate mt-1">{listing.address}</p>
                       </div>
                     </button>
                   ))}
