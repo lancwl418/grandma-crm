@@ -1,7 +1,12 @@
 import { Router } from "express";
+import twilio from "twilio";
 import { searchListings, getPropertyDetail, getPropertyImage } from "../lib/zillow.js";
 import { searchCommercial, autocompleteCommercial, getCommercialDetail } from "../lib/loopnet.js";
 import { supabaseAdmin } from "../lib/supabase.js";
+
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
 
 export const browseRouter = Router();
 const TRANSLATE_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -668,14 +673,32 @@ browseRouter.post("/register", async (req, res) => {
     return;
   }
 
+  // Dedup: if same agent + same phone already exists, return existing client
+  if (phone) {
+    const normalizedPhone = phone.replace(/[\s\-()]/g, "");
+    const { data: existing } = await supabaseAdmin
+      .from("clients")
+      .select("id")
+      .eq("user_id", agentId)
+      .eq("phone", normalizedPhone)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      res.json({ ok: true, clientId: existing.id });
+      return;
+    }
+  }
+
   // Create new client under this agent
+  const phoneNormalized = phone ? phone.replace(/[\s\-()]/g, "") : null;
   const { data, error } = await supabaseAdmin
     .from("clients")
     .insert({
       user_id: agentId,
       remark_name: name || phone || email || "新访客",
       name: name || null,
-      phone: phone || null,
+      phone: phoneNormalized,
       wechat: wechat || null,
       status: "新客户",
       urgency: "medium",
@@ -691,6 +714,36 @@ browseRouter.post("/register", async (req, res) => {
   }
 
   res.json({ ok: true, clientId: data.id });
+});
+
+// ── Send SMS with browse link ────────────────────────────────
+
+browseRouter.post("/send-sms", async (req, res) => {
+  const { phone, clientId, browseUrl } = req.body;
+
+  if (!phone || !clientId || !browseUrl) {
+    res.status(400).json({ error: "phone, clientId, and browseUrl are required" });
+    return;
+  }
+
+  if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER) {
+    console.error("[browse/send-sms] Twilio not configured");
+    res.status(500).json({ error: "SMS service not configured" });
+    return;
+  }
+
+  try {
+    await twilioClient.messages.create({
+      body: `【Estate Epic】您的专属房源浏览链接：${browseUrl} 请保存此链接，方便随时查看房源。Reply STOP to unsubscribe.`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: phone,
+    });
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[browse/send-sms]", err?.message);
+    res.status(500).json({ error: "短信发送失败，请稍后再试" });
+  }
 });
 
 // ── Client message / inquiry ─────────────────────────────────

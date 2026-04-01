@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Home, User, Phone, Mail, MessageCircle, Star } from "lucide-react";
+import { User, Phone, Mail, MessageCircle, Star, Copy, Check, ChevronDown, Send } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -12,16 +12,34 @@ const HERO_IMAGES = [
   "https://photos.zillowstatic.com/fp/5d72e46f3250e0bf71a5b2a343e8e46b-p_e.jpg",
 ];
 
+const AREA_CODES = [
+  { code: "+1", label: "+1 美国/加拿大", flag: "🇺🇸" },
+  { code: "+86", label: "+86 中国", flag: "🇨🇳" },
+];
+
+function getStorageKey(agentId: string) {
+  return `browse_client_${agentId}`;
+}
+
 export default function BrowseRegister() {
   const { agentId } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [areaCode, setAreaCode] = useState("+1");
+  const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [wechat, setWechat] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Link modal after registration
+  const [linkModal, setLinkModal] = useState<{ url: string; clientId: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsSent, setSmsSent] = useState(false);
+  const [smsError, setSmsError] = useState("");
 
   // Agent info
   const [agentName, setAgentName] = useState("");
@@ -38,6 +56,21 @@ export default function BrowseRegister() {
     return () => clearInterval(timer);
   }, []);
 
+  // Check localStorage for existing registration
+  useEffect(() => {
+    if (!agentId) return;
+    try {
+      const saved = localStorage.getItem(getStorageKey(agentId));
+      if (saved) {
+        const { clientId } = JSON.parse(saved);
+        if (clientId) {
+          navigate(`/browse/${clientId}`, { replace: true });
+          return;
+        }
+      }
+    } catch {}
+  }, [agentId, navigate]);
+
   useEffect(() => {
     if (!agentId) return;
     fetch(`${API_BASE}/api/browse/agent-profile/${agentId}`)
@@ -50,12 +83,14 @@ export default function BrowseRegister() {
       .catch(() => {});
   }, [agentId]);
 
-  const canSubmit = name.trim() || phone.trim();
+  const canSubmit = name.trim() && phone.trim();
 
   const handleSubmit = async () => {
     if (!canSubmit || !agentId) return;
     setSubmitting(true);
     setError("");
+
+    const fullPhone = `${areaCode}${phone.trim()}`;
 
     try {
       const res = await fetch(`${API_BASE}/api/browse/register`, {
@@ -64,7 +99,7 @@ export default function BrowseRegister() {
         body: JSON.stringify({
           agentId,
           name: name.trim() || undefined,
-          phone: phone.trim() || undefined,
+          phone: fullPhone,
           email: email.trim() || undefined,
           wechat: wechat.trim() || undefined,
         }),
@@ -72,7 +107,17 @@ export default function BrowseRegister() {
 
       const data = await res.json();
       if (data.ok && data.clientId) {
-        navigate(`/browse/${data.clientId}`, { replace: true });
+        // Save to localStorage
+        try {
+          localStorage.setItem(
+            getStorageKey(agentId),
+            JSON.stringify({ clientId: data.clientId })
+          );
+        } catch {}
+
+        // Show link modal instead of navigating directly
+        const browseUrl = `${window.location.origin}/browse/${data.clientId}`;
+        setLinkModal({ url: browseUrl, clientId: data.clientId });
       } else {
         setError(data.error || "提交失败，请重试");
       }
@@ -82,6 +127,52 @@ export default function BrowseRegister() {
       setSubmitting(false);
     }
   };
+
+  const handleCopyLink = async () => {
+    if (!linkModal) return;
+    try {
+      await navigator.clipboard.writeText(linkModal.url);
+    } catch {
+      window.prompt("请复制以下链接：", linkModal.url);
+    }
+    setCopied(true);
+    setTimeout(() => {
+      navigate(`/browse/${linkModal.clientId}`, { replace: true });
+    }, 1200);
+  };
+
+  const handleSendSms = async () => {
+    if (!linkModal || !phone.trim()) return;
+    setSmsSending(true);
+    setSmsError("");
+
+    const fullPhone = `${areaCode}${phone.trim()}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/browse/send-sms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: fullPhone,
+          clientId: linkModal.clientId,
+          browseUrl: linkModal.url,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        setSmsSent(true);
+      } else {
+        setSmsError(data.error || "发送失败");
+      }
+    } catch {
+      setSmsError("网络错误，请重试");
+    } finally {
+      setSmsSending(false);
+    }
+  };
+
+  const selectedArea = AREA_CODES.find((a) => a.code === areaCode) || AREA_CODES[0];
 
   return (
     <div className="min-h-screen bg-white">
@@ -163,20 +254,58 @@ export default function BrowseRegister() {
             />
           </div>
 
-          {/* Phone */}
+          {/* Phone with area code */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <Phone className="h-4 w-4 text-green-600" />
               电话 / Phone
               <Star className="h-2 w-2 text-red-500 fill-red-500" />
             </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="请输入您的电话号码"
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
-            />
+            <div className="flex gap-2">
+              {/* Area code dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAreaDropdownOpen(!areaDropdownOpen)}
+                  className="flex items-center gap-1 border-2 border-gray-200 rounded-xl px-3 py-3 text-sm bg-gray-50 hover:bg-gray-100 transition min-w-[90px]"
+                >
+                  <span>{selectedArea.flag}</span>
+                  <span className="font-medium">{selectedArea.code}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                </button>
+                {areaDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setAreaDropdownOpen(false)} />
+                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden min-w-[180px]">
+                      {AREA_CODES.map((area) => (
+                        <button
+                          key={area.code}
+                          type="button"
+                          onClick={() => {
+                            setAreaCode(area.code);
+                            setAreaDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-blue-50 transition ${
+                            areaCode === area.code ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"
+                          }`}
+                        >
+                          <span>{area.flag}</span>
+                          <span>{area.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* Phone input */}
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="请输入电话号码"
+                className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
+              />
+            </div>
           </div>
 
           {/* Email */}
@@ -227,6 +356,87 @@ export default function BrowseRegister() {
           </p>
         </div>
       </div>
+
+      {/* Link modal */}
+      {linkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <Check className="h-7 w-7 text-green-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">注册成功</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                这是您的专属浏览链接，为了方便下次访问<br />
+                <span className="font-medium text-gray-700">请先复制保存到浏览器中打开</span>
+              </p>
+            </div>
+
+            {/* Link display */}
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+              <p className="text-xs text-gray-500 break-all leading-relaxed select-all">
+                {linkModal.url}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              disabled={copied}
+              className={`w-full py-3.5 rounded-xl font-medium text-base transition flex items-center justify-center gap-2 ${
+                copied
+                  ? "bg-green-500 text-white"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white active:from-blue-700 active:to-indigo-700 shadow-lg shadow-blue-200"
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-5 w-5" />
+                  已复制，正在跳转...
+                </>
+              ) : (
+                <>
+                  <Copy className="h-5 w-5" />
+                  复制链接
+                </>
+              )}
+            </button>
+
+            {/* Send SMS button */}
+            {phone.trim() && (
+              <button
+                type="button"
+                onClick={handleSendSms}
+                disabled={smsSending || smsSent}
+                className={`w-full py-3 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2 border-2 ${
+                  smsSent
+                    ? "border-green-200 bg-green-50 text-green-600"
+                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+                }`}
+              >
+                {smsSent ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    短信已发送至 {areaCode}{phone.trim()}
+                  </>
+                ) : smsSending ? (
+                  "发送中..."
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    发送链接到我的手机
+                  </>
+                )}
+              </button>
+            )}
+            {smsError && <p className="text-xs text-red-500 text-center">{smsError}</p>}
+
+            <p className="text-xs text-gray-400 text-center">
+              建议将链接保存到浏览器书签，方便随时查看房源
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
