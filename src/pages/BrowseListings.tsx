@@ -1357,7 +1357,7 @@ export default function BrowseListings() {
             {favoriteListings.length > 0 && (
               <div>
                 <h3 className="text-base font-semibold text-[#2b2f32] mb-3">收藏房源</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   {favoriteListings.map((listing) => (
                     <button
                       key={`fav-${listing.zpid}`}
@@ -1386,7 +1386,7 @@ export default function BrowseListings() {
             {recentViews.length > 0 && (
               <div>
                 <h3 className="text-base font-semibold text-[#2b2f32] mb-3">最近浏览</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   {recentViews.map((listing) => (
                     <button
                       key={`view-${listing.zpid}`}
