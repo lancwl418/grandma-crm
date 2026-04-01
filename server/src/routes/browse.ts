@@ -619,19 +619,29 @@ browseRouter.get("/lookup-username", async (req, res) => {
 
 // ── Get agent profile by userId (for register page) ─────────
 
-browseRouter.get("/agent-profile/:userId", async (req, res) => {
-  const { userId } = req.params;
+browseRouter.get("/agent-profile/:identifier", async (req, res) => {
+  const { identifier } = req.params;
 
   if (!supabaseAdmin) {
-    res.json({ agentName: "Agent", agentTitle: "", agentAvatar: "" });
+    res.json({ agentName: "Agent", agentTitle: "", agentAvatar: "", agentId: "" });
     return;
   }
 
-  const { data: profile } = await supabaseAdmin
-    .from("agent_profiles")
-    .select("display_name, title, avatar_url, phone")
-    .eq("user_id", userId)
-    .single();
+  // Try username first, then fallback to user_id (UUID)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+  const { data: profile } = isUuid
+    ? await supabaseAdmin
+        .from("agent_profiles")
+        .select("user_id, display_name, title, avatar_url, phone")
+        .eq("user_id", identifier)
+        .single()
+    : await supabaseAdmin
+        .from("agent_profiles")
+        .select("user_id, display_name, title, avatar_url, phone")
+        .ilike("username", identifier)
+        .limit(1)
+        .single();
 
   if (profile?.display_name) {
     res.json({
@@ -639,18 +649,25 @@ browseRouter.get("/agent-profile/:userId", async (req, res) => {
       agentTitle: profile.title || "",
       agentAvatar: profile.avatar_url || "",
       agentPhone: profile.phone || "",
+      agentId: profile.user_id,
     });
     return;
   }
 
-  // Fallback
-  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-  res.json({
-    agentName: userData?.user?.user_metadata?.full_name ?? userData?.user?.email?.split("@")[0] ?? "Agent",
-    agentTitle: "",
-    agentAvatar: "",
-    agentPhone: "",
-  });
+  // Fallback for UUID only
+  if (isUuid) {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(identifier);
+    res.json({
+      agentName: userData?.user?.user_metadata?.full_name ?? userData?.user?.email?.split("@")[0] ?? "Agent",
+      agentTitle: "",
+      agentAvatar: "",
+      agentPhone: "",
+      agentId: identifier,
+    });
+    return;
+  }
+
+  res.status(404).json({ error: "Agent not found" });
 });
 
 // ── Register new client from browse page ────────────────────

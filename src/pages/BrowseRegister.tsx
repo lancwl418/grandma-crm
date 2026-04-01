@@ -22,7 +22,7 @@ function getStorageKey(agentId: string) {
 }
 
 export default function BrowseRegister() {
-  const { agentId } = useParams<{ agentId: string }>();
+  const { agentId: identifier } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -41,6 +41,9 @@ export default function BrowseRegister() {
   const [smsSent, setSmsSent] = useState(false);
   const [smsError, setSmsError] = useState("");
 
+  // Resolved agent UUID from username/identifier
+  const [agentId, setAgentId] = useState("");
+
   // Agent info
   const [agentName, setAgentName] = useState("");
   const [agentAvatar, setAgentAvatar] = useState("");
@@ -56,7 +59,21 @@ export default function BrowseRegister() {
     return () => clearInterval(timer);
   }, []);
 
-  // Check localStorage for existing registration
+  // Fetch agent profile and resolve agentId (UUID) from username/identifier
+  useEffect(() => {
+    if (!identifier) return;
+    fetch(`${API_BASE}/api/browse/agent-profile/${identifier}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.agentId) setAgentId(data.agentId);
+        if (data.agentName) setAgentName(data.agentName);
+        if (data.agentAvatar) setAgentAvatar(data.agentAvatar);
+        if (data.agentTitle) setAgentTitle(data.agentTitle);
+      })
+      .catch(() => {});
+  }, [identifier]);
+
+  // Check localStorage for existing registration (after agentId is resolved)
   useEffect(() => {
     if (!agentId) return;
     try {
@@ -65,23 +82,10 @@ export default function BrowseRegister() {
         const { clientId } = JSON.parse(saved);
         if (clientId) {
           navigate(`/browse/${clientId}`, { replace: true });
-          return;
         }
       }
     } catch {}
   }, [agentId, navigate]);
-
-  useEffect(() => {
-    if (!agentId) return;
-    fetch(`${API_BASE}/api/browse/agent-profile/${agentId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.agentName) setAgentName(data.agentName);
-        if (data.agentAvatar) setAgentAvatar(data.agentAvatar);
-        if (data.agentTitle) setAgentTitle(data.agentTitle);
-      })
-      .catch(() => {});
-  }, [agentId]);
 
   const canSubmit = name.trim() && phone.trim();
 

@@ -268,7 +268,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => {
-              const link = `${window.location.origin}/browse/new/${userId}`;
+              const link = `${window.location.origin}/browse/new/${profile?.username || userId}`;
               navigator.clipboard.writeText(link);
               setToast("推广链接已复制");
               setTimeout(() => setToast(""), 2000);
