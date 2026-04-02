@@ -21,6 +21,20 @@ function getStorageKey(agentId: string) {
   return `browse_client_${agentId}`;
 }
 
+function getCookieKey(agentId: string) {
+  return `bc_${agentId}`;
+}
+
+function setCookie(name: string, value: string, days: number) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export default function BrowseRegister() {
   const { agentId: identifier } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
@@ -73,18 +87,34 @@ export default function BrowseRegister() {
       .catch(() => {});
   }, [identifier]);
 
-  // Check localStorage for existing registration (after agentId is resolved)
+  // Check localStorage + cookie for existing registration (after agentId is resolved)
   useEffect(() => {
     if (!agentId) return;
+
+    let clientId: string | null = null;
+
+    // Try localStorage first
     try {
       const saved = localStorage.getItem(getStorageKey(agentId));
       if (saved) {
-        const { clientId } = JSON.parse(saved);
-        if (clientId) {
-          navigate(`/browse/${clientId}`, { replace: true });
-        }
+        const parsed = JSON.parse(saved);
+        if (parsed.clientId) clientId = parsed.clientId;
       }
     } catch {}
+
+    // Fallback to cookie (WeChat browser may clear localStorage)
+    if (!clientId) {
+      clientId = getCookie(getCookieKey(agentId));
+    }
+
+    if (clientId) {
+      // Ensure both storages are in sync
+      try {
+        localStorage.setItem(getStorageKey(agentId), JSON.stringify({ clientId }));
+      } catch {}
+      setCookie(getCookieKey(agentId), clientId, 365);
+      navigate(`/browse/${clientId}`, { replace: true });
+    }
   }, [agentId, navigate]);
 
   const canSubmit = name.trim() && phone.trim();
@@ -111,13 +141,14 @@ export default function BrowseRegister() {
 
       const data = await res.json();
       if (data.ok && data.clientId) {
-        // Save to localStorage
+        // Save to localStorage + cookie for cross-browser persistence
         try {
           localStorage.setItem(
             getStorageKey(agentId),
             JSON.stringify({ clientId: data.clientId })
           );
         } catch {}
+        setCookie(getCookieKey(agentId), data.clientId, 365);
 
         // Show link modal instead of navigating directly
         const browseUrl = `${window.location.origin}/browse/${data.clientId}`;
