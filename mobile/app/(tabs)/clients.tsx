@@ -12,8 +12,10 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 import {
   Search,
   Phone,
@@ -23,10 +25,24 @@ import {
   ArrowLeft,
   Calendar,
   Plus,
+  Home,
+  Heart,
+  Eye,
 } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import type { Client, ClientLog } from "@/types";
 import * as Clipboard from "expo-clipboard";
+
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "https://grandma-crm.onrender.com";
+
+interface BrowseView {
+  zpid: string;
+  address: string;
+  price: number;
+  action: string;
+  image_url: string | null;
+  created_at: string;
+}
 
 const STATUS_TABS = [
   "全部", "新客户", "看房中", "意向强烈", "已下Offer", "已成交", "停滞", "暂缓",
@@ -99,6 +115,7 @@ function ClientDetailView({
   const [nextDate, setNextDate] = useState("");
   const [nextActionContent, setNextActionContent] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [browseViews, setBrowseViews] = useState<BrowseView[]>([]);
 
   // Editable fields
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -109,6 +126,14 @@ function ClientDetailView({
     const t = setTimeout(() => setToastMsg(null), 2000);
     return () => clearTimeout(t);
   }, [toastMsg]);
+
+  // Load browse history
+  useEffect(() => {
+    fetch(`${API_BASE}/api/browse/history/${client.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.views) setBrowseViews(data.views); })
+      .catch(() => {});
+  }, [client.id]);
 
   const update = useCallback(
     async (patch: Partial<Client>) => {
@@ -427,6 +452,85 @@ function ClientDetailView({
           )}
         </View>
 
+        {/* Browse History */}
+        {browseViews.length > 0 && (
+          <View style={d.browseSection}>
+            <View style={d.browseSectionHeader}>
+              <Eye size={16} color="#000" />
+              <Text style={d.browseSectionTitle}>浏览房源</Text>
+              <Text style={d.browseSectionCount}>{browseViews.length}</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12 }}
+            >
+              {(() => {
+                // Deduplicate by zpid
+                const seen = new Set<string>();
+                const unique = browseViews.filter((v) => {
+                  if (seen.has(v.zpid)) return false;
+                  seen.add(v.zpid);
+                  return true;
+                });
+                return unique.slice(0, 10).map((v, i) => {
+                  const isFav = browseViews.some((bv) => bv.zpid === v.zpid && bv.action === "favorite");
+                  const isInq = browseViews.some((bv) => bv.zpid === v.zpid && bv.action === "inquiry");
+                  const viewCount = browseViews.filter((bv) => bv.zpid === v.zpid).length;
+                  const priceStr = v.price >= 1000000
+                    ? `$${(v.price / 1000000).toFixed(1)}M`
+                    : v.price >= 1000
+                    ? `$${(v.price / 1000).toFixed(0)}K`
+                    : `$${v.price}`;
+                  return (
+                    <TouchableOpacity
+                      key={v.zpid || i}
+                      style={d.browseCard}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        if (v.zpid) Linking.openURL(`https://www.zillow.com/homedetails/${v.zpid}_zpid/`);
+                      }}
+                    >
+                      {v.image_url ? (
+                        <Image source={{ uri: v.image_url }} style={d.browseCardImg} resizeMode="cover" />
+                      ) : (
+                        <View style={[d.browseCardImg, d.browseCardPlaceholder]}>
+                          <Home size={20} color="#ddd" />
+                        </View>
+                      )}
+                      {/* Action badges */}
+                      <View style={d.browseCardBadges}>
+                        {isInq && (
+                          <View style={[d.browseCardBadge, { backgroundColor: "#dcfce7" }]}>
+                            <MessageCircle size={10} color="#16a34a" />
+                            <Text style={[d.browseCardBadgeText, { color: "#16a34a" }]}>咨询</Text>
+                          </View>
+                        )}
+                        {isFav && (
+                          <View style={[d.browseCardBadge, { backgroundColor: "#fee2e2" }]}>
+                            <Heart size={10} color="#ef4444" />
+                            <Text style={[d.browseCardBadgeText, { color: "#ef4444" }]}>收藏</Text>
+                          </View>
+                        )}
+                        {viewCount > 1 && (
+                          <View style={[d.browseCardBadge, { backgroundColor: "#f0f0f0" }]}>
+                            <Eye size={10} color="#666" />
+                            <Text style={[d.browseCardBadgeText, { color: "#666" }]}>{viewCount}次</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={d.browseCardBody}>
+                        <Text style={d.browseCardPrice}>{priceStr}</Text>
+                        <Text style={d.browseCardAddr} numberOfLines={2}>{v.address || "未知地址"}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                });
+              })()}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Follow-up Logs */}
         <View style={d.logsSection}>
           <View style={d.logsSectionHeader}>
@@ -713,20 +817,55 @@ const d = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, color: "#111827", marginBottom: 8,
   },
+
+  // Browse history
+  browseSection: { marginTop: 4, marginBottom: 16 },
+  browseSectionHeader: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12,
+  },
+  browseSectionTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+  browseSectionCount: { fontSize: 12, color: "#aaa", marginLeft: 2 },
+  browseCard: {
+    width: 160, backgroundColor: "#f9f9f9", borderRadius: 16, overflow: "hidden",
+  },
+  browseCardImg: { width: 160, height: 100, backgroundColor: "#eee" },
+  browseCardPlaceholder: { alignItems: "center", justifyContent: "center" },
+  browseCardBadges: {
+    flexDirection: "row", gap: 4, paddingHorizontal: 10, paddingTop: 8,
+    flexWrap: "wrap",
+  },
+  browseCardBadge: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8,
+  },
+  browseCardBadgeText: { fontSize: 10, fontWeight: "600" },
+  browseCardBody: { padding: 10, paddingTop: 6 },
+  browseCardPrice: { fontSize: 15, fontWeight: "700", color: "#000" },
+  browseCardAddr: { fontSize: 11, color: "#999", marginTop: 3, lineHeight: 15 },
 });
 
 // ── Main Client List ──
 
 export default function ClientsPage() {
+  const params = useLocalSearchParams<{ openClientId?: string }>();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("全部");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [handledOpenId, setHandledOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     loadClients();
   }, []);
+
+  // Auto-open client from param (e.g. from home page)
+  useEffect(() => {
+    if (params.openClientId && params.openClientId !== handledOpenId && clients.length > 0) {
+      setSelectedClientId(params.openClientId);
+      setHandledOpenId(params.openClientId);
+    }
+  }, [params.openClientId, clients]);
 
   const loadClients = async () => {
     if (!supabase) {

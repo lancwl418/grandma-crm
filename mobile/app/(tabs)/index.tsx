@@ -298,7 +298,7 @@ export default function HomePage() {
                     key={client.clientId}
                     style={s.visitorCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push("/(tabs)/clients")}
+                    onPress={() => router.push(`/(tabs)/clients?openClientId=${client.clientId}`)}
                   >
                     {/* Client avatar + name */}
                     <View style={s.visitorHeader}>
