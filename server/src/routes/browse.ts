@@ -1,6 +1,6 @@
 import { Router } from "express";
 import twilio from "twilio";
-import { searchListings, getPropertyDetail, getPropertyImage } from "../lib/zillow.js";
+import { searchListings, getPropertyDetail, getPropertyImage, getZestimateHistory, getTaxHistory, getSimilarProperties, getNearbyProperties } from "../lib/zillow.js";
 import { searchCommercial, autocompleteCommercial, getCommercialDetail } from "../lib/loopnet.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
@@ -338,6 +338,66 @@ browseRouter.get("/listing/:zpid", async (req, res) => {
       return;
     }
     res.status(502).json({ error: "Failed to get listing detail" });
+  }
+});
+
+// ── Zestimate History ───────────────────────────────────────
+
+browseRouter.get("/listing/:zpid/zestimate-history", async (req, res) => {
+  try {
+    const zpid = Number(req.params.zpid);
+    if (!zpid) { res.status(400).json({ error: "Invalid zpid" }); return; }
+    const history = await getZestimateHistory(zpid);
+    res.json({ history });
+  } catch (err: any) {
+    console.error("[browse/zestimate-history]", err);
+    if (err?.message === "RATE_LIMITED") { res.status(429).json({ error: "请求过于频繁" }); return; }
+    res.status(502).json({ error: "Failed to get zestimate history" });
+  }
+});
+
+// ── Tax Assessment History ──────────────────────────────────
+
+browseRouter.get("/listing/:zpid/tax-history", async (req, res) => {
+  try {
+    const zpid = Number(req.params.zpid);
+    if (!zpid) { res.status(400).json({ error: "Invalid zpid" }); return; }
+    const assessments = await getTaxHistory(zpid);
+    res.json({ assessments });
+  } catch (err: any) {
+    console.error("[browse/tax-history]", err);
+    if (err?.message === "RATE_LIMITED") { res.status(429).json({ error: "请求过于频繁" }); return; }
+    res.status(502).json({ error: "Failed to get tax history" });
+  }
+});
+
+// ── Similar Properties ──────────────────────────────────────
+
+browseRouter.get("/listing/:zpid/similar", async (req, res) => {
+  try {
+    const zpid = Number(req.params.zpid);
+    if (!zpid) { res.status(400).json({ error: "Invalid zpid" }); return; }
+    const properties = await getSimilarProperties(zpid);
+    res.json({ properties });
+  } catch (err: any) {
+    console.error("[browse/similar]", err);
+    if (err?.message === "RATE_LIMITED") { res.status(429).json({ error: "请求过于频繁" }); return; }
+    res.status(502).json({ error: "Failed to get similar properties" });
+  }
+});
+
+// ── Nearby Properties ───────────────────────────────────────
+
+browseRouter.get("/listing/:zpid/nearby", async (req, res) => {
+  try {
+    const zpid = Number(req.params.zpid);
+    if (!zpid) { res.status(400).json({ error: "Invalid zpid" }); return; }
+    const properties = await getNearbyProperties(zpid);
+    res.json({ properties });
+  } catch (err: any) {
+    console.error("[browse/nearby]", err);
+    if (err?.message === "RATE_LIMITED") { res.status(429).json({ error: "请求过于频繁" }); return; }
+    res.status(502).json({ error: "Failed to get nearby properties" });
   }
 });
 
@@ -1326,7 +1386,7 @@ browseRouter.get("/agent-activity/:userId", async (req, res) => {
     // Get recent browse activity
     const { data: views } = await supabaseAdmin
       .from("client_listing_views")
-      .select("client_id, zpid, address, action, created_at")
+      .select("client_id, zpid, address, action, image_url, created_at")
       .in("client_id", clientIds)
       .order("created_at", { ascending: false })
       .limit(80);
@@ -1353,6 +1413,7 @@ browseRouter.get("/agent-activity/:userId", async (req, res) => {
         clientName,
         action: actionText,
         address: v.address || "某房源",
+        imageUrl: v.image_url || null,
         createdAt: v.created_at,
       };
     });

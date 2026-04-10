@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -154,7 +155,11 @@ export default function ProfilePage() {
           {/* Avatar */}
           <View style={s.avatarSection}>
             <View style={s.avatarLg}>
-              <Text style={s.avatarLgText}>{initial}</Text>
+              {draft.avatar_url ? (
+                <Image source={{ uri: draft.avatar_url }} style={s.avatarLgImg} />
+              ) : (
+                <Text style={s.avatarLgText}>{initial}</Text>
+              )}
             </View>
           </View>
 
@@ -218,7 +223,11 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <View style={s.profileCard}>
           <View style={s.avatarMd}>
-            <Text style={s.avatarMdText}>{initial}</Text>
+            {profile.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={s.avatarMdImg} />
+            ) : (
+              <Text style={s.avatarMdText}>{initial}</Text>
+            )}
           </View>
           <View style={s.profileInfo}>
             <Text style={s.profileName}>{displayName}</Text>
@@ -341,6 +350,7 @@ const s = StyleSheet.create({
     fontWeight: "700",
     color: "#2563eb",
   },
+  avatarMdImg: { width: 56, height: 56, borderRadius: 28 },
   profileInfo: { flex: 1, marginLeft: 14 },
   profileName: { fontSize: 18, fontWeight: "700", color: "#111827" },
   profileUsername: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
@@ -436,6 +446,7 @@ const s = StyleSheet.create({
     fontWeight: "700",
     color: "#2563eb",
   },
+  avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
   fieldCard: {
     backgroundColor: "#fff",
     borderRadius: 12,

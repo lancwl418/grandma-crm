@@ -352,3 +352,97 @@ export async function getPropertyImage(zpid: number): Promise<string | null> {
     return null;
   }
 }
+
+// ── Zestimate History ──────────────────────────────────────
+
+export interface ZestimateHistoryPoint {
+  date: string;
+  value: number;
+}
+
+export async function getZestimateHistory(zpid: number): Promise<ZestimateHistoryPoint[]> {
+  const url = `${BASE_URL}/zestimateHistory?zpid=${zpid}`;
+  const response = await fetchWithRetry(url, { headers: headers() });
+  if (!response.ok) throw new Error(`Zillow API error: ${response.status}`);
+  const data = await response.json();
+  const points = Array.isArray(data) ? data : (data?.points ?? data?.data ?? []);
+  return points
+    .map((p: any) => ({
+      date: p.x ?? p.date ?? "",
+      value: p.y ?? p.value ?? 0,
+    }))
+    .filter((p: ZestimateHistoryPoint) => p.date && p.value > 0);
+}
+
+// ── Tax Assessment History ─────────────────────────────────
+
+export interface TaxAssessment {
+  year: number;
+  value: number;
+  taxPaid: number | null;
+}
+
+export async function getTaxHistory(zpid: number): Promise<TaxAssessment[]> {
+  const url = `${BASE_URL}/taxAssessmentHistory?zpid=${zpid}`;
+  const response = await fetchWithRetry(url, { headers: headers() });
+  if (!response.ok) throw new Error(`Zillow API error: ${response.status}`);
+  const data = await response.json();
+  const items = Array.isArray(data) ? data : (data?.assessments ?? data?.data ?? []);
+  return items
+    .slice(0, 10)
+    .map((t: any) => ({
+      year: t.year ?? t.taxYear ?? 0,
+      value: t.value ?? t.assessedValue ?? t.totalAssessedValue ?? 0,
+      taxPaid: t.taxPaid ?? t.tax ?? null,
+    }))
+    .filter((t: TaxAssessment) => t.year > 0);
+}
+
+// ── Similar / Nearby Properties ────────────────────────────
+
+export interface NearbyProperty {
+  zpid: number;
+  address: string;
+  price: number;
+  priceFormatted: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+  imageUrl: string;
+  homeType: string;
+}
+
+function mapNearbyItems(items: any[]): NearbyProperty[] {
+  return items.slice(0, 8).map((item: any) => {
+    const price = item.price ?? item.miniCardPhotos?.[0]?.price ?? 0;
+    return {
+      zpid: item.zpid ?? 0,
+      address: item.address ?? item.streetAddress ?? [item.streetAddress, item.city, item.state].filter(Boolean).join(", "),
+      price,
+      priceFormatted: price > 0 ? formatPrice(price) : "N/A",
+      beds: item.bedrooms ?? item.beds ?? 0,
+      baths: item.bathrooms ?? item.baths ?? 0,
+      sqft: item.livingArea ?? item.sqft ?? 0,
+      imageUrl: item.miniCardPhotos?.[0]?.url ?? item.imgSrc ?? item.imageUrl ?? "",
+      homeType: item.homeType ?? "",
+    };
+  }).filter((p: NearbyProperty) => p.zpid > 0);
+}
+
+export async function getSimilarProperties(zpid: number): Promise<NearbyProperty[]> {
+  const url = `${BASE_URL}/similar_properties?zpid=${zpid}`;
+  const response = await fetchWithRetry(url, { headers: headers() });
+  if (!response.ok) throw new Error(`Zillow API error: ${response.status}`);
+  const data = await response.json();
+  const items = Array.isArray(data) ? data : (data?.properties ?? data?.results ?? data?.similarProperties ?? []);
+  return mapNearbyItems(items);
+}
+
+export async function getNearbyProperties(zpid: number): Promise<NearbyProperty[]> {
+  const url = `${BASE_URL}/nearby_properties?zpid=${zpid}`;
+  const response = await fetchWithRetry(url, { headers: headers() });
+  if (!response.ok) throw new Error(`Zillow API error: ${response.status}`);
+  const data = await response.json();
+  const items = Array.isArray(data) ? data : (data?.properties ?? data?.results ?? data?.nearbyProperties ?? []);
+  return mapNearbyItems(items);
+}

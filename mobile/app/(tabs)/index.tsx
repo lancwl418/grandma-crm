@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,9 +21,34 @@ import {
   ChevronRight,
   Share2,
   Pencil,
+  LayoutDashboard,
+  Home,
+  Heart,
+  MessageCircle,
 } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import type { AgentProfile, Stats } from "@/types";
+
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || "https://grandma-crm.onrender.com";
+
+interface RecentActivity {
+  clientId: string;
+  clientName: string;
+  action: string;
+  address: string;
+  time: string;
+  zpid?: string;
+  imageUrl?: string;
+}
+
+// Group activities by client for card display
+interface ClientActivity {
+  clientId: string;
+  clientName: string;
+  listings: { address: string; action: string; time: string; imageUrl?: string }[];
+}
+
+const { width: SCREEN_W } = Dimensions.get("window");
 
 const DEFAULT_PROFILE: AgentProfile = {
   username: "",
@@ -44,17 +71,16 @@ export default function HomePage() {
     inquiries: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [recentClients, setRecentClients] = useState<ClientActivity[]>([]);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setLoading(false); return; }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
         loadProfile(session.user.id);
         loadStats(session.user.id);
+        loadRecentActivity(session.user.id);
       } else {
         setLoading(false);
       }
@@ -82,29 +108,18 @@ export default function HomePage() {
   };
 
   const loadStats = async (uid: string) => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setLoading(false); return; }
     try {
       const { count: total } = await supabase
-        .from("clients")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", uid);
-
+        .from("clients").select("id", { count: "exact", head: true }).eq("user_id", uid);
       const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
+      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
       const { count: newCount } = await supabase
-        .from("clients")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", uid)
-        .gte("created_at", monthStart.toISOString());
+        .from("clients").select("id", { count: "exact", head: true })
+        .eq("user_id", uid).gte("created_at", monthStart.toISOString());
 
       const { data: myClients } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", uid);
+        .from("clients").select("id").eq("user_id", uid);
       const myClientIds = (myClients ?? []).map((c: any) => c.id);
 
       let activeViewers = 0;
@@ -113,29 +128,17 @@ export default function HomePage() {
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         const { data: viewData } = await supabase
-          .from("client_listing_views")
-          .select("client_id")
-          .in("client_id", myClientIds)
-          .gte("created_at", weekAgo.toISOString());
-        activeViewers = new Set(
-          (viewData ?? []).map((v: any) => v.client_id)
-        ).size;
-
+          .from("client_listing_views").select("client_id")
+          .in("client_id", myClientIds).gte("created_at", weekAgo.toISOString());
+        activeViewers = new Set((viewData ?? []).map((v: any) => v.client_id)).size;
         const { count: iqCount } = await supabase
-          .from("client_listing_views")
-          .select("id", { count: "exact", head: true })
-          .in("client_id", myClientIds)
-          .eq("action", "inquiry")
+          .from("client_listing_views").select("id", { count: "exact", head: true })
+          .in("client_id", myClientIds).eq("action", "inquiry")
           .gte("created_at", weekAgo.toISOString());
         inquiries = iqCount ?? 0;
       }
 
-      setStats({
-        totalClients: total ?? 0,
-        newThisMonth: newCount ?? 0,
-        activeViewers,
-        inquiries,
-      });
+      setStats({ totalClients: total ?? 0, newThisMonth: newCount ?? 0, activeViewers, inquiries });
     } catch (err) {
       console.error("loadStats error:", err);
     } finally {
@@ -143,284 +146,344 @@ export default function HomePage() {
     }
   };
 
-  const displayName =
-    profile.display_name || profile.username || "Agent";
+  const loadRecentActivity = async (uid: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/browse/agent-activity/${uid}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const rawActivities: any[] = data.activities || [];
+
+      // Group by client
+      const map = new Map<string, ClientActivity>();
+      for (const a of rawActivities) {
+        const cid = a.clientId;
+        if (!map.has(cid)) {
+          map.set(cid, { clientId: cid, clientName: a.clientName || "未知", listings: [] });
+        }
+        const client = map.get(cid)!;
+        if (client.listings.length < 4) {
+          client.listings.push({
+            address: a.address || "",
+            action: a.action || "view",
+            time: a.createdAt || a.time || "",
+            imageUrl: a.imageUrl || a.image_url || undefined,
+          });
+        }
+      }
+      setRecentClients(Array.from(map.values()).slice(0, 5));
+    } catch {}
+  };
+
+  const displayName = profile.display_name || profile.username || "Agent";
   const initial = displayName[0]?.toUpperCase() ?? "A";
+  const formatRelativeTime = (iso?: string) => {
+    if (!iso) return "";
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "刚刚";
+    if (mins < 60) return `${mins}分钟前`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}小时前`;
+    const days = Math.floor(diff / 86400000);
+    if (days < 7) return `${days}天前`;
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  };
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 6) return "夜深了";
+    if (h < 12) return "早上好";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  })();
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        {/* Profile Header */}
-        <View style={s.headerBg}>
-          <View style={s.headerRow}>
-            <View style={s.avatar}>
-              <Text style={s.avatarText}>{initial}</Text>
-            </View>
-            <View style={s.headerInfo}>
-              <Text style={s.headerName}>{displayName}</Text>
-              {profile.username ? (
-                <Text style={s.headerUsername}>@{profile.username}</Text>
-              ) : null}
-              <Text style={s.headerTitle}>
-                {profile.title || "房地产经纪人"}
-              </Text>
+    <View style={s.root}>
+      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+
+          {/* ── Profile Header ── */}
+          <View style={s.header}>
+            <View>
+              <Text style={s.greeting}>{greeting}</Text>
+              <Text style={s.displayName}>{displayName}</Text>
+              <Text style={s.title}>{profile.title || "房地产经纪人"}</Text>
             </View>
             <TouchableOpacity
-              style={s.editBtn}
               onPress={() => router.push("/(tabs)/profile")}
+              activeOpacity={0.8}
             >
-              <Pencil size={16} color="#fff" />
+              <View style={s.avatar}>
+                {profile.avatar_url ? (
+                  <Image source={{ uri: profile.avatar_url }} style={s.avatarImg} />
+                ) : (
+                  <Text style={s.avatarInitial}>{initial}</Text>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Stats */}
-        <View style={s.statsGrid}>
-          <StatCard
-            icon={<Users size={20} color="#2563eb" />}
-            label="客户总数"
-            value={stats.totalClients}
-            loading={loading}
-            onPress={() => router.push("/(tabs)/clients")}
-          />
-          <StatCard
-            icon={<UserPlus size={20} color="#16a34a" />}
-            label="本月新增"
-            value={stats.newThisMonth}
-            loading={loading}
-            onPress={() => router.push("/(tabs)/clients")}
-          />
-          <StatCard
-            icon={<Eye size={20} color="#9333ea" />}
-            label="访客"
-            value={stats.activeViewers}
-            loading={loading}
-            subtitle="近7天"
-          />
-          <StatCard
-            icon={<TrendingUp size={20} color="#ea580c" />}
-            label="感兴趣"
-            value={stats.inquiries}
-            loading={loading}
-            subtitle="近7天"
-          />
-        </View>
-
-        {/* Share Link */}
-        {userId && (
-          <View style={s.section}>
-            <TouchableOpacity style={s.shareBtn} activeOpacity={0.7}>
-              <Share2 size={16} color="#fff" />
-              <Text style={s.shareBtnText}>生成推广链接</Text>
+          {/* ── Stats Cards ── */}
+          <View style={s.statsRow}>
+            <TouchableOpacity style={s.statCardLarge} onPress={() => router.push("/(tabs)/clients")} activeOpacity={0.85}>
+              <Text style={s.statNum}>{loading ? "–" : stats.totalClients}</Text>
+              <Text style={s.statLabel}>客户总数</Text>
             </TouchableOpacity>
-            <Text style={s.shareHint}>
-              新客户打开链接填写信息后自动创建
-            </Text>
+            <TouchableOpacity style={s.statCardLarge} onPress={() => router.push("/(tabs)/clients")} activeOpacity={0.85}>
+              <Text style={[s.statNum, { color: "#16a34a" }]}>{loading ? "–" : stats.newThisMonth}</Text>
+              <Text style={s.statLabel}>本月新增</Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>快捷入口</Text>
-          <View style={s.menuCard}>
-            <MenuItem
-              icon={<ClipboardList size={20} color="#2563eb" />}
-              label="工作台"
-              subtitle="查看今日待办和跟进"
-              onPress={() => router.push("/(tabs)/dashboard")}
-            />
-            <MenuItem
-              icon={<Users size={20} color="#16a34a" />}
-              label="客户管理"
-              subtitle="查看和管理所有客户"
-              onPress={() => router.push("/(tabs)/clients")}
-            />
-            <MenuItem
-              icon={<Search size={20} color="#9333ea" />}
-              label="房源搜索"
-              subtitle="搜索并分享给客户"
-              onPress={() => router.push("/(tabs)/search")}
-            />
-            <MenuItem
-              icon={<Eye size={20} color="#ea580c" />}
-              label="访客管理"
-              subtitle="查看客户浏览动态"
-            />
+          <View style={s.statsRow}>
+            <View style={s.statCardSmall}>
+              <Eye size={16} color="#999" />
+              <Text style={s.statSmallNum}>{loading ? "–" : stats.activeViewers}</Text>
+              <Text style={s.statSmallLabel}>近7天访客</Text>
+            </View>
+            <View style={s.statCardSmall}>
+              <TrendingUp size={16} color="#999" />
+              <Text style={s.statSmallNum}>{loading ? "–" : stats.inquiries}</Text>
+              <Text style={s.statSmallLabel}>近7天咨询</Text>
+            </View>
           </View>
-        </View>
 
-        <Text style={s.footer}>Estate Epic v1.0</Text>
-      </ScrollView>
-    </SafeAreaView>
+          {/* ── Quick Actions Grid ── */}
+          <Text style={s.sectionLabel}>快捷操作</Text>
+          <View style={s.actionsGrid}>
+            <TouchableOpacity style={s.actionCard} onPress={() => router.push("/(tabs)/dashboard")} activeOpacity={0.85}>
+              <View style={[s.actionIcon, { backgroundColor: "#000" }]}>
+                <LayoutDashboard size={20} color="#fff" />
+              </View>
+              <Text style={s.actionTitle}>工作台</Text>
+              <Text style={s.actionSub}>待办与跟进</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.actionCard} onPress={() => router.push("/(tabs)/clients")} activeOpacity={0.85}>
+              <View style={[s.actionIcon, { backgroundColor: "#000" }]}>
+                <Users size={20} color="#fff" />
+              </View>
+              <Text style={s.actionTitle}>客户管理</Text>
+              <Text style={s.actionSub}>查看全部客户</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.actionCard} onPress={() => router.push("/(tabs)/search")} activeOpacity={0.85}>
+              <View style={[s.actionIcon, { backgroundColor: "#000" }]}>
+                <Search size={20} color="#fff" />
+              </View>
+              <Text style={s.actionTitle}>房源搜索</Text>
+              <Text style={s.actionSub}>查找并分享</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.actionCard} activeOpacity={0.85}>
+              <View style={[s.actionIcon, { backgroundColor: "#000" }]}>
+                <Eye size={20} color="#fff" />
+              </View>
+              <Text style={s.actionTitle}>访客动态</Text>
+              <Text style={s.actionSub}>浏览记录</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Recent Client Activity ── */}
+          {recentClients.length > 0 && (
+            <>
+              <Text style={s.sectionLabel}>最近浏览</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              >
+                {recentClients.map((client) => (
+                  <TouchableOpacity
+                    key={client.clientId}
+                    style={s.visitorCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push("/(tabs)/clients")}
+                  >
+                    {/* Client avatar + name */}
+                    <View style={s.visitorHeader}>
+                      <View style={s.visitorAvatar}>
+                        <Text style={s.visitorAvatarText}>
+                          {client.clientName[0]}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.visitorName}>{client.clientName}</Text>
+                        <Text style={s.visitorTime}>
+                          {formatRelativeTime(client.listings[0]?.time)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Listing thumbnails */}
+                    <View style={s.visitorListings}>
+                      {client.listings.map((listing, i) => (
+                        <View key={i} style={s.visitorListingItem}>
+                          {listing.imageUrl ? (
+                            <Image
+                              source={{ uri: listing.imageUrl }}
+                              style={s.visitorListingImg}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={[s.visitorListingImg, s.visitorListingPlaceholder]}>
+                              <Home size={14} color="#ddd" />
+                            </View>
+                          )}
+                          {listing.action === "favorite" && (
+                            <View style={s.visitorActionBadge}>
+                              <Heart size={8} color="#ef4444" />
+                            </View>
+                          )}
+                          {listing.action === "inquiry" && (
+                            <View style={[s.visitorActionBadge, { backgroundColor: "#dcfce7" }]}>
+                              <MessageCircle size={8} color="#16a34a" />
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Summary */}
+                    <Text style={s.visitorSummary}>
+                      浏览了 {client.listings.length} 套房源
+                      {client.listings.some(l => l.action === "inquiry") ? " · 有咨询" : ""}
+                      {client.listings.some(l => l.action === "favorite") ? " · 有收藏" : ""}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* ── Share Link ── */}
+          {userId && (
+            <TouchableOpacity style={s.shareCard} activeOpacity={0.85}>
+              <View style={s.shareLeft}>
+                <Share2 size={20} color="#fff" />
+                <View>
+                  <Text style={s.shareTitle}>生成推广链接</Text>
+                  <Text style={s.shareSub}>客户打开链接后自动录入</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          )}
+
+          {/* ── Footer ── */}
+          <Text style={s.footer}>Estate Epic v1.0</Text>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  loading,
-  subtitle,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  loading: boolean;
-  subtitle?: string;
-  onPress?: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={s.statCard}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={s.statCardHeader}>
-        {icon}
-        <Text style={s.statLabel}>{label}</Text>
-      </View>
-      {loading ? (
-        <ActivityIndicator size="small" color="#9ca3af" />
-      ) : (
-        <Text style={s.statValue}>{value}</Text>
-      )}
-      {subtitle && <Text style={s.statSubtitle}>{subtitle}</Text>}
-    </TouchableOpacity>
-  );
-}
-
-function MenuItem({
-  icon,
-  label,
-  subtitle,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  subtitle: string;
-  onPress?: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={s.menuItem}
-      onPress={onPress}
-      activeOpacity={0.6}
-    >
-      {icon}
-      <View style={s.menuItemText}>
-        <Text style={s.menuItemLabel}>{label}</Text>
-        <Text style={s.menuItemSubtitle}>{subtitle}</Text>
-      </View>
-      <ChevronRight size={16} color="#d1d5db" />
-    </TouchableOpacity>
-  );
-}
+const CARD_GAP = 12;
+const HALF_W = (SCREEN_W - 40 - CARD_GAP) / 2;
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f8fafc" },
-  scroll: { flex: 1 },
-  content: { paddingBottom: 32 },
-  headerBg: {
-    backgroundColor: "#1e293b",
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 56,
+  root: { flex: 1, backgroundColor: "#fff" },
+  scrollContent: { paddingBottom: 40 },
+
+  // Header
+  header: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start",
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24,
   },
-  headerRow: { flexDirection: "row", alignItems: "center" },
+  greeting: { fontSize: 14, color: "#aaa", marginBottom: 2 },
+  displayName: { fontSize: 28, fontWeight: "800", color: "#000", lineHeight: 34 },
+  title: { fontSize: 13, color: "#bbb", marginTop: 4 },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { fontSize: 22, fontWeight: "700", color: "#fff" },
-  headerInfo: { flex: 1, marginLeft: 14 },
-  headerName: { fontSize: 20, fontWeight: "700", color: "#fff" },
-  headerUsername: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
-    marginTop: 1,
-  },
-  headerTitle: { fontSize: 13, color: "#93c5fd", marginTop: 2 },
-  editBtn: {
-    padding: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 8,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    marginTop: -32,
-    gap: 10,
-  },
-  statCard: {
-    width: "47%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  statCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
-  },
-  statLabel: { fontSize: 12, color: "#6b7280" },
-  statValue: { fontSize: 24, fontWeight: "700", color: "#111827" },
-  statSubtitle: { fontSize: 10, color: "#9ca3af", marginTop: 2 },
-  section: { paddingHorizontal: 16, marginTop: 24 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6b7280",
-    marginBottom: 10,
-    paddingLeft: 4,
-  },
-  shareBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: "#2563eb",
-  },
-  shareBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-  shareHint: {
-    fontSize: 10,
-    color: "#9ca3af",
-    textAlign: "center",
-    marginTop: 6,
-  },
-  menuCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: "#f0f0f0", alignItems: "center", justifyContent: "center",
     overflow: "hidden",
   },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f9fafb",
+  avatarImg: { width: 52, height: 52, borderRadius: 26 },
+  avatarInitial: { fontSize: 20, fontWeight: "700", color: "#666" },
+
+  // Stats
+  statsRow: {
+    flexDirection: "row", gap: CARD_GAP,
+    paddingHorizontal: 20, marginBottom: CARD_GAP,
   },
-  menuItemText: { flex: 1 },
-  menuItemLabel: { fontSize: 14, fontWeight: "500", color: "#111827" },
-  menuItemSubtitle: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
-  footer: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#d1d5db",
-    marginTop: 24,
+  statCardLarge: {
+    flex: 1, backgroundColor: "#f9f9f9", borderRadius: 20,
+    paddingVertical: 24, paddingHorizontal: 20,
   },
+  statNum: { fontSize: 36, fontWeight: "800", color: "#000" },
+  statLabel: { fontSize: 13, color: "#999", marginTop: 4 },
+  statCardSmall: {
+    flex: 1, backgroundColor: "#f9f9f9", borderRadius: 20,
+    paddingVertical: 16, paddingHorizontal: 16,
+    flexDirection: "row", alignItems: "center", gap: 10,
+  },
+  statSmallNum: { fontSize: 20, fontWeight: "700", color: "#000" },
+  statSmallLabel: { fontSize: 12, color: "#aaa", flex: 1 },
+
+  // Actions
+  sectionLabel: {
+    fontSize: 16, fontWeight: "700", color: "#000",
+    paddingHorizontal: 20, marginTop: 28, marginBottom: 14,
+  },
+  actionsGrid: {
+    flexDirection: "row", flexWrap: "wrap", gap: CARD_GAP,
+    paddingHorizontal: 20,
+  },
+  actionCard: {
+    width: HALF_W, backgroundColor: "#f9f9f9", borderRadius: 20,
+    padding: 18,
+  },
+  actionIcon: {
+    width: 44, height: 44, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 14,
+  },
+  actionTitle: { fontSize: 15, fontWeight: "700", color: "#000" },
+  actionSub: { fontSize: 12, color: "#aaa", marginTop: 3 },
+
+  // Share
+  shareCard: {
+    marginHorizontal: 20, marginTop: 24,
+    backgroundColor: "#000", borderRadius: 20,
+    paddingVertical: 20, paddingHorizontal: 20,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+  },
+  shareLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
+  shareTitle: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  shareSub: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 },
+
+  // Visitor cards
+  visitorCard: {
+    width: 200, backgroundColor: "#f9f9f9", borderRadius: 20,
+    padding: 16,
+  },
+  visitorHeader: {
+    flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12,
+  },
+  visitorAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "#000", alignItems: "center", justifyContent: "center",
+  },
+  visitorAvatarText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  visitorName: { fontSize: 14, fontWeight: "700", color: "#000" },
+  visitorTime: { fontSize: 11, color: "#aaa", marginTop: 1 },
+  visitorListings: {
+    flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10,
+  },
+  visitorListingItem: { position: "relative" },
+  visitorListingImg: {
+    width: 52, height: 52, borderRadius: 10, backgroundColor: "#eee",
+  },
+  visitorListingPlaceholder: {
+    alignItems: "center", justifyContent: "center",
+  },
+  visitorActionBadge: {
+    position: "absolute", top: -3, right: -3,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: "#fee2e2", alignItems: "center", justifyContent: "center",
+  },
+  visitorSummary: { fontSize: 11, color: "#999" },
+
+  // Footer
+  footer: { textAlign: "center", fontSize: 12, color: "#ddd", marginTop: 32 },
 });
